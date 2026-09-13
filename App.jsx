@@ -3,7 +3,7 @@ import {
   Camera, Image as ImageIcon, Pencil, Trash2, X, Plus, Search, FileText,
   Printer, Share2, Eye, Home, Package, FileText as FileTextIcon, Users, Menu,
   TrendingUp, DollarSign, Ship, Cloud, CloudOff, Settings, BarChart3, ClipboardList,
-  CheckCircle2, XCircle, Clock3, Phone, Mail, MapPin, UserPlus, ChevronRight, RefreshCw,
+  CheckCircle2, XCircle, Clock3, Phone, Mail, MapPin, UserPlus, ChevronRight, RefreshCw, KeyRound, ShieldCheck, LogOut, Copy,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { LOGO_POR_DEFECTO } from "./logo.js";
@@ -388,6 +388,20 @@ async function sbSaveConfig(clave, valor) {
   if (error) { console.error(error); return false; }
   return true;
 }
+
+
+/* ---------- acceso EVK: usuarios y portal de clientes ---------- */
+async function rpc(nombre, args={}) {
+  if (!supabase) throw new Error("Supabase no está conectado");
+  const { data, error } = await supabase.rpc(nombre, args);
+  if (error) throw error;
+  return data;
+}
+function generarPassword() {
+  const chars="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  let out="EVK-"; for(let i=0;i<8;i++) out+=chars[Math.floor(Math.random()*chars.length)]; return out;
+}
+function portalLink(token){ return `${window.location.origin}${window.location.pathname}?portal=${token}`; }
 
 /* ---------- respaldo local (IndexedDB) ---------- */
 let dbPromise = null;
@@ -2162,7 +2176,7 @@ function GananciasView({ ordenes }) {
   </div>;
 }
 
-function ClientesView({ cartera, guardarCartera, cotizaciones, ordenes, avisar }) {
+function ClientesView({ cartera, guardarCartera, cotizaciones, ordenes, avisar, sesion }) {
   const vacio={nombre:'',telefono:'',email:'',direccion:'',notas:''};
   const [form,setForm]=useState(vacio), [editId,setEditId]=useState(null), [detalle,setDetalle]=useState(null);
   const lista=[...cartera.lista].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
@@ -2172,8 +2186,8 @@ function ClientesView({ cartera, guardarCartera, cotizaciones, ordenes, avisar }
     const ahora=new Date().toISOString();
     let nueva;
     if(editId) nueva=cartera.lista.map(c=>c.id===editId?{...c,...form,nombre:form.nombre.trim(),actualizado:ahora}:c);
-    else nueva=[{id:uid(),...form,nombre:form.nombre.trim(),creado:ahora,actualizado:ahora},...cartera.lista];
-    if(await guardarCartera({...cartera,lista:nueva})){avisar(editId?'Cliente actualizado':'Cliente agregado');setForm(vacio);setEditId(null);}
+    else { const id=uid(), password=generarPassword(); const portal=await rpc('evk_create_or_reset_client_portal',{p_token:sesion.token,p_client_ref:id,p_client_name:form.nombre.trim(),p_password:password}); const link=portalLink(portal.access_token); nueva=[{id,...form,nombre:form.nombre.trim(),portalLink:link,portalPassword:password,creado:ahora,actualizado:ahora},...cartera.lista]; }
+    if(await guardarCartera({...cartera,lista:nueva})){avisar(editId?'Cliente actualizado':'Cliente agregado con portal');setForm(vacio);setEditId(null);}
   }
   async function borrar(c){if(await guardarCartera({...cartera,lista:cartera.lista.filter(x=>x.id!==c.id)})){setDetalle(null);avisar('Cliente eliminado');}}
   function stats(c){const qs=cotizaciones.lista.filter(q=>(q.cliente||'').trim().toLowerCase()===c.nombre.trim().toLowerCase()); const os=ordenes.lista.filter(o=>(o.cliente||'').trim().toLowerCase()===c.nombre.trim().toLowerCase()); return {qs,os,total:os.reduce((a,o)=>a+num(o.total),0)};}
@@ -2181,8 +2195,33 @@ function ClientesView({ cartera, guardarCartera, cotizaciones, ordenes, avisar }
     <div className="crm-grid"><div className="crm-card"><div className="flex items-center gap-2 mb-4"><UserPlus size={21} color="#0B6F9E"/><b>{editId?'Editar cliente':'Agregar cliente'}</b></div>
       <div className="space-y-3"><div><label className="lbl">Nombre *</label><input className="inp" value={form.nombre} onChange={e=>setForm({...form,nombre:e.target.value})} placeholder="Nombre o empresa"/></div><div className="form-grid-2"><div><label className="lbl">Teléfono</label><input className="inp" value={form.telefono} onChange={e=>setForm({...form,telefono:e.target.value})}/></div><div><label className="lbl">Email</label><input className="inp" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></div></div><div><label className="lbl">Dirección</label><input className="inp" value={form.direccion} onChange={e=>setForm({...form,direccion:e.target.value})}/></div><div><label className="lbl">Notas</label><textarea className="inp" rows="3" value={form.notas} onChange={e=>setForm({...form,notas:e.target.value})}/></div><div className="flex gap-2"><button className="btn btn-primary" onClick={guardar}>{editId?'Guardar cambios':'Agregar cliente'}</button>{editId&&<button className="btn btn-ghost" onClick={()=>{setEditId(null);setForm(vacio)}}>Cancelar</button>}</div></div>
     </div><div className="paper" style={{overflow:'hidden'}}>{lista.length===0?<div className="p-8 text-center muted">Aún no hay clientes.</div>:lista.map(c=>{const st=stats(c);return <button key={c.id} className="crm-list-item" onClick={()=>setDetalle(c)}><div className="stat-icon" style={{background:'#E4EFF1',color:'#0B6F9E',margin:0}}><Users size={20}/></div><div style={{flex:1,minWidth:0}}><div className="flex justify-between gap-3"><b>{c.nombre}</b><b>{money(st.total)}</b></div><div className="text-sm muted">{st.qs.length} cotizaciones · {st.os.length} órdenes{c.telefono?` · ${c.telefono}`:''}</div></div><ChevronRight size={18} color="#7D919C"/></button>})}</div></div>
-    {detalle&&(()=>{const st=stats(detalle);return <ModalShell titulo={detalle.nombre} subtitulo="Ficha del cliente" onClose={()=>setDetalle(null)}><div className="space-y-2">{detalle.telefono&&<div className="flex gap-2"><Phone size={17}/><span>{detalle.telefono}</span></div>}{detalle.email&&<div className="flex gap-2"><Mail size={17}/><span>{detalle.email}</span></div>}{detalle.direccion&&<div className="flex gap-2"><MapPin size={17}/><span>{detalle.direccion}</span></div>}</div><div className="stats-grid" style={{gridTemplateColumns:'repeat(3,1fr)'}}><div className="stat-card"><div className="stat-label">Cotizaciones</div><div className="stat-value">{st.qs.length}</div></div><div className="stat-card"><div className="stat-label">Órdenes</div><div className="stat-value">{st.os.length}</div></div><div className="stat-card"><div className="stat-label">Ventas</div><div className="stat-value">{money(st.total)}</div></div></div>{detalle.notas&&<div className="paper p-3"><b>Notas</b><div className="muted text-sm mt-1">{detalle.notas}</div></div>}<div className="flex gap-2"><button className="btn btn-ghost flex-1" onClick={()=>{editar(detalle);setDetalle(null)}}><Pencil size={16}/> Editar</button><button className="btn btn-danger flex-1" onClick={()=>borrar(detalle)}><Trash2 size={16}/> Eliminar</button></div></ModalShell>})()}
+    {detalle&&(()=>{const st=stats(detalle);return <ModalShell titulo={detalle.nombre} subtitulo="Ficha del cliente" onClose={()=>setDetalle(null)}><div className="space-y-2">{detalle.telefono&&<div className="flex gap-2"><Phone size={17}/><span>{detalle.telefono}</span></div>}{detalle.email&&<div className="flex gap-2"><Mail size={17}/><span>{detalle.email}</span></div>}{detalle.direccion&&<div className="flex gap-2"><MapPin size={17}/><span>{detalle.direccion}</span></div>}</div><div className="stats-grid" style={{gridTemplateColumns:'repeat(3,1fr)'}}><div className="stat-card"><div className="stat-label">Cotizaciones</div><div className="stat-value">{st.qs.length}</div></div><div className="stat-card"><div className="stat-label">Órdenes</div><div className="stat-value">{st.os.length}</div></div><div className="stat-card"><div className="stat-label">Ventas</div><div className="stat-value">{money(st.total)}</div></div></div>{detalle.notas&&<div className="paper p-3"><b>Notas</b><div className="muted text-sm mt-1">{detalle.notas}</div></div>}{detalle.portalLink&&<div className="paper p-3"><b>Acceso del cliente</b><div className="text-sm muted mt-1" style={{wordBreak:'break-all'}}>{detalle.portalLink}</div><div className="text-sm" style={{marginTop:6}}><b>Contraseña:</b> {detalle.portalPassword}</div><div className="flex gap-2" style={{marginTop:8}}><button className="btn btn-ghost" onClick={()=>{navigator.clipboard?.writeText(detalle.portalLink);avisar('Link copiado')}}><Copy size={15}/> Copiar link</button><button className="btn btn-ghost" onClick={()=>{navigator.clipboard?.writeText(`Portal EVK: ${detalle.portalLink}\nContraseña: ${detalle.portalPassword}`);avisar('Acceso copiado')}}><KeyRound size={15}/> Copiar acceso</button></div></div>}<div className="flex gap-2"><button className="btn btn-ghost flex-1" onClick={()=>{editar(detalle);setDetalle(null)}}><Pencil size={16}/> Editar</button><button className="btn btn-danger flex-1" onClick={()=>borrar(detalle)}><Trash2 size={16}/> Eliminar</button></div></ModalShell>})()}
   </div>;
+}
+
+
+function LoginEVK({ onLogin }) {
+  const [hasUsers,setHasUsers]=useState(null), [form,setForm]=useState({username:'',password:'',full_name:''}), [err,setErr]=useState(''), [busy,setBusy]=useState(false);
+  useEffect(()=>{rpc('evk_has_users').then(setHasUsers).catch(e=>setErr(e.message))},[]);
+  async function entrar(){setBusy(true);setErr('');try{const data=hasUsers?await rpc('evk_login',{p_username:form.username,p_password:form.password}):await rpc('evk_bootstrap_admin',{p_username:form.username,p_password:form.password,p_full_name:form.full_name||'Administrador EVK'}); localStorage.setItem('evk_session',data.token);onLogin(data);}catch(e){setErr(e.message)}finally{setBusy(false)}}
+  return <div style={{minHeight:'100vh',display:'grid',placeItems:'center',background:'#062F4A',padding:20}}><div className="paper p-6" style={{width:'100%',maxWidth:430}}><img src={EVK_SIDEBAR_LOGO} alt="EVK" style={{width:210,maxHeight:100,objectFit:'contain',display:'block',margin:'0 auto 18px'}}/><h2 style={{fontSize:24,fontWeight:800,textAlign:'center'}}>{hasUsers===false?'Crear administrador':'Acceso EVK'}</h2><p className="muted text-sm" style={{textAlign:'center',marginBottom:18}}>{hasUsers===false?'Este será el administrador principal de la aplicación.':'Ingresa con tu usuario y contraseña.'}</p>{hasUsers===false&&<div><label className="lbl">Nombre</label><input className="inp" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/></div>}<div style={{marginTop:10}}><label className="lbl">Usuario</label><input className="inp" value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/></div><div style={{marginTop:10}}><label className="lbl">Contraseña</label><input type="password" className="inp" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} onKeyDown={e=>e.key==='Enter'&&entrar()}/></div>{err&&<div className="toast-error p-3 text-sm" style={{marginTop:12,borderRadius:8}}>{err}</div>}<button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:16}} onClick={entrar} disabled={busy||hasUsers===null}>{busy?'Procesando…':hasUsers===false?'Crear administrador':'Entrar'}</button></div></div>;
+}
+
+function UsuariosView({ sesion, avisar }) {
+  const [lista,setLista]=useState([]), [form,setForm]=useState({full_name:'',username:'',password:'',role:'usuario'}), [busy,setBusy]=useState(false);
+  async function cargar(){try{setLista(await rpc('evk_list_users',{p_token:sesion.token})||[])}catch(e){avisar(e.message,'error')}}
+  useEffect(()=>{cargar()},[]);
+  async function crear(){if(!form.username||!form.password){avisar('Usuario y contraseña son obligatorios','error');return}setBusy(true);try{await rpc('evk_create_user',{p_token:sesion.token,p_username:form.username,p_password:form.password,p_full_name:form.full_name,p_role:form.role});setForm({full_name:'',username:'',password:'',role:'usuario'});await cargar();avisar('Usuario creado')}catch(e){avisar(e.message,'error')}finally{setBusy(false)}}
+  async function toggle(u){try{await rpc('evk_set_user_active',{p_token:sesion.token,p_user_id:u.id,p_active:!u.active});await cargar()}catch(e){avisar(e.message,'error')}}
+  async function reset(u){const pw=prompt(`Nueva contraseña para ${u.username} (mínimo 6 caracteres):`);if(!pw)return;try{await rpc('evk_reset_user_password',{p_token:sesion.token,p_user_id:u.id,p_password:pw});avisar('Contraseña actualizada')}catch(e){avisar(e.message,'error')}}
+  return <div className="space-y-5"><EncabezadoPagina icon={ShieldCheck} titulo="Usuarios" descripcion="Administración del personal con acceso a EVK."/><div className="crm-grid"><div className="crm-card"><b>Crear usuario</b><div className="space-y-3" style={{marginTop:12}}><div><label className="lbl">Nombre</label><input className="inp" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/></div><div><label className="lbl">Usuario *</label><input className="inp" value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/></div><div><label className="lbl">Contraseña *</label><input className="inp" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></div><div><label className="lbl">Rol</label><select className="inp" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}><option value="usuario">Usuario</option><option value="admin">Administrador</option></select></div><button className="btn btn-primary" onClick={crear} disabled={busy}><UserPlus size={16}/> Crear usuario</button></div></div><div className="paper" style={{overflow:'hidden'}}>{lista.map(u=><div className="crm-list-item" key={u.id}><div className="stat-icon" style={{background:'#E4EFF1',color:'#0B6F9E',margin:0}}><Users size={20}/></div><div style={{flex:1}}><b>{u.full_name}</b><div className="text-sm muted">@{u.username} · {u.role==='admin'?'Administrador':'Usuario'} · {u.active?'Activo':'Desactivado'}</div></div><button className="btn btn-ghost" onClick={()=>reset(u)}><KeyRound size={15}/> Clave</button><button className="btn btn-ghost" onClick={()=>toggle(u)}>{u.active?'Desactivar':'Activar'}</button></div>)}</div></div></div>;
+}
+
+function PortalCliente() {
+  const token=new URLSearchParams(window.location.search).get('portal'); const [pw,setPw]=useState(''),[data,setData]=useState(null),[err,setErr]=useState(''),[busy,setBusy]=useState(false);
+  async function entrar(){setBusy(true);setErr('');try{setData(await rpc('evk_portal_view',{p_access_token:token,p_password:pw}))}catch(e){setErr('Link o contraseña incorrectos.')}finally{setBusy(false)}}
+  if(!data)return <div style={{minHeight:'100vh',display:'grid',placeItems:'center',background:'#EAF1F5',padding:20}}><div className="paper p-6" style={{width:'100%',maxWidth:430}}><img src={EVK_SIDEBAR_LOGO} alt="EVK" style={{width:210,display:'block',margin:'0 auto 20px'}}/><h2 style={{fontSize:24,fontWeight:800,textAlign:'center'}}>Portal del cliente</h2><p className="muted text-sm" style={{textAlign:'center'}}>Consulta tus cotizaciones y el proceso de tus órdenes.</p><label className="lbl" style={{marginTop:18}}>Contraseña</label><input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&entrar()}/>{err&&<div className="toast-error p-3 text-sm" style={{marginTop:12,borderRadius:8}}>{err}</div>}<button className="btn btn-primary" style={{width:'100%',justifyContent:'center',marginTop:14}} onClick={entrar} disabled={busy}>{busy?'Verificando…':'Ver mi información'}</button></div></div>;
+  const qs=data.quotes||[], os=data.orders||[]; return <div style={{minHeight:'100vh',background:'#EAF1F5'}}><div style={{background:'#063A5B',padding:'18px 24px'}}><img src={EVK_SIDEBAR_LOGO} alt="EVK" style={{width:180,maxHeight:70,objectFit:'contain'}}/></div><div style={{maxWidth:1050,margin:'0 auto',padding:20}}><h1 style={{fontSize:28,fontWeight:800}}>Hola, {data.client?.nombre||data.client?.name||'Cliente'}</h1><p className="muted">Aquí puedes revisar tus cotizaciones y el estado de tus órdenes.</p><h2 style={{fontSize:20,fontWeight:800,margin:'24px 0 10px'}}>Cotizaciones</h2><div className="paper" style={{overflow:'hidden'}}>{qs.length?qs.map(q=><div className="crm-list-item" key={q.id}><FileText size={20}/><div style={{flex:1}}><b>{q.numero}</b><div className="text-sm muted">{fecha(q.fecha)}</div></div><b>{money(q.total_final)}</b></div>):<div className="p-6 muted">No hay cotizaciones todavía.</div>}</div><h2 style={{fontSize:20,fontWeight:800,margin:'24px 0 10px'}}>Proceso de órdenes</h2><div className="paper" style={{overflow:'hidden'}}>{os.length?os.map(o=><div className="crm-list-item" key={o.id}><Ship size={20}/><div style={{flex:1}}><b>{o.numero}</b><div className="text-sm muted">Estado: <b>{o.estado||'nueva'}</b> · {fecha(o.fecha)}</div></div><b>{money(o.total)}</b></div>):<div className="p-6 muted">Todavía no hay órdenes aprobadas.</div>}</div></div></div>;
 }
 
 function ConfiguracionView({ empresa, guardarEmpresa, avisar }) {
@@ -2198,6 +2237,7 @@ const TABS = [
   { id: "ordenes", label: "Órdenes", icon: ClipboardList },
   { id: "ganancias", label: "Ganancias", icon: BarChart3 },
   { id: "cartera", label: "Clientes", icon: Users },
+  { id: "usuarios", label: "Usuarios", icon: ShieldCheck, adminOnly: true },
   { id: "configuracion", label: "Configuración", icon: Settings },
 ];
 
@@ -2213,9 +2253,19 @@ export default function App() {
   const [cargando, setCargando] = useState(true);
   const [online, setOnline] = useState(!!supabase);
   const [toast, setToast] = useState(null);
+  const [sesion, setSesion] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
   const timer = useRef(null);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("portal")) { setAuthReady(true); return; }
+    const token=localStorage.getItem("evk_session");
+    if(!token){setAuthReady(true);return;}
+    rpc("evk_current_user",{p_token:token}).then(user=>{if(user)setSesion({token,user});else localStorage.removeItem("evk_session")}).finally(()=>setAuthReady(true));
+  }, []);
+
+  useEffect(() => {
+    if(!sesion) return;
     (async () => {
       let p, ci, cc, em, crm, ord, est;
       if (supabase) {
@@ -2254,7 +2304,7 @@ export default function App() {
       setOrdenes(ord && Array.isArray(ord.lista) ? ord : VACIA);
       setCargando(false);
     })();
-  }, []);
+  }, [sesion]);
 
   const avisar = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
@@ -2303,8 +2353,8 @@ export default function App() {
     const n=(nombre||"").trim(); if(!n) return true;
     const existe=cartera.lista.some(c=>(c.nombre||"").trim().toLowerCase()===n.toLowerCase());
     if(existe) return true;
-    const ahora=new Date().toISOString();
-    return guardarCartera({...cartera,lista:[{id:uid(),nombre:n,telefono:"",email:"",direccion:"",notas:"",creado:ahora,actualizado:ahora},...cartera.lista]});
+    const ahora=new Date().toISOString(); const id=uid(), password=generarPassword(); let portalLinkValue=""; try { const portal=await rpc("evk_create_or_reset_client_portal",{p_token:sesion.token,p_client_ref:id,p_client_name:n,p_password:password}); portalLinkValue=portalLink(portal.access_token); } catch(e){ console.error(e); }
+    return guardarCartera({...cartera,lista:[{id,nombre:n,telefono:"",email:"",direccion:"",notas:"",portalLink:portalLinkValue,portalPassword:password,creado:ahora,actualizado:ahora},...cartera.lista]});
   };
   const guardarEstadoCotizacion = async (id, estado) => {
     const actual = await localLoad("cotizacionesEstado", {});
@@ -2346,6 +2396,11 @@ export default function App() {
   };
   const irAProductos = () => cambiarTab("productos");
 
+  const portalToken=new URLSearchParams(window.location.search).get("portal");
+  if(portalToken) return <><style>{STYLES}</style><PortalCliente /></>;
+  if(!authReady) return <div style={{padding:30}}>Cargando acceso…</div>;
+  if(!sesion) return <><style>{STYLES}</style><LoginEVK onLogin={setSesion} /></>;
+
   return (
     <div className="app">
       <style>{STYLES}</style>
@@ -2366,7 +2421,7 @@ export default function App() {
             <img src={EVK_SIDEBAR_LOGO} alt="EVK Transportaciones" />
           </div>
           <nav className="sidebar-nav" role="tablist">
-            {TABS.map((t) => {
+            {TABS.filter(t=>!t.adminOnly || sesion?.user?.role==="admin").map((t) => {
               const Icon = t.icon;
               return (
                 <button key={t.id} role="tab" className="nav-item" aria-selected={tab === t.id}
@@ -2387,7 +2442,7 @@ export default function App() {
         </aside>
 
         <main className="main-content">
-          <div className="desktop-topbar" aria-hidden="true"><div className="desktop-profile"><Users size={22} /></div></div>
+          <div className="desktop-topbar"><div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:10}}><span style={{color:"white",fontSize:13}}>{sesion?.user?.full_name}</span><button className="desktop-profile" title="Cerrar sesión" onClick={async()=>{try{await rpc("evk_logout",{p_token:sesion.token})}catch{} localStorage.removeItem("evk_session");setSesion(null);setTab("inicio")}}><LogOut size={20}/></button></div></div>
           <div className="main-inner">
             {cargando ? (
               <div className="paper p-8 text-center muted">Cargando datos…</div>
@@ -2413,7 +2468,8 @@ export default function App() {
                 )}
                 {tab === "ordenes" && <OrdenesView ordenes={ordenes} guardarOrdenes={guardarOrdenes} avisar={avisar} />}
                 {tab === "ganancias" && <GananciasView ordenes={ordenes} />}
-                {tab === "cartera" && <ClientesView cartera={cartera} guardarCartera={guardarCartera} cotizaciones={clientes} ordenes={ordenes} avisar={avisar} />}
+                {tab === "cartera" && <ClientesView cartera={cartera} guardarCartera={guardarCartera} cotizaciones={clientes} ordenes={ordenes} avisar={avisar} sesion={sesion} />}
+                {tab === "usuarios" && sesion?.user?.role==="admin" && <UsuariosView sesion={sesion} avisar={avisar} />}
                 {tab === "configuracion" && <ConfiguracionView empresa={empresa} guardarEmpresa={guardarEmpresa} avisar={avisar} />}
               </>
             )}
@@ -2422,7 +2478,7 @@ export default function App() {
       </div>
 
       <nav className="mobile-bottom-nav" aria-label="Navegación principal">
-        {TABS.map((item) => {
+        {TABS.filter(t=>!t.adminOnly || sesion?.user?.role==="admin").map((item) => {
           const Icon = item.icon;
           return (
             <button key={item.id} className="mobile-nav-item" aria-selected={tab === item.id}

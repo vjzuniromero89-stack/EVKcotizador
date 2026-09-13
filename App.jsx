@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Camera, Image as ImageIcon, Pencil, Trash2, X, Plus, Search, FileText,
   Printer, Share2, Eye, Home, Package, FileText as FileTextIcon, Users, Menu,
-  TrendingUp, DollarSign, Ship, Cloud, CloudOff,
+  TrendingUp, DollarSign, Ship, Cloud, CloudOff, Settings, BarChart3, ClipboardList,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { LOGO_POR_DEFECTO } from "./logo.js";
@@ -79,23 +79,19 @@ const STYLES = `
 .product-info-line > div:nth-child(4) .num { color:#7A5900; font-weight:700; }
 
 .layout { display:flex; min-height:100vh; }
-.sidebar { background:#14222B; color:#AFC0C8; width:230px; flex-shrink:0;
+.sidebar { background:linear-gradient(180deg,#072f4d 0%,#0a2337 100%); color:#D6E4EC; width:310px; flex-shrink:0;
   display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto;
   transition:transform .25s ease; z-index:50; }
-.sidebar-logo { padding:20px 16px 12px; display:flex; align-items:center; gap:10px;
-  border-bottom:1px solid #2E4150; }
-.sidebar-logo img { height:36px; max-width:60px; object-fit:contain; background:#fff;
-  border-radius:6px; padding:3px 5px; flex-shrink:0; }
-.sidebar-logo .nombre { font-family:'Barlow Condensed', sans-serif; font-weight:700;
-  font-size:19px; color:#fff; line-height:1.05; }
-.sidebar-logo .sub { font-size:11px; color:#7A8A93; margin-top:2px; }
-.sidebar-nav { flex:1; padding:12px 8px; display:flex; flex-direction:column; gap:4px; }
+.sidebar-logo { min-height:130px; padding:0; display:flex; align-items:center; justify-content:center; border-bottom:1px solid rgba(255,255,255,.10); overflow:hidden; }
+.sidebar-logo img { width:100%; height:130px; object-fit:cover; display:block; }
+.sidebar-logo .nombre,.sidebar-logo .sub { display:none; }
+.sidebar-nav { flex:1; padding:14px 10px; display:flex; flex-direction:column; gap:7px; }
 .nav-item { display:flex; align-items:center; gap:12px; padding:12px 14px;
-  border-radius:8px; color:#AFC0C8; font-weight:600; font-size:15px;
+  border-radius:10px; color:#F1F6F9; font-weight:500; font-size:16px;
   font-family:'Barlow Condensed', sans-serif; letter-spacing:.02em;
   transition:background .15s, color .15s; cursor:pointer; text-align:left; width:100%; }
 .nav-item:hover { background:#1E2F3A; color:#fff; }
-.nav-item[aria-selected="true"] { background:#1B5E6B; color:#fff; box-shadow:inset 4px 0 0 #F2B705; }
+.nav-item[aria-selected="true"] { background:linear-gradient(90deg,#076b99 0%,#0b7daf 100%); color:#fff; box-shadow:inset 4px 0 0 #FFD21A; }
 .nav-item[aria-selected="true"] .nav-icon { color:#F2B705; }
 .nav-icon { flex-shrink:0; color:currentColor; }
 .sidebar-footer { padding:12px 16px; border-top:1px solid #2E4150;
@@ -112,8 +108,10 @@ const STYLES = `
   opacity:0; pointer-events:none; transition:opacity .25s; }
 .backdrop.open { opacity:1; pointer-events:auto; }
 
-.main-content { flex:1; min-width:0; padding:20px; }
-.main-inner { max-width:1100px; margin:0 auto; }
+.main-content { flex:1; min-width:0; padding:0 18px 24px; background:linear-gradient(180deg,#F4F8FA 0%,#EAF2F7 100%); }
+.desktop-topbar { height:65px; margin:0 -18px; padding:0 24px; background:linear-gradient(90deg,#07385B 0%,#022B49 100%); display:flex; align-items:center; justify-content:flex-end; }
+.desktop-profile { width:40px; height:40px; border-radius:50%; background:#fff; color:#0B6F9E; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,.18); }
+.main-inner { max-width:1600px; margin:0 auto; }
 
 .page-head { background:#fff; border:1px solid #CAD4DA; border-radius:14px; padding:18px 20px;
   display:flex; align-items:center; gap:14px; box-shadow:0 3px 14px rgba(20,34,43,.06); }
@@ -127,19 +125,18 @@ const STYLES = `
 .mobile-topbar, .mobile-bottom-nav { display:none; }
 .quote-list { box-shadow:0 3px 14px rgba(20,34,43,.05); }
 
-.hero { position:relative; border-radius:14px; overflow:hidden; min-height:220px;
+.hero { position:relative; border-radius:0 0 14px 14px; overflow:hidden; min-height:220px;
   display:flex; align-items:flex-end; padding:24px; color:#fff;
   background-size:cover; background-position:center;
   box-shadow:0 4px 20px rgba(20,34,43,.15); }
 .hero::before { content:""; position:absolute; inset:0; background:transparent; }
-.hero-photo-only { min-height:300px; background-position:center center; }
+.hero-photo-only { min-height:430px; background-position:center center; margin:0 -18px 8px; box-shadow:0 10px 28px rgba(8,47,77,.18); }
 .hero-content { position:relative; z-index:1; }
 .hero h2 { font-family:'Barlow Condensed', sans-serif; font-weight:700;
   font-size:clamp(28px,5vw,44px); line-height:1.05; margin:0 0 6px; }
 .hero p { font-size:15px; opacity:.9; margin:0; }
 
-.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-  gap:14px; margin-top:20px; }
+.stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:18px; }
 .stat-card { background:#fff; border:1px solid #CAD4DA; border-radius:12px;
   padding:18px; display:flex; flex-direction:column; gap:6px;
   transition:transform .15s, box-shadow .15s; }
@@ -151,8 +148,7 @@ const STYLES = `
   font-size:32px; line-height:1; color:#14222B; }
 .stat-sub { font-size:12px; color:#5B6B75; margin-top:2px; }
 
-.quick-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:12px; margin-top:20px; }
+.quick-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; }
 .quick-btn { background:#fff; border:1px solid #CAD4DA; border-radius:10px;
   padding:16px; display:flex; align-items:center; gap:12px; font-weight:600;
   font-size:15px; color:#14222B; cursor:pointer; transition:all .15s; text-align:left; }
@@ -198,7 +194,11 @@ const STYLES = `
   .mobile-status.ok { background:#52B788; box-shadow:0 0 0 3px rgba(82,183,136,.18); }
   .sidebar { position:fixed; top:0; left:0; height:100vh; transform:translateX(-100%); }
   .sidebar.open { transform:translateX(0); }
-  .main-content { padding:14px; padding-top:76px; padding-bottom:96px; }
+  .main-content { padding:14px; padding-top:76px; padding-bottom:150px; }
+  .desktop-topbar { display:none; }
+  .hero-photo-only { min-height:260px; margin:0; border-radius:14px; }
+  .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .quick-actions { grid-template-columns:1fr; }
   .mobile-bottom-nav { position:fixed; left:0; right:0; bottom:0; z-index:43; display:grid;
     grid-template-columns:repeat(4,1fr); background:#fff; border-top:1px solid #CAD4DA;
     box-shadow:0 -4px 16px rgba(20,34,43,.10); padding:6px 4px max(6px,env(safe-area-inset-bottom)); }
@@ -2057,12 +2057,57 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
   );
 }
 
+function OrdenesView({ clientes, irA }) {
+  const ordenes = [...clientes.lista].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  return (
+    <div className="space-y-5">
+      <PageHead icon={ClipboardList} titulo="Órdenes" descripcion="Seguimiento de las cotizaciones registradas como órdenes de clientes." />
+      <div className="paper" style={{overflow:"hidden"}}>
+        {ordenes.length===0 ? <div className="p-8 text-center muted">Aún no hay órdenes registradas.</div> : ordenes.map((c)=>{
+          const t=calcTotalesCliente(c.lineas); const total=c.totalFinal ?? totalConDescuento(c,t.totalVenta);
+          return <button key={c.id} className="reciente-item" onClick={()=>irA("clientes")}>
+            <ClipboardList size={20} color="#0B6F9E" />
+            <div style={{flex:1,minWidth:0}}><div style={{display:"flex",justifyContent:"space-between",gap:12}}><b>{c.numero}</b><b>{money(total)}</b></div><div className="reciente-sub"><span className="reciente-cliente">{c.cliente||"Sin cliente"}</span><span>{fecha(c.fecha)}</span></div></div>
+          </button>;
+        })}
+      </div>
+    </div>
+  );
+}
+
+function GananciasView({ clientes, internas }) {
+  const datos = clientes.lista.map((c)=>{ const t=calcTotalesCliente(c.lineas); const venta=c.totalFinal ?? totalConDescuento(c,t.totalVenta); return {...c, venta, costo:t.totalCosto, ganancia:venta-t.totalCosto}; });
+  const venta=datos.reduce((a,c)=>a+c.venta,0), costo=datos.reduce((a,c)=>a+c.costo,0), ganancia=datos.reduce((a,c)=>a+c.ganancia,0);
+  return <div className="space-y-5">
+    <PageHead icon={BarChart3} titulo="Ganancias" descripcion="Resumen de ventas, costos y utilidad de tus cotizaciones de clientes." />
+    <div className="stats-grid">
+      {[['Ventas',money(venta),'Facturación total',TrendingUp],['Costos',money(costo),'Costo acumulado',DollarSign],['Ganancia',money(ganancia),'Utilidad acumulada',BarChart3],['Registros',internas.lista.length,'Cotizaciones internas',FileTextIcon]].map(([l,v,sub,I])=><div className="stat-card" key={l}><div className="stat-icon" style={{background:'#E6F3F9',color:'#0B6F9E'}}><I size={22}/></div><div className="stat-label">{l}</div><div className="stat-value">{v}</div><div className="stat-sub">{sub}</div></div>)}
+    </div>
+    <div className="paper" style={{overflow:'hidden'}}>{datos.length===0?<div className="p-8 text-center muted">Todavía no hay datos de ganancias.</div>:datos.map(c=><div key={c.id} className="reciente-item" style={{cursor:'default'}}><TrendingUp size={20} color={c.ganancia>=0?'#168454':'#B33A26'}/><div style={{flex:1}}><div style={{display:'flex',justifyContent:'space-between',gap:12}}><b>{c.numero} · {c.cliente||'Sin cliente'}</b><b className={c.ganancia>=0?'pos':'neg'}>{money(c.ganancia)}</b></div><div className="reciente-sub"><span>Venta {money(c.venta)} · Costo {money(c.costo)}</span><span>{fecha(c.fecha)}</span></div></div></div>)}</div>
+  </div>;
+}
+
+function ClientesView({ clientes, irA }) {
+  const mapa = new Map();
+  clientes.lista.forEach(c=>{ const nombre=(c.cliente||'Sin cliente').trim()||'Sin cliente'; const d=mapa.get(nombre)||{nombre,cantidad:0,total:0,ultima:null}; const t=calcTotalesCliente(c.lineas); d.cantidad++; d.total += c.totalFinal ?? totalConDescuento(c,t.totalVenta); if(!d.ultima||new Date(c.fecha)>new Date(d.ultima)) d.ultima=c.fecha; mapa.set(nombre,d); });
+  const lista=[...mapa.values()].sort((a,b)=>b.total-a.total);
+  return <div className="space-y-5"><PageHead icon={Users} titulo="Clientes" descripcion="Cartera de clientes creada automáticamente desde tus cotizaciones."/><div className="paper" style={{overflow:'hidden'}}>{lista.length===0?<div className="p-8 text-center muted">Aún no hay clientes registrados.</div>:lista.map(c=><button key={c.nombre} className="reciente-item" onClick={()=>irA('clientes')}><Users size={20} color="#0B6F9E"/><div style={{flex:1}}><div style={{display:'flex',justifyContent:'space-between',gap:12}}><b>{c.nombre}</b><b>{money(c.total)}</b></div><div className="reciente-sub"><span>{c.cantidad} cotización{c.cantidad===1?'':'es'}</span><span>Última: {fecha(c.ultima)}</span></div></div></button>)}</div></div>;
+}
+
+function ConfiguracionView({ empresa, guardarEmpresa, avisar }) {
+  return <div className="space-y-5"><PageHead icon={Settings} titulo="Configuración" descripcion="Datos generales de EVK Transportaciones y personalización del cotizador."/><EmpresaCard empresa={empresa} guardarEmpresa={guardarEmpresa} avisar={avisar}/><div className="paper p-5"><div style={{fontWeight:700,marginBottom:6}}>Apariencia EVK</div><div className="muted text-sm">La navegación, portada y colores están configurados con la identidad visual EVK Transportaciones.</div></div></div>;
+}
+
 const VACIA = { contador: 0, lista: [] };
 const TABS = [
   { id: "inicio", label: "Inicio", icon: Home },
-  { id: "productos", label: "Producto", icon: Package },
-  { id: "internas", label: "Cotizaciones internas", icon: FileTextIcon },
-  { id: "clientes", label: "Cotizaciones clientes", icon: Users },
+  { id: "productos", label: "Productos", icon: Package },
+  { id: "internas", label: "Cotizaciones Internas", icon: FileTextIcon },
+  { id: "clientes", label: "Cotizaciones Clientes", icon: Users },
+  { id: "ordenes", label: "Órdenes", icon: ClipboardList },
+  { id: "ganancias", label: "Ganancias", icon: BarChart3 },
+  { id: "cartera", label: "Clientes", icon: Users },
+  { id: "configuracion", label: "Configuración", icon: Settings },
 ];
 
 export default function App() {
@@ -2177,11 +2222,7 @@ export default function App() {
       <div className="layout">
         <aside className={`sidebar ${menuAbierto ? "open" : ""}`}>
           <div className="sidebar-logo">
-            {empresa.logo && <img src={empresa.logo} alt="" />}
-            <div className="min-w-0">
-              <div className="nombre truncate">{empresa.nombre || "Cotizador"}</div>
-              <div className="sub">Cotizador CBM</div>
-            </div>
+            <img src="/evk-sidebar-logo.png" alt="EVK Transportaciones" />
           </div>
           <nav className="sidebar-nav" role="tablist">
             {TABS.map((t) => {
@@ -2205,6 +2246,7 @@ export default function App() {
         </aside>
 
         <main className="main-content">
+          <div className="desktop-topbar" aria-hidden="true"><div className="desktop-profile"><Users size={22} /></div></div>
           <div className="main-inner">
             {cargando ? (
               <div className="paper p-8 text-center muted">Cargando datos…</div>
@@ -2227,6 +2269,10 @@ export default function App() {
                     internas={internas} guardarInternas={guardarInternas} avisar={avisar}
                     irAProductos={irAProductos} empresa={empresa} />
                 )}
+                {tab === "ordenes" && <OrdenesView clientes={clientes} irA={cambiarTab} />}
+                {tab === "ganancias" && <GananciasView clientes={clientes} internas={internas} />}
+                {tab === "cartera" && <ClientesView clientes={clientes} irA={cambiarTab} />}
+                {tab === "configuracion" && <ConfiguracionView empresa={empresa} guardarEmpresa={guardarEmpresa} avisar={avisar} />}
               </>
             )}
           </div>

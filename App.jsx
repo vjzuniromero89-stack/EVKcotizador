@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { LOGO_POR_DEFECTO } from "./logo.js";
+import EVK_HERO_IMG from "./evk-port-hero.jpg";
+import EVK_SIDEBAR_LOGO from "./evk-sidebar-logo.png";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -2011,7 +2013,7 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
   );
 }
 
-const PUERTO_IMG = "/evk-port-hero.jpg";
+const PUERTO_IMG = EVK_HERO_IMG;
 
 function InicioView({ productos, internas, clientes, ordenes, empresa, irA }) {
   const totalProductos = productos.length;
@@ -2361,7 +2363,7 @@ export default function App() {
       <div className="layout">
         <aside className={`sidebar ${menuAbierto ? "open" : ""}`}>
           <div className="sidebar-logo">
-            <img src="/evk-sidebar-logo.png" alt="EVK Transportaciones" />
+            <img src={EVK_SIDEBAR_LOGO} alt="EVK Transportaciones" />
           </div>
           <nav className="sidebar-nav" role="tablist">
             {TABS.map((t) => {

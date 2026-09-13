@@ -1,4 +1,4 @@
-# Cotizador CBM — Taller Gregoriana
+# Cotizador CBM — EVK Transportaciones
 
 Aplicación para cotizar productos importados calculando el CBM que realmente cobra
 la naviera, llevando el registro interno con costos y ganancia, y entregando al
@@ -28,7 +28,7 @@ npm run build    # genera la versión final en dist/
 Archivos:
 
 - `src/App.jsx` — toda la aplicación.
-- `src/logo.js` — el logo de Taller Gregoriana que viene por defecto.
+- `src/logo.js` — el logo de EVK Transportaciones que viene por defecto.
 - `src/main.jsx`, `src/index.css`, `index.html` — arranque del proyecto.
 - `package.json`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js` — configuración.
 

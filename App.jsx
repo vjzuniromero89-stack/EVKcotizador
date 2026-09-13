@@ -131,8 +131,8 @@ const STYLES = `
   display:flex; align-items:flex-end; padding:24px; color:#fff;
   background-size:cover; background-position:center;
   box-shadow:0 4px 20px rgba(20,34,43,.15); }
-.hero::before { content:""; position:absolute; inset:0;
-  background:linear-gradient(180deg, rgba(20,34,43,.15) 0%, rgba(20,34,43,.85) 100%); }
+.hero::before { content:""; position:absolute; inset:0; background:transparent; }
+.hero-photo-only { min-height:300px; background-position:center center; }
 .hero-content { position:relative; z-index:1; }
 .hero h2 { font-family:'Barlow Condensed', sans-serif; font-weight:700;
   font-size:clamp(28px,5vw,44px); line-height:1.05; margin:0 0 6px; }
@@ -1198,8 +1198,8 @@ function EncabezadoPagina({ icon: Icon, titulo, descripcion }) {
 
 const VACIO = { codigo: "", nombre: "", cbm: "", peso: "", precioCbm: "", precioProducto: "", precioVenta: "", foto: "" };
 const EMPRESA_POR_DEFECTO = {
-  nombre: "Taller Gregoriana",
-  contacto: "Taller Mecánico y Lubricentro",
+  nombre: "EVK Transportaciones",
+  contacto: "Importaciones y transporte de carga",
   logo: LOGO_POR_DEFECTO,
 };
 
@@ -1955,7 +1955,7 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
   );
 }
 
-const PUERTO_IMG = "https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?w=1600&q=80&auto=format&fit=crop";
+const PUERTO_IMG = "/evk-port-hero.jpg";
 
 function InicioView({ productos, internas, clientes, empresa, irA }) {
   const totalProductos = productos.length;
@@ -1983,16 +1983,7 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
 
   return (
     <div className="space-y-6">
-      <div className="hero" style={{ backgroundImage: `url(${PUERTO_IMG})` }}>
-        <div className="hero-content">
-          <div className="flex items-center gap-2 mb-2" style={{ opacity: .85 }}>
-            <Ship size={18} />
-            <span className="text-sm font-medium" style={{ letterSpacing: ".06em", textTransform: "uppercase" }}>Importaciones</span>
-          </div>
-          <h2>Bienvenido a tu cotizador</h2>
-          <p>{(empresa && empresa.nombre) || "Taller Gregoriana"} · Resumen general de tu actividad</p>
-        </div>
-      </div>
+      <div className="hero hero-photo-only" style={{ backgroundImage: `url(${PUERTO_IMG})` }} aria-label="Puerto internacional de carga EVK" />
 
       <div className="stats-grid">
         {stats.map((s) => {
@@ -2108,9 +2099,9 @@ export default function App() {
       setProductos(Array.isArray(p) ? p : []);
       setEmpresa(em && typeof em === "object"
         ? {
-            nombre: em.nombre || EMPRESA_POR_DEFECTO.nombre,
-            contacto: em.contacto || EMPRESA_POR_DEFECTO.contacto,
-            logo: em.logo || EMPRESA_POR_DEFECTO.logo,
+            nombre: (!em.nombre || em.nombre === "Taller Gregoriana") ? EMPRESA_POR_DEFECTO.nombre : em.nombre,
+            contacto: (!em.contacto || em.contacto === "Taller Mecánico y Lubricentro") ? EMPRESA_POR_DEFECTO.contacto : em.contacto,
+            logo: (!em.nombre || em.nombre === "Taller Gregoriana") ? EMPRESA_POR_DEFECTO.logo : (em.logo || EMPRESA_POR_DEFECTO.logo),
           }
         : EMPRESA_POR_DEFECTO);
       setInternas(ci && Array.isArray(ci.lista) ? ci : VACIA);

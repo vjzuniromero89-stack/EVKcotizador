@@ -107,3 +107,8 @@ Conviene ir guardando en PDF las cotizaciones importantes.
 
 ## Supabase / CreditFlow
 Esta versión apunta por defecto al proyecto Supabase `creditflow` (ref `hpimqcnkcoqmalslknnn`). Las variables Vercel `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` pueden sobrescribir estos valores.
+
+
+## Actualización de productos
+- Se agregó el campo **Descripción** a productos.
+- La descripción se guarda en Supabase, se copia a cotizaciones y órdenes, aparece en detalles e impresiones y participa en la búsqueda del catálogo.

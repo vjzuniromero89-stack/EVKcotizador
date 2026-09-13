@@ -275,7 +275,7 @@ async function sbLoadProductos() {
   const { data, error } = await supabase.from("productos").select("*").order("creado", { ascending: false });
   if (error) { console.error("Error cargando productos:", error); return null; }
   return (data || []).map((p) => ({
-    id: p.id, codigo: p.codigo || "", nombre: p.nombre || "",
+    id: p.id, codigo: p.codigo || "", nombre: p.nombre || "", descripcion: p.descripcion || "",
     cbm: p.cbm || 0, peso: p.peso || 0,
     precioCbm: p.precio_cbm || 0, precioProducto: p.precio_producto || 0,
     precioVenta: p.precio_venta || 0, foto: p.foto || "",
@@ -285,7 +285,7 @@ async function sbSaveProductos(lista) {
   if (!supabase) return false;
   try {
     const filas = lista.map((p) => ({
-      id: p.id, codigo: p.codigo, nombre: p.nombre,
+      id: p.id, codigo: p.codigo, nombre: p.nombre, descripcion: p.descripcion || "",
       cbm: p.cbm, peso: p.peso, precio_cbm: p.precioCbm,
       precio_producto: p.precioProducto, precio_venta: p.precioVenta, foto: p.foto || "",
     }));
@@ -1057,6 +1057,7 @@ function LineaHeader({ l, onRemove }) {
       <div className="flex-1 min-w-0 flex justify-between gap-2">
         <div className="min-w-0">
           <div className="font-semibold truncate">{l.nombre}</div>
+          {l.descripcion && <div className="text-sm muted" style={{ whiteSpace: "pre-wrap" }}>{l.descripcion}</div>}
           <div className="text-sm muted num">{l.codigo}, CBM {m3(l.cbm)} m³{num(l.peso) > 0 ? `, ${kg(num(l.peso))}` : ""}</div>
         </div>
         <button className="icon-btn flex-shrink-0 self-start" onClick={onRemove} aria-label={`Quitar ${l.nombre}`}><X size={18} /></button>
@@ -1101,7 +1102,7 @@ function SelectorProducto({ productos, onAgregar }) {
         <label className="lbl" htmlFor={ids.prod}>Producto</label>
         <select id={ids.prod} className="inp" value={selId} onChange={(e) => setSelId(e.target.value)}>
           <option value="">Elige un producto</option>
-          {productos.map((p) => <option key={p.id} value={p.id}>{p.codigo} - {p.nombre}</option>)}
+          {productos.map((p) => <option key={p.id} value={p.id}>{p.codigo} - {p.nombre}{p.descripcion ? ` — ${p.descripcion}` : ""}</option>)}
         </select>
       </div>
       <div style={{ width: 76 }}>
@@ -1243,7 +1244,7 @@ function EncabezadoPagina({ icon: Icon, titulo, descripcion }) {
   );
 }
 
-const VACIO = { codigo: "", nombre: "", cbm: "", peso: "", precioCbm: "", precioProducto: "", precioVenta: "", foto: "" };
+const VACIO = { codigo: "", nombre: "", descripcion: "", cbm: "", peso: "", precioCbm: "", precioProducto: "", precioVenta: "", foto: "" };
 const EMPRESA_POR_DEFECTO = {
   nombre: "EVK Transportaciones",
   contacto: "Importaciones y transporte de carga",
@@ -1343,7 +1344,7 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
       setError(`Ya existe un producto con el código ${codigo}.`); return;
     }
     const item = {
-      id: editId || uid(), codigo, nombre,
+      id: editId || uid(), codigo, nombre, descripcion: form.descripcion.trim(),
       cbm: num(form.cbm), peso: num(form.peso), precioCbm: num(form.precioCbm),
       precioProducto: num(form.precioProducto), precioVenta: num(form.precioVenta), foto: form.foto,
     };
@@ -1359,7 +1360,7 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
 
   function editar(p) {
     setForm({
-      codigo: p.codigo, nombre: p.nombre, cbm: String(p.cbm), peso: p.peso ? String(p.peso) : "",
+      codigo: p.codigo, nombre: p.nombre, descripcion: p.descripcion || "", cbm: String(p.cbm), peso: p.peso ? String(p.peso) : "",
       precioCbm: String(p.precioCbm), precioProducto: String(p.precioProducto),
       precioVenta: p.precioVenta ? String(p.precioVenta) : "", foto: p.foto || "",
     });
@@ -1377,7 +1378,7 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
   const filtrados = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return productos;
-    return productos.filter((p) => p.codigo.toLowerCase().includes(s) || p.nombre.toLowerCase().includes(s));
+    return productos.filter((p) => p.codigo.toLowerCase().includes(s) || p.nombre.toLowerCase().includes(s) || (p.descripcion || "").toLowerCase().includes(s));
   }, [productos, q]);
 
   return (
@@ -1402,6 +1403,12 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
                 <label className="lbl" htmlFor="p-nombre">Nombre</label>
                 <input id="p-nombre" className="inp" value={form.nombre} onChange={set("nombre")} />
               </div>
+            </div>
+
+            <div>
+              <label className="lbl" htmlFor="p-descripcion">Descripción</label>
+              <textarea id="p-descripcion" className="inp" rows={3} placeholder="Descripción del producto, modelo, material, color, medidas u otros detalles"
+                value={form.descripcion} onChange={set("descripcion")} />
             </div>
 
             <div className="form-grid-3">
@@ -1485,6 +1492,7 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
                       <div className="min-w-0">
                         <div className="text-sm muted num">{p.codigo}</div>
                         <div className="font-semibold truncate">{p.nombre}</div>
+                        {p.descripcion && <div className="text-sm muted mt-1" style={{ whiteSpace: "pre-wrap" }}>{p.descripcion}</div>}
                       </div>
                       <div className="flex flex-shrink-0">
                         <button className="icon-btn" onClick={() => editar(p)} aria-label={`Editar ${p.nombre}`}><Pencil size={17} /></button>
@@ -1537,7 +1545,7 @@ function DetalleInterna({ cot, onClose, empresa, avisar }) {
     const filas = cot.lineas.map((l) => {
       const c = calcLinea(l);
       return {
-        foto: l.foto, nombre: l.nombre, sub: l.codigo,
+        foto: l.foto, nombre: l.nombre, sub: l.descripcion ? `${l.codigo} · ${l.descripcion}` : l.codigo,
         valores: [
           String(l.cantidad), `${m3(num(l.cbm))} m³`, `${m3(c.totalCbm)} m³`,
           num(l.peso) > 0 ? kg(num(l.peso)) : "Sin peso", kg(c.totalPeso),
@@ -1590,7 +1598,7 @@ function DetalleInterna({ cot, onClose, empresa, avisar }) {
               return (
                 <tr key={l.id} className="row-line">
                   <td className="px-2 py-2"><Thumb src={l.foto} size={44} /></td>
-                  <td className="px-2 py-2"><div className="font-medium">{l.nombre}</div><div className="muted num">{l.codigo}</div></td>
+                  <td className="px-2 py-2"><div className="font-medium">{l.nombre}</div>{l.descripcion && <div className="muted text-sm" style={{ whiteSpace: "pre-wrap" }}>{l.descripcion}</div>}<div className="muted num">{l.codigo}</div></td>
                   <td className={td}>{l.cantidad}</td>
                   <td className={td}>{m3(num(l.cbm))} m³</td>
                   <td className={td}>{m3(c.totalCbm)} m³</td>
@@ -1770,7 +1778,7 @@ function DetalleCliente({ cot, onClose, onDelete, empresa, avisar, onApprove, on
     const filas = cot.lineas.map((l) => {
       const c = calcCliente(l);
       return {
-        foto: l.foto, nombre: l.nombre, sub: l.codigo,
+        foto: l.foto, nombre: l.nombre, sub: l.descripcion ? `${l.codigo} · ${l.descripcion}` : l.codigo,
         valores: [
           String(l.cantidad), `${m3(num(l.cbm))} m³`, `${m3(c.totalCbm)} m³`,
           num(l.peso) > 0 ? kg(num(l.peso)) : "Sin peso", kg(c.totalPeso),
@@ -1817,7 +1825,7 @@ function DetalleCliente({ cot, onClose, onDelete, empresa, avisar, onApprove, on
               return (
                 <tr key={l.id} className="row-line">
                   <td className="px-2 py-2"><Thumb src={l.foto} size={44} /></td>
-                  <td className="px-2 py-2"><div className="font-medium">{l.nombre}</div><div className="muted num">{l.codigo}</div></td>
+                  <td className="px-2 py-2"><div className="font-medium">{l.nombre}</div>{l.descripcion && <div className="muted text-sm" style={{ whiteSpace: "pre-wrap" }}>{l.descripcion}</div>}<div className="muted num">{l.codigo}</div></td>
                   <td className={td}>{l.cantidad}</td>
                   <td className={td}>{m3(num(l.cbm))} m³</td>
                   <td className={td}>{m3(c.totalCbm)} m³</td>
@@ -1890,7 +1898,7 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
     setError("");
     const foto = await miniatura(p);
     setLineas((ls) => [...ls, {
-      id: uid(), productId: p.id, codigo: p.codigo, nombre: p.nombre, foto, cbm: p.cbm, peso: p.peso || 0,
+      id: uid(), productId: p.id, codigo: p.codigo, nombre: p.nombre, descripcion: p.descripcion || "", foto, cbm: p.cbm, peso: p.peso || 0,
       precioCbm: p.precioCbm, precioProducto: p.precioProducto,
       cantidad: String(cant), precioVenta: p.precioVenta ? String(p.precioVenta) : "",
     }]);
@@ -2157,7 +2165,7 @@ function OrdenesView({ ordenes, guardarOrdenes, avisar }) {
       <div className="grid grid-cols-2 gap-3"><Dato label="Total" value={money(detalle.total)} strong/><Dato label="Fecha" value={fecha(detalle.fecha)}/></div>
       <div><label className="lbl">Estado</label><select className="inp" value={detalle.estado||'nueva'} onChange={e=>actualizar(detalle,{estado:e.target.value})}><option value="nueva">Nueva</option><option value="proceso">En proceso</option><option value="completada">Completada</option><option value="cancelada">Cancelada</option></select></div>
       <div><label className="lbl">Notas de la orden</label><textarea className="inp" rows="4" value={detalle.notas||''} onChange={e=>setDetalle({...detalle,notas:e.target.value})} onBlur={()=>actualizar(detalle,{notas:detalle.notas||''})} placeholder="Proveedor, tracking, fechas, instrucciones..."/></div>
-      <div className="paper p-3"><div className="font-semibold mb-2">Productos ({detalle.lineas?.length||0})</div>{(detalle.lineas||[]).map(l=><div key={l.id} className="flex justify-between gap-3 py-2 row-line"><span>{l.cantidad} × {l.nombre}</span><b>{money(calcCliente(l).totalVenta)}</b></div>)}</div>
+      <div className="paper p-3"><div className="font-semibold mb-2">Productos ({detalle.lineas?.length||0})</div>{(detalle.lineas||[]).map(l=><div key={l.id} className="flex justify-between gap-3 py-2 row-line"><span><span>{l.cantidad} × {l.nombre}</span>{l.descripcion && <span className="block text-sm muted">{l.descripcion}</span>}</span><b>{money(calcCliente(l).totalVenta)}</b></div>)}</div>
       <button className="btn btn-danger w-full" onClick={()=>eliminar(detalle)}><Trash2 size={16}/> Eliminar orden</button>
     </ModalShell>}
   </div>;

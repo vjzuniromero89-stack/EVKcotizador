@@ -1456,8 +1456,32 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
               </div>
             </div>
 
+            {(() => {
+              const k = cbmCobro(form.cbm, form.peso);
+              const costoCbm = k.cobrable * num(form.precioCbm);
+              const costoTotal = num(form.precioProducto) + costoCbm;
+              const venta = num(form.precioVenta);
+              const utilidad = venta - costoTotal;
+              const porcentaje = costoTotal > 0 ? (utilidad / costoTotal) * 100 : 0;
+              return venta > 0 && costoTotal > 0 ? (
+                <div style={{background: utilidad >= 0 ? '#EAF7F0' : '#FDECEC', border:`1px solid ${utilidad >= 0 ? '#B7DFC8' : '#F0B9B4'}`, borderRadius:10, padding:'12px 14px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center',flexWrap:'wrap'}}>
+                    <div>
+                      <div className="lbl" style={{marginBottom:2}}>Ganancia estimada por unidad</div>
+                      <strong className={utilidad >= 0 ? 'pos' : 'neg'} style={{fontSize:20}}>{money(utilidad)}</strong>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <div className="lbl" style={{marginBottom:2}}>Porcentaje de ganancia sobre costo</div>
+                      <strong className={utilidad >= 0 ? 'pos' : 'neg'} style={{fontSize:24}}>{porcentaje.toFixed(1)}%</strong>
+                    </div>
+                  </div>
+                  <div className="text-sm muted" style={{marginTop:6}}>Costo total estimado: {money(costoTotal)} = producto {money(num(form.precioProducto))} + CBM {money(costoCbm)}</div>
+                </div>
+              ) : null;
+            })()}
+
             <p className="text-sm muted" style={{ lineHeight: 1.3 }}>
-              El precio de venta es opcional. Se carga solo en las cotizaciones clientes.
+              El porcentaje se calcula sobre el costo total estimado del producto más su costo de CBM.
             </p>
 
             {error && <p className="text-sm font-medium" style={{ color: "#A3321F" }} role="alert">{error}</p>}
@@ -2247,9 +2271,9 @@ function CatalogoPublico({ embedded=false, avisar }) {
       </div>
       {cargandoCatalogo?<div className="catalog-empty">Cargando catálogo…</div>:errorCatalogo?<div className="catalog-empty">{errorCatalogo}</div>:filtrados.length===0?<div className="catalog-empty">No encontramos productos con esa búsqueda.</div>:<div className="catalog-grid">{filtrados.map(p=><article key={p.id||p.codigo} className="catalog-card" onClick={()=>setSeleccionado(p)} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSeleccionado(p)}}}>
         <div className="catalog-photo">{p.foto?<img src={p.foto} alt={p.nombre}/>:<div className="catalog-no-photo"><Package size={42}/><span>Imagen próximamente</span></div>}</div>
-        <div className="catalog-card-body"><div className="catalog-code">{p.codigo}</div><h3>{p.nombre}</h3>{p.descripcion&&<p className="catalog-desc">{p.descripcion}</p>}<div className="catalog-price-row"><span>Precio de venta</span><strong>{num(p.precio_venta)>0?money(p.precio_venta):"Precio pendiente"}</strong></div><div className="catalog-click-hint">Ver información completa →</div></div>
+        <div className="catalog-card-body"><div className="catalog-code">{p.codigo}</div><h3>{p.nombre}</h3>{p.descripcion&&<p className="catalog-desc">{p.descripcion}</p>}<div className="catalog-price-row"><span>Precio</span><strong>{num(p.precio_venta)>0?money(p.precio_venta):"Precio pendiente"}</strong></div><div style={{fontSize:12,color:'#6B7B86',marginTop:-6,marginBottom:8}}>Precio puesto en Managua.</div><div className="catalog-click-hint">Ver información completa →</div></div>
       </article>)}</div>}
-      {seleccionado&&(()=>{const k=cbmCobro(seleccionado.cbm,seleccionado.peso);return <div className="catalog-detail-backdrop" onClick={()=>setSeleccionado(null)}><div className="catalog-detail" onClick={e=>e.stopPropagation()}><button className="catalog-detail-close" onClick={()=>setSeleccionado(null)} aria-label="Cerrar"><X size={22}/></button><div className="catalog-detail-head"><div className="catalog-detail-photo">{seleccionado.foto?<img src={seleccionado.foto} alt={seleccionado.nombre}/>:<div className="catalog-no-photo"><Package size={54}/><span>Imagen próximamente</span></div>}</div><div className="catalog-detail-info"><div className="catalog-code">{seleccionado.codigo}</div><h2>{seleccionado.nombre}</h2>{seleccionado.descripcion&&<div className="catalog-detail-desc">{seleccionado.descripcion}</div>}<div className="catalog-detail-metrics"><div className="catalog-detail-metric"><span>CBM por volumen</span><strong>{m3(k.vol)} m³</strong></div><div className="catalog-detail-metric"><span>CBM por peso</span><strong>{m3(k.porPeso)} m³</strong></div><div className="catalog-detail-metric"><span>CBM a cobrar</span><strong>{m3(k.cobrable)} m³</strong></div><div className="catalog-detail-metric"><span>Cobro determinado por</span><strong style={{textTransform:'capitalize'}}>{k.por}</strong></div></div><div className="catalog-detail-price"><span>Precio cliente</span><strong>{num(seleccionado.precio_venta)>0?money(seleccionado.precio_venta):"Precio pendiente"}</strong></div></div></div></div></div>})()}
+      {seleccionado&&(()=>{const k=cbmCobro(seleccionado.cbm,seleccionado.peso);return <div className="catalog-detail-backdrop" onClick={()=>setSeleccionado(null)}><div className="catalog-detail" onClick={e=>e.stopPropagation()}><button className="catalog-detail-close" onClick={()=>setSeleccionado(null)} aria-label="Cerrar"><X size={22}/></button><div className="catalog-detail-head"><div className="catalog-detail-photo">{seleccionado.foto?<img src={seleccionado.foto} alt={seleccionado.nombre}/>:<div className="catalog-no-photo"><Package size={54}/><span>Imagen próximamente</span></div>}</div><div className="catalog-detail-info"><div className="catalog-code">{seleccionado.codigo}</div><h2>{seleccionado.nombre}</h2>{seleccionado.descripcion&&<div className="catalog-detail-desc">{seleccionado.descripcion}</div>}<div className="catalog-detail-metrics"><div className="catalog-detail-metric"><span>CBM por volumen</span><strong>{m3(k.vol)} m³</strong></div><div className="catalog-detail-metric"><span>CBM por peso</span><strong>{m3(k.porPeso)} m³</strong></div><div className="catalog-detail-metric"><span>CBM a cobrar</span><strong>{m3(k.cobrable)} m³</strong></div><div className="catalog-detail-metric"><span>Cobro determinado por</span><strong style={{textTransform:'capitalize'}}>{k.por}</strong></div></div><div className="catalog-detail-price"><span>Precio</span><strong>{num(seleccionado.precio_venta)>0?money(seleccionado.precio_venta):"Precio pendiente"}</strong><small style={{display:'block',fontSize:13,fontWeight:500,opacity:.78,marginTop:5}}>Precio puesto en Managua.</small></div></div></div></div></div>})()}
       {!embedded&&<div className="catalog-footer"><img src={EVK_SIDEBAR_LOGO} alt="EVK Transportaciones"/><div><b>EVK Transportaciones</b><span>Importación y logística · China → Nicaragua</span></div></div>}
     </section>
   </div>;

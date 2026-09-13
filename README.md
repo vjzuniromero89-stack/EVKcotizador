@@ -103,3 +103,7 @@ Conviene ir guardando en PDF las cotizaciones importantes.
 - Estados de orden: Nueva / En proceso / Completada / Cancelada.
 - Ganancias calculadas a partir de órdenes aprobadas/no canceladas.
 - Persistencia local con IndexedDB y, cuando Supabase está disponible, sincronización de clientes/órdenes/estados usando la tabla `configuracion`.
+
+
+## Supabase / CreditFlow
+Esta versión apunta por defecto al proyecto Supabase `creditflow` (ref `hpimqcnkcoqmalslknnn`). Las variables Vercel `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` pueden sobrescribir estos valores.

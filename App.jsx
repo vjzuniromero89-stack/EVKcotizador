@@ -10,8 +10,8 @@ import { LOGO_POR_DEFECTO } from "./logo.js";
 import EVK_HERO_IMG from "./evk-port-hero.jpg";
 import EVK_SIDEBAR_LOGO from "./evk-sidebar-logo.png";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://hpimqcnkcoqmalslknnn.supabase.co";
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "sb_publishable_jimplhH_i_-jV7Bon5TN5w_Ijsd8H1q";
 const supabase = SUPABASE_URL && SUPABASE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_KEY)
   : null;

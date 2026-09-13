@@ -236,6 +236,13 @@ const STYLES = `
   .form-grid-cod, .form-grid-3, .form-grid-2 { grid-template-columns:1fr; }
   .form-card { padding:20px 16px 24px; }
 }
+
+
+.catalog-public-page,.catalog-admin-wrap{min-height:100vh;background:linear-gradient(180deg,#f4f8fb 0%,#eaf2f7 100%);color:#0c2d45}.catalog-admin-wrap{min-height:auto;border-radius:16px;overflow:hidden;box-shadow:0 10px 35px rgba(4,35,56,.12)}
+.catalog-hero{min-height:430px;background-size:cover;background-position:center;display:flex;align-items:center;padding:48px clamp(24px,6vw,90px);position:relative}.catalog-hero-inner{max-width:780px;color:white}.catalog-logo{width:min(320px,70vw);height:120px;object-fit:contain;object-position:left center;margin-bottom:24px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.25))}.catalog-eyebrow{font-size:13px;letter-spacing:.22em;font-weight:800;color:#8bd8ff;margin-bottom:10px}.catalog-hero h1{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:clamp(40px,6vw,76px);line-height:.96;margin:0 0 18px;max-width:760px}.catalog-hero p{font-size:clamp(16px,2vw,21px);line-height:1.55;max-width:660px;color:#e7f3f9}.catalog-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}.catalog-actions .btn-ghost{background:rgba(255,255,255,.94)}
+.catalog-body{max-width:1500px;margin:0 auto;padding:34px clamp(18px,4vw,54px) 54px}.catalog-toolbar{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:24px}.catalog-kicker{color:#0b7daf;font-size:12px;font-weight:800;letter-spacing:.16em}.catalog-toolbar h2{font-family:'Barlow Condensed',sans-serif;font-size:34px;margin:4px 0 0}.catalog-search{background:white;border:1px solid #c9d8e2;border-radius:14px;display:flex;align-items:center;gap:10px;padding:0 14px;width:min(430px,100%);box-shadow:0 5px 18px rgba(4,35,56,.05)}.catalog-search input{border:0;outline:0;background:transparent;padding:13px 0;width:100%;font-size:15px}
+.catalog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:22px}.catalog-card{background:white;border:1px solid #d8e4eb;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(4,35,56,.07);transition:transform .18s,box-shadow .18s}.catalog-card:hover{transform:translateY(-4px);box-shadow:0 16px 34px rgba(4,35,56,.13)}.catalog-photo{height:235px;background:linear-gradient(135deg,#f5f9fb,#e6f0f5);display:flex;align-items:center;justify-content:center;overflow:hidden}.catalog-photo img{width:100%;height:100%;object-fit:contain;padding:14px}.catalog-no-photo{display:flex;flex-direction:column;align-items:center;gap:8px;color:#7690a1}.catalog-card-body{padding:18px}.catalog-code{font-size:12px;font-weight:800;letter-spacing:.08em;color:#0b7daf;text-transform:uppercase}.catalog-card h3{font-family:'Barlow Condensed',sans-serif;font-size:25px;line-height:1.1;margin:5px 0 10px;color:#0b2d45}.catalog-desc{font-size:14px;color:#5f7380;line-height:1.55;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden}.catalog-price-row{border-top:1px solid #e4edf2;margin-top:16px;padding-top:14px;display:flex;justify-content:space-between;align-items:center}.catalog-price-row span{font-size:13px;color:#718591}.catalog-price-row strong{font-family:'Barlow Condensed',sans-serif;font-size:26px;color:#0b7daf}.catalog-empty{background:white;border:1px dashed #bdd0db;border-radius:16px;padding:42px;text-align:center;color:#6b7e8a}.catalog-footer{margin-top:38px;background:#062f4c;border-radius:18px;padding:20px 24px;color:white;display:flex;align-items:center;gap:18px}.catalog-footer img{width:160px;height:70px;object-fit:contain}.catalog-footer div{display:flex;flex-direction:column;gap:3px}.catalog-footer span{color:#b9d0dd;font-size:13px}
+@media(max-width:760px){.catalog-hero{min-height:390px;padding:32px 20px}.catalog-logo{height:90px}.catalog-toolbar{align-items:stretch;flex-direction:column}.catalog-search{width:100%}.catalog-grid{grid-template-columns:1fr}.catalog-photo{height:250px}.catalog-footer{flex-direction:column;text-align:center}.catalog-footer img{width:190px}}
 `;
 
 /* ---------- utilidades ---------- */
@@ -402,6 +409,7 @@ function generarPassword() {
   let out="EVK-"; for(let i=0;i<8;i++) out+=chars[Math.floor(Math.random()*chars.length)]; return out;
 }
 function portalLink(token){ return `${window.location.origin}${window.location.pathname}?portal=${token}`; }
+function catalogoLink(){ return `${window.location.origin}${window.location.pathname}?catalogo=1`; }
 
 /* ---------- respaldo local (IndexedDB) ---------- */
 let dbPromise = null;
@@ -2209,6 +2217,40 @@ function ClientesView({ cartera, guardarCartera, cotizaciones, ordenes, avisar, 
 }
 
 
+
+function CatalogoPublico({ embedded=false, avisar }) {
+  const [productosPublicos,setProductosPublicos]=useState([]);
+  const [q,setQ]=useState("");
+  const [cargandoCatalogo,setCargandoCatalogo]=useState(true);
+  const [errorCatalogo,setErrorCatalogo]=useState("");
+  useEffect(()=>{ let vivo=true; (async()=>{ try { const data=await rpc("evk_public_catalog"); if(vivo) setProductosPublicos(Array.isArray(data)?data:[]); } catch(e){ if(vivo) setErrorCatalogo("No se pudo cargar el catálogo."); } finally { if(vivo) setCargandoCatalogo(false); } })(); return()=>{vivo=false}; },[]);
+  const filtrados=useMemo(()=>{const x=q.trim().toLowerCase(); if(!x)return productosPublicos; return productosPublicos.filter(p=>String(p.codigo||"").toLowerCase().includes(x)||String(p.nombre||"").toLowerCase().includes(x)||String(p.descripcion||"").toLowerCase().includes(x));},[productosPublicos,q]);
+  const copiar=async()=>{const link=catalogoLink(); try{await navigator.clipboard.writeText(link); avisar?.("Link del catálogo copiado");}catch{prompt("Copia este enlace:",link)}};
+  const abrir=()=>window.open(catalogoLink(),"_blank","noopener,noreferrer");
+  return <div className={embedded?"catalog-admin-wrap":"catalog-public-page"}>
+    <section className="catalog-hero" style={{backgroundImage:`linear-gradient(90deg,rgba(4,35,56,.88) 0%,rgba(4,35,56,.48) 48%,rgba(4,35,56,.12) 100%),url(${EVK_HERO_IMG})`}}>
+      <div className="catalog-hero-inner">
+        <img src={EVK_SIDEBAR_LOGO} className="catalog-logo" alt="EVK Transportaciones"/>
+        <div className="catalog-eyebrow">CATÁLOGO EVK TRANSPORTACIONES</div>
+        <h1>Productos seleccionados para impulsar tu negocio</h1>
+        <p>Explora nuestro catálogo de importación. Información clara para clientes, sin costos internos ni datos administrativos.</p>
+        {embedded&&<div className="catalog-actions"><button className="btn btn-primary" onClick={abrir}><Eye size={17}/> Abrir catálogo público</button><button className="btn btn-ghost" onClick={copiar}><Copy size={17}/> Copiar link para cliente</button></div>}
+      </div>
+    </section>
+    <section className="catalog-body">
+      <div className="catalog-toolbar">
+        <div><div className="catalog-kicker">NUESTROS PRODUCTOS</div><h2>{productosPublicos.length} productos disponibles</h2></div>
+        <div className="catalog-search"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar por nombre, código o descripción"/></div>
+      </div>
+      {cargandoCatalogo?<div className="catalog-empty">Cargando catálogo…</div>:errorCatalogo?<div className="catalog-empty">{errorCatalogo}</div>:filtrados.length===0?<div className="catalog-empty">No encontramos productos con esa búsqueda.</div>:<div className="catalog-grid">{filtrados.map(p=><article key={p.id||p.codigo} className="catalog-card">
+        <div className="catalog-photo">{p.foto?<img src={p.foto} alt={p.nombre}/>:<div className="catalog-no-photo"><Package size={42}/><span>Imagen próximamente</span></div>}</div>
+        <div className="catalog-card-body"><div className="catalog-code">{p.codigo}</div><h3>{p.nombre}</h3>{p.descripcion&&<p className="catalog-desc">{p.descripcion}</p>}<div className="catalog-price-row"><span>Precio</span><strong>{num(p.precio_venta)>0?money(p.precio_venta):"Consultar"}</strong></div></div>
+      </article>)}</div>}
+      {!embedded&&<div className="catalog-footer"><img src={EVK_SIDEBAR_LOGO} alt="EVK Transportaciones"/><div><b>EVK Transportaciones</b><span>Importación y logística · China → Nicaragua</span></div></div>}
+    </section>
+  </div>;
+}
+
 function LoginEVK({ onLogin }) {
   const [hasUsers,setHasUsers]=useState(null), [form,setForm]=useState({username:'',password:'',full_name:''}), [err,setErr]=useState(''), [busy,setBusy]=useState(false);
   useEffect(()=>{rpc('evk_has_users').then(setHasUsers).catch(e=>setErr(e.message))},[]);
@@ -2241,6 +2283,7 @@ const VACIA = { contador: 0, lista: [] };
 const TABS = [
   { id: "inicio", label: "Inicio", icon: Home },
   { id: "productos", label: "Productos", icon: Package },
+  { id: "catalogo", label: "Catálogo", icon: ImageIcon },
   { id: "internas", label: "Cotizaciones Internas", icon: FileTextIcon },
   { id: "clientes", label: "Cotizaciones Clientes", icon: Users },
   { id: "ordenes", label: "Órdenes", icon: ClipboardList },
@@ -2267,7 +2310,7 @@ export default function App() {
   const timer = useRef(null);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("portal")) { setAuthReady(true); return; }
+    if (new URLSearchParams(window.location.search).get("portal") || new URLSearchParams(window.location.search).get("catalogo")) { setAuthReady(true); return; }
     const token=localStorage.getItem("evk_session");
     if(!token){setAuthReady(true);return;}
     rpc("evk_current_user",{p_token:token}).then(user=>{if(user)setSesion({token,user});else localStorage.removeItem("evk_session")}).finally(()=>setAuthReady(true));
@@ -2405,7 +2448,10 @@ export default function App() {
   };
   const irAProductos = () => cambiarTab("productos");
 
-  const portalToken=new URLSearchParams(window.location.search).get("portal");
+  const paramsPublicos=new URLSearchParams(window.location.search);
+  const portalToken=paramsPublicos.get("portal");
+  const catalogoPublico=paramsPublicos.get("catalogo");
+  if(catalogoPublico) return <><style>{STYLES}</style><CatalogoPublico /></>;
   if(portalToken) return <><style>{STYLES}</style><PortalCliente /></>;
   if(!authReady) return <div style={{padding:30}}>Cargando acceso…</div>;
   if(!sesion) return <><style>{STYLES}</style><LoginEVK onLogin={setSesion} /></>;
@@ -2465,6 +2511,7 @@ export default function App() {
                   <ProductosView productos={productos} guardarProductos={guardarProductos} avisar={avisar}
                     empresa={empresa} guardarEmpresa={guardarEmpresa} />
                 )}
+                {tab === "catalogo" && <CatalogoPublico embedded avisar={avisar} />}
                 {tab === "internas" && (
                   <CotizacionInternaView cotiz={internas} guardarCotizaciones={guardarInternas}
                     clientes={clientes} avisar={avisar} empresa={empresa} />

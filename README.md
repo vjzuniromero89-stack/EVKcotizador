@@ -112,3 +112,11 @@ Esta versión apunta por defecto al proyecto Supabase `creditflow` (ref `hpimqcn
 ## Actualización de productos
 - Se agregó el campo **Descripción** a productos.
 - La descripción se guarda en Supabase, se copia a cotizaciones y órdenes, aparece en detalles e impresiones y participa en la búsqueda del catálogo.
+
+## Catálogo público EVK
+- Nueva pestaña **Catálogo** dentro de la aplicación.
+- Todo producto registrado en `productos` aparece automáticamente en el catálogo público.
+- El catálogo público solo muestra código, nombre, descripción, foto y precio de venta.
+- No muestra CBM, peso, costo del producto, costo de flete, precio CBM, ganancias ni cotizaciones internas.
+- Link público: abre la pestaña Catálogo y usa **Copiar link para cliente**.
+- El enlace usa `?catalogo=1` y no requiere iniciar sesión.

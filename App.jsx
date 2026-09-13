@@ -1430,7 +1430,7 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
               <div>
                 <ComparaCbm k={cbmCobro(form.cbm, form.peso)} />
                 <p className="text-sm muted mt-1 num">
-                  Precio CBM por unidad: {money(cbmCobro(form.cbm, form.peso).cobrable * num(form.precioCbm))}
+                  Costo CBM por unidad: {money(cbmCobro(form.cbm, form.peso).cobrable * num(form.precioCbm))}
                 </p>
               </div>
             )}
@@ -1505,6 +1505,7 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
                       <Dato label="Peso" value={p.peso ? kg(p.peso) : "Sin peso"} cls={p.peso ? "" : "muted"} />
                       <Dato label="CBM a cobrar" value={`${m3(k.cobrable)} m³, por ${k.por}`} strong />
                       <Dato label="Precio CBM" value={money(p.precioCbm)} />
+                      <Dato label="Costo CBM" value={money(k.cobrable * num(p.precioCbm))} strong />
                       <Dato label="Precio producto" value={money(p.precioProducto)} strong />
                       <Dato label="Precio de venta" value={p.precioVenta ? money(p.precioVenta) : "Sin precio"}
                         strong={!!p.precioVenta} cls={p.precioVenta ? "" : "muted"} />

@@ -93,3 +93,13 @@ Todo se guarda en el navegador del dispositivo (IndexedDB), no en un servidor:
 - Si publicas la app en otro dominio, ese dominio empieza vacío.
 
 Conviene ir guardando en PDF las cotizaciones importantes.
+
+## Funciones EVK agregadas
+- CRM de clientes: alta, edición, eliminación y ficha con cotizaciones/órdenes.
+- Al registrar una cotización, el cliente se agrega automáticamente a la cartera.
+- Cotizaciones de cliente con estados: Pendiente / Aprobada / Rechazada.
+- Botón "Cliente aprobó · Crear orden": cambia el estado y genera una orden automáticamente.
+- Órdenes con número ORD-####, productos, total, costo, ganancia, estado y notas.
+- Estados de orden: Nueva / En proceso / Completada / Cancelada.
+- Ganancias calculadas a partir de órdenes aprobadas/no canceladas.
+- Persistencia local con IndexedDB y, cuando Supabase está disponible, sincronización de clientes/órdenes/estados usando la tabla `configuracion`.

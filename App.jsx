@@ -3,6 +3,7 @@ import {
   Camera, Image as ImageIcon, Pencil, Trash2, X, Plus, Search, FileText,
   Printer, Share2, Eye, Home, Package, FileText as FileTextIcon, Users, Menu,
   TrendingUp, DollarSign, Ship, Cloud, CloudOff, Settings, BarChart3, ClipboardList,
+  CheckCircle2, XCircle, Clock3, Phone, Mail, MapPin, UserPlus, ChevronRight, RefreshCw,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { LOGO_POR_DEFECTO } from "./logo.js";
@@ -171,6 +172,22 @@ const STYLES = `
 .reciente-sub { display:flex; justify-content:space-between; gap:8px;
   font-size:14px; color:#5B6B75; margin-top:2px; }
 .reciente-cliente { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+
+.status-badge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:5px 10px; font-size:12px; font-weight:700; white-space:nowrap; }
+.status-pendiente { background:#FFF4CC; color:#7A5A00; border:1px solid #E2C45C; }
+.status-aprobada, .status-completada { background:#D7EFE2; color:#155F3D; border:1px solid #A9D8BE; }
+.status-rechazada, .status-cancelada { background:#F6DDD6; color:#8C2D1C; border:1px solid #E5B9AE; }
+.status-nueva, .status-proceso { background:#E4EFF8; color:#0B5C87; border:1px solid #B9D7E8; }
+.crm-grid { display:grid; grid-template-columns:minmax(280px,.85fr) minmax(0,1.4fr); gap:16px; }
+.crm-card { background:#fff; border:1px solid #CAD4DA; border-radius:12px; padding:18px; }
+.crm-list-item { width:100%; display:flex; align-items:center; gap:12px; padding:14px 16px; text-align:left; border-bottom:1px solid #E1E7EA; background:#fff; }
+.crm-list-item:last-child { border-bottom:0; }
+.crm-list-item:hover { background:#F7FAFB; }
+.order-progress { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px; }
+.order-step { height:7px; border-radius:999px; background:#DCE5EA; }
+.order-step.on { background:#0B7DAF; }
+@media (max-width: 980px) { .crm-grid { grid-template-columns:1fr; } }
 
 /* Formulario de producto más compacto */
 .form-producto { display:flex; flex-direction:column; gap:14px; }
@@ -353,6 +370,19 @@ async function sbLoadEmpresa() {
 async function sbSaveEmpresa(empresa) {
   if (!supabase) return false;
   const { error } = await supabase.from("configuracion").upsert({ clave: "empresa", valor: empresa });
+  if (error) { console.error(error); return false; }
+  return true;
+}
+
+async function sbLoadConfig(clave) {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("configuracion").select("*").eq("clave", clave).maybeSingle();
+  if (error) { console.error(error); return null; }
+  return data ? data.valor : null;
+}
+async function sbSaveConfig(clave, valor) {
+  if (!supabase) return false;
+  const { error } = await supabase.from("configuracion").upsert({ clave, valor });
   if (error) { console.error(error); return false; }
   return true;
 }
@@ -1147,6 +1177,7 @@ function ListaRegistradas({
                     {conDescuento && num(c.descuento) > 0 && (
                       <span className="chip num">{m3(num(c.descuento))}% desc.</span>
                     )}
+                    {c.estado && <EstadoCotizacion estado={c.estado} />}
                   </span>
                   <div className="text-right flex-shrink-0"
                     style={{ width: "clamp(140px,27vw,180px)", fontVariantNumeric: "tabular-nums" }}>
@@ -1700,7 +1731,15 @@ function LineaClienteCard({ l, onChange, onRemove }) {
   );
 }
 
-function DetalleCliente({ cot, onClose, onDelete, empresa, avisar }) {
+
+function EstadoCotizacion({ estado = "pendiente" }) {
+  const e = estado || "pendiente";
+  const icon = e === "aprobada" ? <CheckCircle2 size={14}/> : e === "rechazada" ? <XCircle size={14}/> : <Clock3 size={14}/>;
+  const texto = e === "aprobada" ? "Aprobada" : e === "rechazada" ? "Rechazada" : "Pendiente";
+  return <span className={`status-badge status-${e}`}>{icon}{texto}</span>;
+}
+
+function DetalleCliente({ cot, onClose, onDelete, empresa, avisar, onApprove, onReject }) {
   const t = useMemo(() => calcTotalesCliente(cot.lineas), [cot]);
   const porcentaje = Math.min(100, Math.max(0, num(cot.descuento)));
   const totalFinal = totalConDescuento(cot, t.totalVenta);
@@ -1799,13 +1838,26 @@ function DetalleCliente({ cot, onClose, onDelete, empresa, avisar }) {
         total={money(totalFinal)}
       />
 
+      <div className="paper p-4" style={{borderColor: cot.estado === "aprobada" ? "#A9D8BE" : cot.estado === "rechazada" ? "#E5B9AE" : "#E2C45C"}}>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="font-semibold mb-1">Estado de la cotización</div>
+            <EstadoCotizacion estado={cot.estado || "pendiente"} />
+          </div>
+          {(cot.estado || "pendiente") === "pendiente" && <div className="flex gap-2 flex-wrap">
+            <button className="btn btn-ghost" style={{color:'#8C2D1C'}} onClick={() => onReject && onReject(cot)}><XCircle size={17}/> Cliente rechazó</button>
+            <button className="btn btn-primary" onClick={() => onApprove && onApprove(cot)}><CheckCircle2 size={17}/> Cliente aprobó · Crear orden</button>
+          </div>}
+          {cot.estado === "aprobada" && <div className="text-sm muted">La orden se crea automáticamente y aparece en Órdenes.</div>}
+        </div>
+      </div>
       <AccionesHoja onImprimir={imprimir} onCompartir={compartir} datos={datos} />
       <EliminarRegistro numero={cot.numero} onDelete={() => onDelete(cot.id)} />
     </ModalShell>
   );
 }
 
-function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas, guardarInternas, avisar, irAProductos, empresa }) {
+function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas, guardarInternas, avisar, irAProductos, empresa, cartera, registrarClienteAuto, onAprobar, onRechazar }) {
   const [cliente, setCliente] = useState("");
   const [lineas, setLineas] = useState([]);
   const [detalle, setDetalle] = useState(null);
@@ -1842,7 +1894,7 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
 
     const registro = {
       id: uid(), numero, fecha: ahora, cliente: cliente.trim(),
-      descuento: porcentaje, descuentoMonto: montoDescuento, totalFinal,
+      descuento: porcentaje, descuentoMonto: montoDescuento, totalFinal, estado: "pendiente",
       lineas: lineasFinal,
       totales: { ...calcTotalesCliente(lineasFinal), descuento: porcentaje, descuentoMonto: montoDescuento, totalFinal },
     };
@@ -1861,6 +1913,7 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
     }
     setGuardando(false);
     if (ok) {
+      if (cliente.trim() && registrarClienteAuto) await registrarClienteAuto({ nombre: cliente.trim() });
       avisar(copiada ? `${numero} registrada, también en las internas` : `Cotización ${numero} registrada`);
       setLineas([]); setCliente(""); setDescuento("0"); setError("");
     }
@@ -1887,8 +1940,9 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
           <>
             <div className="mb-3">
               <label className="lbl" htmlFor="cc-cliente">Cliente</label>
-              <input id="cc-cliente" className="inp" placeholder="Nombre del cliente"
+              <input id="cc-cliente" className="inp" placeholder="Nombre del cliente" list="clientes-evk"
                 value={cliente} onChange={(e) => setCliente(e.target.value)} />
+              <datalist id="clientes-evk">{(cartera?.lista || []).map(c => <option key={c.id} value={c.nombre} />)}</datalist>
             </div>
 
             {lineas.length === 0 && <SelectorProducto productos={productos} onAgregar={agregar} />}
@@ -1949,7 +2003,9 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
 
       {detalle && (
         <DetalleCliente cot={detalle} onClose={() => setDetalle(null)} onDelete={eliminar}
-          empresa={empresa} avisar={avisar} />
+          empresa={empresa} avisar={avisar}
+          onApprove={async (c) => { if (onAprobar) await onAprobar(c); setDetalle(null); }}
+          onReject={async (c) => { if (onRechazar) await onRechazar(c); setDetalle(null); }} />
       )}
     </div>
   );
@@ -1957,18 +2013,14 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
 
 const PUERTO_IMG = "/evk-port-hero.jpg";
 
-function InicioView({ productos, internas, clientes, empresa, irA }) {
+function InicioView({ productos, internas, clientes, ordenes, empresa, irA }) {
   const totalProductos = productos.length;
   const totalInternas = internas.lista.length;
   const totalClientes = clientes.lista.length;
 
   const gananciaTotal = useMemo(() => {
-    return clientes.lista.reduce((sum, c) => {
-      const t = calcTotalesCliente(c.lineas);
-      const venta = c.totalFinal ?? totalConDescuento(c, t.totalVenta);
-      return sum + (venta - t.totalCosto);
-    }, 0);
-  }, [clientes.lista]);
+    return ordenes.lista.filter(o => o.estado !== "cancelada").reduce((sum, o) => sum + (num(o.total) - num(o.costo)), 0);
+  }, [ordenes.lista]);
 
   const recientes = useMemo(() => {
     return [...clientes.lista].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 5);
@@ -2016,7 +2068,7 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
             <div className="text-sm muted" style={{ fontWeight: 400 }}>Al catálogo</div>
           </div>
         </button>
-        <button className="quick-btn" onClick={() => irA("internas")}>
+        <button className="quick-btn" onClick={() => irA("ganancias")}>
           <div className="qa-icon" style={{ background: "#F6DDD6", color: "#7A2D1B" }}><DollarSign size={20} /></div>
           <div>
             <div>Ver ganancias</div>
@@ -2057,45 +2109,82 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
   );
 }
 
-function OrdenesView({ clientes, irA }) {
-  const ordenes = [...clientes.lista].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
-  return (
-    <div className="space-y-5">
-      <PageHead icon={ClipboardList} titulo="Órdenes" descripcion="Seguimiento de las cotizaciones registradas como órdenes de clientes." />
-      <div className="paper" style={{overflow:"hidden"}}>
-        {ordenes.length===0 ? <div className="p-8 text-center muted">Aún no hay órdenes registradas.</div> : ordenes.map((c)=>{
-          const t=calcTotalesCliente(c.lineas); const total=c.totalFinal ?? totalConDescuento(c,t.totalVenta);
-          return <button key={c.id} className="reciente-item" onClick={()=>irA("clientes")}>
-            <ClipboardList size={20} color="#0B6F9E" />
-            <div style={{flex:1,minWidth:0}}><div style={{display:"flex",justifyContent:"space-between",gap:12}}><b>{c.numero}</b><b>{money(total)}</b></div><div className="reciente-sub"><span className="reciente-cliente">{c.cliente||"Sin cliente"}</span><span>{fecha(c.fecha)}</span></div></div>
-          </button>;
-        })}
-      </div>
-    </div>
-  );
+
+function EstadoOrden({ estado = "nueva" }) {
+  const labels = { nueva:"Nueva", proceso:"En proceso", completada:"Completada", cancelada:"Cancelada" };
+  return <span className={`status-badge status-${estado}`}>{estado === 'completada' ? <CheckCircle2 size={14}/> : estado === 'cancelada' ? <XCircle size={14}/> : <Clock3 size={14}/>} {labels[estado] || estado}</span>;
 }
 
-function GananciasView({ clientes, internas }) {
-  const datos = clientes.lista.map((c)=>{ const t=calcTotalesCliente(c.lineas); const venta=c.totalFinal ?? totalConDescuento(c,t.totalVenta); return {...c, venta, costo:t.totalCosto, ganancia:venta-t.totalCosto}; });
-  const venta=datos.reduce((a,c)=>a+c.venta,0), costo=datos.reduce((a,c)=>a+c.costo,0), ganancia=datos.reduce((a,c)=>a+c.ganancia,0);
+function OrdenesView({ ordenes, guardarOrdenes, avisar }) {
+  const [detalle,setDetalle]=useState(null);
+  const lista=[...ordenes.lista].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  async function actualizar(o, cambios){
+    const nuevo={...o,...cambios,actualizada:new Date().toISOString()};
+    const data={...ordenes,lista:ordenes.lista.map(x=>x.id===o.id?nuevo:x)};
+    const ok=await guardarOrdenes(data); if(ok){setDetalle(nuevo);avisar(`Orden ${o.numero} actualizada`);}
+  }
+  async function eliminar(o){
+    const ok=await guardarOrdenes({...ordenes,lista:ordenes.lista.filter(x=>x.id!==o.id)});
+    if(ok){setDetalle(null);avisar(`Orden ${o.numero} eliminada`);}
+  }
+  const total=lista.reduce((a,o)=>a+num(o.total),0);
+  const abiertas=lista.filter(o=>!['completada','cancelada'].includes(o.estado)).length;
   return <div className="space-y-5">
-    <PageHead icon={BarChart3} titulo="Ganancias" descripcion="Resumen de ventas, costos y utilidad de tus cotizaciones de clientes." />
+    <EncabezadoPagina icon={ClipboardList} titulo="Órdenes" descripcion="Se crean automáticamente cuando el cliente aprueba una cotización. Aquí controlas todo el proceso." />
     <div className="stats-grid">
-      {[['Ventas',money(venta),'Facturación total',TrendingUp],['Costos',money(costo),'Costo acumulado',DollarSign],['Ganancia',money(ganancia),'Utilidad acumulada',BarChart3],['Registros',internas.lista.length,'Cotizaciones internas',FileTextIcon]].map(([l,v,sub,I])=><div className="stat-card" key={l}><div className="stat-icon" style={{background:'#E6F3F9',color:'#0B6F9E'}}><I size={22}/></div><div className="stat-label">{l}</div><div className="stat-value">{v}</div><div className="stat-sub">{sub}</div></div>)}
+      {[['Órdenes',lista.length,'totales',ClipboardList],['Abiertas',abiertas,'por procesar',Clock3],['Completadas',lista.filter(o=>o.estado==='completada').length,'finalizadas',CheckCircle2],['Valor',money(total),'en órdenes',DollarSign]].map(([l,v,sub,I])=><div className="stat-card" key={l}><div className="stat-icon" style={{background:'#E6F3F9',color:'#0B6F9E'}}><I size={22}/></div><div className="stat-label">{l}</div><div className="stat-value">{v}</div><div className="stat-sub">{sub}</div></div>)}
     </div>
-    <div className="paper" style={{overflow:'hidden'}}>{datos.length===0?<div className="p-8 text-center muted">Todavía no hay datos de ganancias.</div>:datos.map(c=><div key={c.id} className="reciente-item" style={{cursor:'default'}}><TrendingUp size={20} color={c.ganancia>=0?'#168454':'#B33A26'}/><div style={{flex:1}}><div style={{display:'flex',justifyContent:'space-between',gap:12}}><b>{c.numero} · {c.cliente||'Sin cliente'}</b><b className={c.ganancia>=0?'pos':'neg'}>{money(c.ganancia)}</b></div><div className="reciente-sub"><span>Venta {money(c.venta)} · Costo {money(c.costo)}</span><span>{fecha(c.fecha)}</span></div></div></div>)}</div>
+    <div className="paper" style={{overflow:'hidden'}}>
+      {lista.length===0?<div className="p-8 text-center muted">Aún no hay órdenes. Abre una cotización de cliente y pulsa “Cliente aprobó · Crear orden”.</div>:lista.map(o=><button key={o.id} className="reciente-item" onClick={()=>setDetalle(o)}><ClipboardList size={20} color="#0B6F9E"/><div style={{flex:1,minWidth:0}}><div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}><b>{o.numero} · {o.cliente||'Sin cliente'}</b><b>{money(o.total)}</b></div><div className="reciente-sub"><span>De {o.cotizacionNumero}</span><span>{fecha(o.fecha)}</span></div><div className="mt-2"><EstadoOrden estado={o.estado}/></div></div></button>)}
+    </div>
+    {detalle && <ModalShell titulo={detalle.numero} subtitulo={`${detalle.cliente || 'Sin cliente'} · ${detalle.cotizacionNumero}`} onClose={()=>setDetalle(null)}>
+      <div className="grid grid-cols-2 gap-3"><Dato label="Total" value={money(detalle.total)} strong/><Dato label="Fecha" value={fecha(detalle.fecha)}/></div>
+      <div><label className="lbl">Estado</label><select className="inp" value={detalle.estado||'nueva'} onChange={e=>actualizar(detalle,{estado:e.target.value})}><option value="nueva">Nueva</option><option value="proceso">En proceso</option><option value="completada">Completada</option><option value="cancelada">Cancelada</option></select></div>
+      <div><label className="lbl">Notas de la orden</label><textarea className="inp" rows="4" value={detalle.notas||''} onChange={e=>setDetalle({...detalle,notas:e.target.value})} onBlur={()=>actualizar(detalle,{notas:detalle.notas||''})} placeholder="Proveedor, tracking, fechas, instrucciones..."/></div>
+      <div className="paper p-3"><div className="font-semibold mb-2">Productos ({detalle.lineas?.length||0})</div>{(detalle.lineas||[]).map(l=><div key={l.id} className="flex justify-between gap-3 py-2 row-line"><span>{l.cantidad} × {l.nombre}</span><b>{money(calcCliente(l).totalVenta)}</b></div>)}</div>
+      <button className="btn btn-danger w-full" onClick={()=>eliminar(detalle)}><Trash2 size={16}/> Eliminar orden</button>
+    </ModalShell>}
   </div>;
 }
 
-function ClientesView({ clientes, irA }) {
-  const mapa = new Map();
-  clientes.lista.forEach(c=>{ const nombre=(c.cliente||'Sin cliente').trim()||'Sin cliente'; const d=mapa.get(nombre)||{nombre,cantidad:0,total:0,ultima:null}; const t=calcTotalesCliente(c.lineas); d.cantidad++; d.total += c.totalFinal ?? totalConDescuento(c,t.totalVenta); if(!d.ultima||new Date(c.fecha)>new Date(d.ultima)) d.ultima=c.fecha; mapa.set(nombre,d); });
-  const lista=[...mapa.values()].sort((a,b)=>b.total-a.total);
-  return <div className="space-y-5"><PageHead icon={Users} titulo="Clientes" descripcion="Cartera de clientes creada automáticamente desde tus cotizaciones."/><div className="paper" style={{overflow:'hidden'}}>{lista.length===0?<div className="p-8 text-center muted">Aún no hay clientes registrados.</div>:lista.map(c=><button key={c.nombre} className="reciente-item" onClick={()=>irA('clientes')}><Users size={20} color="#0B6F9E"/><div style={{flex:1}}><div style={{display:'flex',justifyContent:'space-between',gap:12}}><b>{c.nombre}</b><b>{money(c.total)}</b></div><div className="reciente-sub"><span>{c.cantidad} cotización{c.cantidad===1?'':'es'}</span><span>Última: {fecha(c.ultima)}</span></div></div></button>)}</div></div>;
+function GananciasView({ ordenes }) {
+  const datos=ordenes.lista.filter(o=>o.estado!=='cancelada').map(o=>({ ...o, venta:num(o.total), costo:num(o.costo), ganancia:num(o.total)-num(o.costo) }));
+  const venta=datos.reduce((a,c)=>a+c.venta,0), costo=datos.reduce((a,c)=>a+c.costo,0), ganancia=datos.reduce((a,c)=>a+c.ganancia,0);
+  const margen=venta>0?ganancia/venta:0;
+  return <div className="space-y-5">
+    <EncabezadoPagina icon={BarChart3} titulo="Ganancias" descripcion="Utilidad real basada en órdenes aprobadas. Las cotizaciones pendientes no se cuentan como ventas." />
+    <div className="stats-grid">
+      {[['Ventas',money(venta),'órdenes aprobadas',TrendingUp],['Costos',money(costo),'costos estimados',DollarSign],['Ganancia',money(ganancia),`margen ${pct(margen)}`,BarChart3],['Órdenes',datos.length,'activas/completadas',ClipboardList]].map(([l,v,sub,I])=><div className="stat-card" key={l}><div className="stat-icon" style={{background:'#E6F3F9',color:'#0B6F9E'}}><I size={22}/></div><div className="stat-label">{l}</div><div className="stat-value">{v}</div><div className="stat-sub">{sub}</div></div>)}
+    </div>
+    <div className="paper" style={{overflow:'hidden'}}>{datos.length===0?<div className="p-8 text-center muted">Aún no hay órdenes aprobadas para calcular ganancias.</div>:datos.map(c=><div key={c.id} className="reciente-item" style={{cursor:'default'}}><TrendingUp size={20} color={c.ganancia>=0?'#168454':'#B33A26'}/><div style={{flex:1}}><div style={{display:'flex',justifyContent:'space-between',gap:12}}><b>{c.numero} · {c.cliente||'Sin cliente'}</b><b className={c.ganancia>=0?'pos':'neg'}>{money(c.ganancia)}</b></div><div className="reciente-sub"><span>Venta {money(c.venta)} · Costo {money(c.costo)}</span><span>{fecha(c.fecha)}</span></div></div></div>)}</div>
+  </div>;
+}
+
+function ClientesView({ cartera, guardarCartera, cotizaciones, ordenes, avisar }) {
+  const vacio={nombre:'',telefono:'',email:'',direccion:'',notas:''};
+  const [form,setForm]=useState(vacio), [editId,setEditId]=useState(null), [detalle,setDetalle]=useState(null);
+  const lista=[...cartera.lista].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+  function editar(c){setEditId(c.id);setForm({nombre:c.nombre||'',telefono:c.telefono||'',email:c.email||'',direccion:c.direccion||'',notas:c.notas||''});}
+  async function guardar(){
+    if(!form.nombre.trim()){avisar('Escribe el nombre del cliente','error');return;}
+    const ahora=new Date().toISOString();
+    let nueva;
+    if(editId) nueva=cartera.lista.map(c=>c.id===editId?{...c,...form,nombre:form.nombre.trim(),actualizado:ahora}:c);
+    else nueva=[{id:uid(),...form,nombre:form.nombre.trim(),creado:ahora,actualizado:ahora},...cartera.lista];
+    if(await guardarCartera({...cartera,lista:nueva})){avisar(editId?'Cliente actualizado':'Cliente agregado');setForm(vacio);setEditId(null);}
+  }
+  async function borrar(c){if(await guardarCartera({...cartera,lista:cartera.lista.filter(x=>x.id!==c.id)})){setDetalle(null);avisar('Cliente eliminado');}}
+  function stats(c){const qs=cotizaciones.lista.filter(q=>(q.cliente||'').trim().toLowerCase()===c.nombre.trim().toLowerCase()); const os=ordenes.lista.filter(o=>(o.cliente||'').trim().toLowerCase()===c.nombre.trim().toLowerCase()); return {qs,os,total:os.reduce((a,o)=>a+num(o.total),0)};}
+  return <div className="space-y-5"><EncabezadoPagina icon={Users} titulo="Clientes" descripcion="Cartera completa: agrega, edita y consulta clientes. También se crean automáticamente al registrar una cotización."/>
+    <div className="crm-grid"><div className="crm-card"><div className="flex items-center gap-2 mb-4"><UserPlus size={21} color="#0B6F9E"/><b>{editId?'Editar cliente':'Agregar cliente'}</b></div>
+      <div className="space-y-3"><div><label className="lbl">Nombre *</label><input className="inp" value={form.nombre} onChange={e=>setForm({...form,nombre:e.target.value})} placeholder="Nombre o empresa"/></div><div className="form-grid-2"><div><label className="lbl">Teléfono</label><input className="inp" value={form.telefono} onChange={e=>setForm({...form,telefono:e.target.value})}/></div><div><label className="lbl">Email</label><input className="inp" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></div></div><div><label className="lbl">Dirección</label><input className="inp" value={form.direccion} onChange={e=>setForm({...form,direccion:e.target.value})}/></div><div><label className="lbl">Notas</label><textarea className="inp" rows="3" value={form.notas} onChange={e=>setForm({...form,notas:e.target.value})}/></div><div className="flex gap-2"><button className="btn btn-primary" onClick={guardar}>{editId?'Guardar cambios':'Agregar cliente'}</button>{editId&&<button className="btn btn-ghost" onClick={()=>{setEditId(null);setForm(vacio)}}>Cancelar</button>}</div></div>
+    </div><div className="paper" style={{overflow:'hidden'}}>{lista.length===0?<div className="p-8 text-center muted">Aún no hay clientes.</div>:lista.map(c=>{const st=stats(c);return <button key={c.id} className="crm-list-item" onClick={()=>setDetalle(c)}><div className="stat-icon" style={{background:'#E4EFF1',color:'#0B6F9E',margin:0}}><Users size={20}/></div><div style={{flex:1,minWidth:0}}><div className="flex justify-between gap-3"><b>{c.nombre}</b><b>{money(st.total)}</b></div><div className="text-sm muted">{st.qs.length} cotizaciones · {st.os.length} órdenes{c.telefono?` · ${c.telefono}`:''}</div></div><ChevronRight size={18} color="#7D919C"/></button>})}</div></div>
+    {detalle&&(()=>{const st=stats(detalle);return <ModalShell titulo={detalle.nombre} subtitulo="Ficha del cliente" onClose={()=>setDetalle(null)}><div className="space-y-2">{detalle.telefono&&<div className="flex gap-2"><Phone size={17}/><span>{detalle.telefono}</span></div>}{detalle.email&&<div className="flex gap-2"><Mail size={17}/><span>{detalle.email}</span></div>}{detalle.direccion&&<div className="flex gap-2"><MapPin size={17}/><span>{detalle.direccion}</span></div>}</div><div className="stats-grid" style={{gridTemplateColumns:'repeat(3,1fr)'}}><div className="stat-card"><div className="stat-label">Cotizaciones</div><div className="stat-value">{st.qs.length}</div></div><div className="stat-card"><div className="stat-label">Órdenes</div><div className="stat-value">{st.os.length}</div></div><div className="stat-card"><div className="stat-label">Ventas</div><div className="stat-value">{money(st.total)}</div></div></div>{detalle.notas&&<div className="paper p-3"><b>Notas</b><div className="muted text-sm mt-1">{detalle.notas}</div></div>}<div className="flex gap-2"><button className="btn btn-ghost flex-1" onClick={()=>{editar(detalle);setDetalle(null)}}><Pencil size={16}/> Editar</button><button className="btn btn-danger flex-1" onClick={()=>borrar(detalle)}><Trash2 size={16}/> Eliminar</button></div></ModalShell>})()}
+  </div>;
 }
 
 function ConfiguracionView({ empresa, guardarEmpresa, avisar }) {
-  return <div className="space-y-5"><PageHead icon={Settings} titulo="Configuración" descripcion="Datos generales de EVK Transportaciones y personalización del cotizador."/><EmpresaCard empresa={empresa} guardarEmpresa={guardarEmpresa} avisar={avisar}/><div className="paper p-5"><div style={{fontWeight:700,marginBottom:6}}>Apariencia EVK</div><div className="muted text-sm">La navegación, portada y colores están configurados con la identidad visual EVK Transportaciones.</div></div></div>;
+  return <div className="space-y-5"><EncabezadoPagina icon={Settings} titulo="Configuración" descripcion="Datos generales de EVK Transportaciones y personalización del cotizador."/><EmpresaCard empresa={empresa} guardarEmpresa={guardarEmpresa} avisar={avisar}/><div className="paper p-5"><div style={{fontWeight:700,marginBottom:6}}>Apariencia EVK</div><div className="muted text-sm">La navegación, portada y colores están configurados con la identidad visual EVK Transportaciones.</div></div></div>;
 }
 
 const VACIA = { contador: 0, lista: [] };
@@ -2116,6 +2205,8 @@ export default function App() {
   const [productos, setProductos] = useState([]);
   const [internas, setInternas] = useState(VACIA);
   const [clientes, setClientes] = useState(VACIA);
+  const [cartera, setCartera] = useState(VACIA);
+  const [ordenes, setOrdenes] = useState(VACIA);
   const [empresa, setEmpresa] = useState(EMPRESA_POR_DEFECTO);
   const [cargando, setCargando] = useState(true);
   const [online, setOnline] = useState(!!supabase);
@@ -2124,23 +2215,29 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      let p, ci, cc, em;
+      let p, ci, cc, em, crm, ord, est;
       if (supabase) {
-        [p, ci, cc, em] = await Promise.all([
-          sbLoadProductos(), sbLoadCotizacionesClientes(),
-          sbLoadCotizacionesInternas(), sbLoadEmpresa(),
+        [p, ci, cc, em, crm, ord, est] = await Promise.all([
+          sbLoadProductos(), sbLoadCotizacionesInternas(), sbLoadCotizacionesClientes(), sbLoadEmpresa(),
+          sbLoadConfig("clientes_crm"), sbLoadConfig("ordenes"), sbLoadConfig("cotizaciones_estado"),
         ]);
       }
       if (p === null) {
         console.warn("Supabase no disponible, usando IndexedDB local");
         setOnline(false);
-        [p, ci, cc, em] = await Promise.all([
+        [p, ci, cc, em, crm, ord, est] = await Promise.all([
           localLoad("productos", []),
           localLoad("cotizaciones", VACIA),
           localLoad("cotizacionesClientes", VACIA),
           localLoad("empresa", EMPRESA_POR_DEFECTO),
+          localLoad("clientesCRM", VACIA),
+          localLoad("ordenes", VACIA),
+          localLoad("cotizacionesEstado", {}),
         ]);
       }
+      if (!crm || !Array.isArray(crm.lista)) crm = await localLoad("clientesCRM", VACIA);
+      if (!ord || !Array.isArray(ord.lista)) ord = await localLoad("ordenes", VACIA);
+      if (!est || typeof est !== "object" || Array.isArray(est)) est = await localLoad("cotizacionesEstado", {});
       setProductos(Array.isArray(p) ? p : []);
       setEmpresa(em && typeof em === "object"
         ? {
@@ -2150,7 +2247,9 @@ export default function App() {
           }
         : EMPRESA_POR_DEFECTO);
       setInternas(ci && Array.isArray(ci.lista) ? ci : VACIA);
-      setClientes(cc && Array.isArray(cc.lista) ? cc : VACIA);
+      setClientes(cc && Array.isArray(cc.lista) ? {...cc, lista: cc.lista.map(c => { const tieneOrden=(ord?.lista||[]).some(o=>o.cotizacionId===c.id); return {...c, estado: est?.[c.id] || (tieneOrden ? "aprobada" : (c.estado || "pendiente"))}; })} : VACIA);
+      setCartera(crm && Array.isArray(crm.lista) ? crm : VACIA);
+      setOrdenes(ord && Array.isArray(ord.lista) ? ord : VACIA);
       setCargando(false);
     })();
   }, []);
@@ -2188,6 +2287,46 @@ export default function App() {
     }
     return true;
   };
+  const guardarCartera = async (data) => {
+    setCartera(data); await localSave("clientesCRM", data);
+    if (supabase) { const ok = await sbSaveConfig("clientes_crm", data); if (!ok) avisar("Clientes guardados localmente; no se sincronizó la nube.", "error"); }
+    return true;
+  };
+  const guardarOrdenes = async (data) => {
+    setOrdenes(data); await localSave("ordenes", data);
+    if (supabase) { const ok = await sbSaveConfig("ordenes", data); if (!ok) avisar("Órdenes guardadas localmente; no se sincronizó la nube.", "error"); }
+    return true;
+  };
+  const registrarClienteAuto = async ({ nombre }) => {
+    const n=(nombre||"").trim(); if(!n) return true;
+    const existe=cartera.lista.some(c=>(c.nombre||"").trim().toLowerCase()===n.toLowerCase());
+    if(existe) return true;
+    const ahora=new Date().toISOString();
+    return guardarCartera({...cartera,lista:[{id:uid(),nombre:n,telefono:"",email:"",direccion:"",notas:"",creado:ahora,actualizado:ahora},...cartera.lista]});
+  };
+  const guardarEstadoCotizacion = async (id, estado) => {
+    const actual = await localLoad("cotizacionesEstado", {});
+    const mapa = {...(actual && typeof actual === "object" ? actual : {}), [id]: estado};
+    await localSave("cotizacionesEstado", mapa);
+    if (supabase) await sbSaveConfig("cotizaciones_estado", mapa);
+    return true;
+  };
+  const aprobarCotizacion = async (cot) => {
+    if (ordenes.lista.some(o=>o.cotizacionId===cot.id)) { avisar("Esta cotización ya tiene una orden."); return true; }
+    const actualizadas={...clientes,lista:clientes.lista.map(c=>c.id===cot.id?{...c,estado:"aprobada",fechaAprobacion:new Date().toISOString()}:c)};
+    await guardarClientes(actualizadas);
+    await guardarEstadoCotizacion(cot.id, "aprobada");
+    await registrarClienteAuto({nombre:cot.cliente});
+    const contador=(ordenes.contador||0)+1; const t=calcTotalesCliente(cot.lineas); const total=cot.totalFinal ?? totalConDescuento(cot,t.totalVenta);
+    const orden={id:uid(),numero:siguienteNumero("ORD",contador),cotizacionId:cot.id,cotizacionNumero:cot.numero,fecha:new Date().toISOString(),cliente:cot.cliente||"",lineas:cot.lineas.map(l=>({...l,id:uid()})),total,costo:t.totalCosto,ganancia:total-t.totalCosto,estado:"nueva",notas:""};
+    await guardarOrdenes({contador,lista:[orden,...ordenes.lista]});
+    avisar(`${cot.numero} aprobada · ${orden.numero} creada automáticamente`); return true;
+  };
+  const rechazarCotizacion = async (cot) => {
+    const data={...clientes,lista:clientes.lista.map(c=>c.id===cot.id?{...c,estado:"rechazada",fechaRechazo:new Date().toISOString()}:c)};
+    await guardarClientes(data); await guardarEstadoCotizacion(cot.id, "rechazada"); avisar(`${cot.numero} marcada como rechazada`); return true;
+  };
+
   const guardarEmpresa = async (data) => {
     setEmpresa(data);
     await localSave("empresa", data);
@@ -2253,7 +2392,7 @@ export default function App() {
             ) : (
               <>
                 {tab === "inicio" && (
-                  <InicioView productos={productos} internas={internas} clientes={clientes}
+                  <InicioView productos={productos} internas={internas} clientes={clientes} ordenes={ordenes}
                     empresa={empresa} irA={cambiarTab} />
                 )}
                 {tab === "productos" && (
@@ -2267,11 +2406,12 @@ export default function App() {
                 {tab === "clientes" && (
                   <CotizacionClienteView productos={productos} cotiz={clientes} guardarCotizaciones={guardarClientes}
                     internas={internas} guardarInternas={guardarInternas} avisar={avisar}
-                    irAProductos={irAProductos} empresa={empresa} />
+                    irAProductos={irAProductos} empresa={empresa} cartera={cartera} registrarClienteAuto={registrarClienteAuto}
+                    onAprobar={aprobarCotizacion} onRechazar={rechazarCotizacion} />
                 )}
-                {tab === "ordenes" && <OrdenesView clientes={clientes} irA={cambiarTab} />}
-                {tab === "ganancias" && <GananciasView clientes={clientes} internas={internas} />}
-                {tab === "cartera" && <ClientesView clientes={clientes} irA={cambiarTab} />}
+                {tab === "ordenes" && <OrdenesView ordenes={ordenes} guardarOrdenes={guardarOrdenes} avisar={avisar} />}
+                {tab === "ganancias" && <GananciasView ordenes={ordenes} />}
+                {tab === "cartera" && <ClientesView cartera={cartera} guardarCartera={guardarCartera} cotizaciones={clientes} ordenes={ordenes} avisar={avisar} />}
                 {tab === "configuracion" && <ConfiguracionView empresa={empresa} guardarEmpresa={guardarEmpresa} avisar={avisar} />}
               </>
             )}

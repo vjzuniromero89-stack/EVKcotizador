@@ -3,7 +3,7 @@ import {
   Camera, Image as ImageIcon, Pencil, Trash2, X, Plus, Search, FileText,
   Printer, Share2, Eye, Home, Package, FileText as FileTextIcon, Users, Menu,
   TrendingUp, DollarSign, Ship, Cloud, CloudOff, Settings, BarChart3, ClipboardList,
-  CheckCircle2, XCircle, Clock3, Phone, Mail, MapPin, UserPlus, ChevronRight, RefreshCw, KeyRound, ShieldCheck, LogOut, Copy,
+  CheckCircle2, XCircle, Clock3, Phone, Mail, MapPin, UserPlus, ChevronRight, RefreshCw, KeyRound, ShieldCheck, LogOut, Copy, MessageCircle,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { LOGO_POR_DEFECTO } from "./logo.js";
@@ -1253,7 +1253,7 @@ function EncabezadoPagina({ icon: Icon, titulo, descripcion }) {
   );
 }
 
-const VACIO = { codigo: "", nombre: "", descripcion: "", cbm: "", peso: "", precioCbm: "", precioProducto: "", precioVenta: "", foto: "" };
+const VACIO = { codigo: "", nombre: "", descripcion: "", cbm: "", peso: "", precioCbm: "", precioProducto: "", porcentajeGanancia: "", precioVenta: "", foto: "" };
 const EMPRESA_POR_DEFECTO = {
   nombre: "EVK Transportaciones",
   contacto: "Importaciones y transporte de carga",
@@ -1343,8 +1343,41 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
   const [q, setQ] = useState("");
   const [confirmId, setConfirmId] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [precioAutomatico, setPrecioAutomatico] = useState(false);
 
+  const costoTotalFormulario = (f=form) => {
+    const k = cbmCobro(f.cbm, f.peso);
+    return num(f.precioProducto) + (k.cobrable * num(f.precioCbm));
+  };
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const setPorcentaje = (e) => {
+    const valor = e.target.value;
+    setPrecioAutomatico(true);
+    setForm((f) => {
+      const costo = costoTotalFormulario(f);
+      const pct = num(valor);
+      const venta = costo > 0 && valor !== "" ? costo * (1 + pct / 100) : f.precioVenta;
+      return { ...f, porcentajeGanancia: valor, precioVenta: costo > 0 && valor !== "" ? venta.toFixed(2) : f.precioVenta };
+    });
+  };
+  const setPrecioVentaManual = (e) => {
+    const valor = e.target.value;
+    setPrecioAutomatico(false);
+    setForm((f) => {
+      const costo = costoTotalFormulario(f);
+      const pct = costo > 0 && valor !== "" ? ((num(valor)-costo)/costo)*100 : 0;
+      return { ...f, precioVenta: valor, porcentajeGanancia: valor !== "" && costo > 0 ? pct.toFixed(1) : "" };
+    });
+  };
+
+  useEffect(() => {
+    if (!precioAutomatico || form.porcentajeGanancia === "") return;
+    const costo = costoTotalFormulario(form);
+    if (costo <= 0) return;
+    const venta = costo * (1 + num(form.porcentajeGanancia) / 100);
+    const nuevo = venta.toFixed(2);
+    if (nuevo !== String(form.precioVenta)) setForm((f) => ({ ...f, precioVenta: nuevo }));
+  }, [form.cbm, form.peso, form.precioCbm, form.precioProducto, form.porcentajeGanancia, precioAutomatico]);
 
   async function submit() {
     const codigo = form.codigo.trim(), nombre = form.nombre.trim();
@@ -1369,11 +1402,15 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
   }
 
   function editar(p) {
+    const k = cbmCobro(p.cbm, p.peso);
+    const costo = num(p.precioProducto) + (k.cobrable * num(p.precioCbm));
+    const pct = costo > 0 && num(p.precioVenta) > 0 ? ((num(p.precioVenta)-costo)/costo)*100 : 0;
     setForm({
       codigo: p.codigo, nombre: p.nombre, descripcion: p.descripcion || "", cbm: String(p.cbm), peso: p.peso ? String(p.peso) : "",
-      precioCbm: String(p.precioCbm), precioProducto: String(p.precioProducto),
+      precioCbm: String(p.precioCbm), precioProducto: String(p.precioProducto), porcentajeGanancia: pct ? pct.toFixed(1) : "",
       precioVenta: p.precioVenta ? String(p.precioVenta) : "", foto: p.foto || "",
     });
+    setPrecioAutomatico(false);
     setEditId(p.id); setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -1445,14 +1482,20 @@ function ProductosView({ productos, guardarProductos, avisar, empresa, guardarEm
               </div>
             )}
 
-            <div className="form-grid-2">
+            <div className="form-grid-3">
               <div>
                 <label className="lbl" htmlFor="p-precio">Precio producto</label>
                 <input id="p-precio" className="inp num" inputMode="decimal" placeholder="0.00" value={form.precioProducto} onChange={set("precioProducto")} />
               </div>
               <div>
+                <label className="lbl" htmlFor="p-margen">Ganancia deseada (%)</label>
+                <input id="p-margen" className="inp num" inputMode="decimal" placeholder="Ej. 30" value={form.porcentajeGanancia} onChange={setPorcentaje} />
+                <div className="text-xs muted" style={{marginTop:4}}>Al escribir un porcentaje, el precio de venta se calcula automáticamente.</div>
+              </div>
+              <div>
                 <label className="lbl" htmlFor="p-venta">Precio de venta</label>
-                <input id="p-venta" className="inp inp-venta num" inputMode="decimal" placeholder="0.00" value={form.precioVenta} onChange={set("precioVenta")} />
+                <input id="p-venta" className="inp inp-venta num" inputMode="decimal" placeholder="0.00" value={form.precioVenta} onChange={setPrecioVentaManual} />
+                <div className="text-xs muted" style={{marginTop:4}}>También puedes escribir el precio manualmente.</div>
               </div>
             </div>
 
@@ -2248,12 +2291,20 @@ function CatalogoPublico({ embedded=false, avisar }) {
   const [productosPublicos,setProductosPublicos]=useState([]);
   const [q,setQ]=useState("");
   const [seleccionado,setSeleccionado]=useState(null);
+  const [consulta,setConsulta]=useState("Hola, me interesa este producto y quisiera más información.");
+  const [whatsappDestinos,setWhatsappDestinos]=useState([]);
   const [cargandoCatalogo,setCargandoCatalogo]=useState(true);
   const [errorCatalogo,setErrorCatalogo]=useState("");
-  useEffect(()=>{ let vivo=true; (async()=>{ try { const data=await rpc("evk_public_catalog"); if(vivo) setProductosPublicos(Array.isArray(data)?data:[]); } catch(e){ if(vivo) setErrorCatalogo("No se pudo cargar el catálogo."); } finally { if(vivo) setCargandoCatalogo(false); } })(); return()=>{vivo=false}; },[]);
+  useEffect(()=>{ let vivo=true; (async()=>{ try { const [data,destinos]=await Promise.all([rpc("evk_public_catalog"),rpc("evk_public_whatsapp_recipients").catch(()=>[])]); if(vivo){setProductosPublicos(Array.isArray(data)?data:[]);setWhatsappDestinos(Array.isArray(destinos)?destinos:[]);} } catch(e){ if(vivo) setErrorCatalogo("No se pudo cargar el catálogo."); } finally { if(vivo) setCargandoCatalogo(false); } })(); return()=>{vivo=false}; },[]);
   const filtrados=useMemo(()=>{const x=q.trim().toLowerCase(); if(!x)return productosPublicos; return productosPublicos.filter(p=>String(p.codigo||"").toLowerCase().includes(x)||String(p.nombre||"").toLowerCase().includes(x)||String(p.descripcion||"").toLowerCase().includes(x));},[productosPublicos,q]);
   const copiar=async()=>{const link=catalogoLink(); try{await navigator.clipboard.writeText(link); avisar?.("Link del catálogo copiado");}catch{prompt("Copia este enlace:",link)}};
   const abrir=()=>window.open(catalogoLink(),"_blank","noopener,noreferrer");
+  const abrirWhatsapp=(destino,p)=>{
+    const telefono=String(destino?.phone||'').replace(/\D/g,'');
+    if(!telefono)return;
+    const texto=`${consulta}\n\nProducto: ${p?.nombre||''}\nCódigo: ${p?.codigo||''}\nPrecio: ${num(p?.precio_venta)>0?money(p.precio_venta):'Precio pendiente'}\n${catalogoLink()}`;
+    window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(texto)}`,'_blank','noopener,noreferrer');
+  };
   return <div className={embedded?"catalog-admin-wrap":"catalog-public-page"}>
     <section className="catalog-hero" style={{backgroundImage:`linear-gradient(90deg,rgba(4,35,56,.88) 0%,rgba(4,35,56,.48) 48%,rgba(4,35,56,.12) 100%),url(${EVK_HERO_IMG})`}}>
       <div className="catalog-hero-inner">
@@ -2273,7 +2324,7 @@ function CatalogoPublico({ embedded=false, avisar }) {
         <div className="catalog-photo">{p.foto?<img src={p.foto} alt={p.nombre}/>:<div className="catalog-no-photo"><Package size={42}/><span>Imagen próximamente</span></div>}</div>
         <div className="catalog-card-body"><div className="catalog-code">{p.codigo}</div><h3>{p.nombre}</h3>{p.descripcion&&<p className="catalog-desc">{p.descripcion}</p>}<div className="catalog-price-row"><span>Precio</span><strong>{num(p.precio_venta)>0?money(p.precio_venta):"Precio pendiente"}</strong></div><div style={{fontSize:12,color:'#6B7B86',marginTop:-6,marginBottom:8}}>Precio puesto en Managua.</div><div className="catalog-click-hint">Ver información completa →</div></div>
       </article>)}</div>}
-      {seleccionado&&(()=>{const k=cbmCobro(seleccionado.cbm,seleccionado.peso);return <div className="catalog-detail-backdrop" onClick={()=>setSeleccionado(null)}><div className="catalog-detail" onClick={e=>e.stopPropagation()}><button className="catalog-detail-close" onClick={()=>setSeleccionado(null)} aria-label="Cerrar"><X size={22}/></button><div className="catalog-detail-head"><div className="catalog-detail-photo">{seleccionado.foto?<img src={seleccionado.foto} alt={seleccionado.nombre}/>:<div className="catalog-no-photo"><Package size={54}/><span>Imagen próximamente</span></div>}</div><div className="catalog-detail-info"><div className="catalog-code">{seleccionado.codigo}</div><h2>{seleccionado.nombre}</h2>{seleccionado.descripcion&&<div className="catalog-detail-desc">{seleccionado.descripcion}</div>}<div className="catalog-detail-metrics"><div className="catalog-detail-metric"><span>CBM por volumen</span><strong>{m3(k.vol)} m³</strong></div><div className="catalog-detail-metric"><span>CBM por peso</span><strong>{m3(k.porPeso)} m³</strong></div><div className="catalog-detail-metric"><span>CBM a cobrar</span><strong>{m3(k.cobrable)} m³</strong></div><div className="catalog-detail-metric"><span>Cobro determinado por</span><strong style={{textTransform:'capitalize'}}>{k.por}</strong></div></div><div className="catalog-detail-price"><span>Precio</span><strong>{num(seleccionado.precio_venta)>0?money(seleccionado.precio_venta):"Precio pendiente"}</strong><small style={{display:'block',fontSize:13,fontWeight:500,opacity:.78,marginTop:5}}>Precio puesto en Managua.</small></div></div></div></div></div>})()}
+      {seleccionado&&(()=>{const k=cbmCobro(seleccionado.cbm,seleccionado.peso);return <div className="catalog-detail-backdrop" onClick={()=>setSeleccionado(null)}><div className="catalog-detail" onClick={e=>e.stopPropagation()}><button className="catalog-detail-close" onClick={()=>setSeleccionado(null)} aria-label="Cerrar"><X size={22}/></button><div className="catalog-detail-head"><div className="catalog-detail-photo">{seleccionado.foto?<img src={seleccionado.foto} alt={seleccionado.nombre}/>:<div className="catalog-no-photo"><Package size={54}/><span>Imagen próximamente</span></div>}</div><div className="catalog-detail-info"><div className="catalog-code">{seleccionado.codigo}</div><h2>{seleccionado.nombre}</h2>{seleccionado.descripcion&&<div className="catalog-detail-desc">{seleccionado.descripcion}</div>}<div className="catalog-detail-metrics"><div className="catalog-detail-metric"><span>CBM por volumen</span><strong>{m3(k.vol)} m³</strong></div><div className="catalog-detail-metric"><span>CBM por peso</span><strong>{m3(k.porPeso)} m³</strong></div><div className="catalog-detail-metric"><span>CBM a cobrar</span><strong>{m3(k.cobrable)} m³</strong></div><div className="catalog-detail-metric"><span>Cobro determinado por</span><strong style={{textTransform:'capitalize'}}>{k.por}</strong></div></div><div className="catalog-detail-price"><span>Precio</span><strong>{num(seleccionado.precio_venta)>0?money(seleccionado.precio_venta):"Precio pendiente"}</strong><small style={{display:'block',fontSize:13,fontWeight:500,opacity:.78,marginTop:5}}>Precio puesto en Managua.</small></div>{whatsappDestinos.length>0&&<div style={{marginTop:18,borderTop:'1px solid #DDE8EE',paddingTop:18}}><div style={{display:'flex',alignItems:'center',gap:8,fontWeight:800,color:'#0B2D45',marginBottom:8}}><MessageCircle size={20} color="#1FA463"/> Consultar por WhatsApp</div><textarea className="inp" rows={3} value={consulta} onChange={e=>setConsulta(e.target.value)} placeholder="Escribe tu mensaje"/><div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:10}}>{whatsappDestinos.map(d=><button key={d.id} className="btn btn-primary" style={{background:'#1FA463'}} onClick={()=>abrirWhatsapp(d,seleccionado)}><MessageCircle size={16}/> Escribir a {d.name}</button>)}</div><div className="text-xs muted" style={{marginTop:8}}>Tu consulta se enviará por WhatsApp al miembro del equipo que elijas.</div></div>}</div></div></div></div></div>})()}
       {!embedded&&<div className="catalog-footer"><img src={EVK_SIDEBAR_LOGO} alt="EVK Transportaciones"/><div><b>EVK Transportaciones</b><span>Importación y logística · China → Nicaragua</span></div></div>}
     </section>
   </div>;
@@ -2287,13 +2338,30 @@ function LoginEVK({ onLogin }) {
 }
 
 function UsuariosView({ sesion, avisar }) {
-  const [lista,setLista]=useState([]), [form,setForm]=useState({full_name:'',username:'',password:'',role:'usuario'}), [busy,setBusy]=useState(false);
+  const [lista,setLista]=useState([]), [form,setForm]=useState({full_name:'',username:'',password:'',role:'usuario',whatsapp_phone:'',whatsapp_enabled:false}), [busy,setBusy]=useState(false);
   async function cargar(){try{setLista(await rpc('evk_list_users',{p_token:sesion.token})||[])}catch(e){avisar(e.message,'error')}}
   useEffect(()=>{cargar()},[]);
-  async function crear(){if(!form.username||!form.password){avisar('Usuario y contraseña son obligatorios','error');return}setBusy(true);try{await rpc('evk_create_user',{p_token:sesion.token,p_username:form.username,p_password:form.password,p_full_name:form.full_name,p_role:form.role});setForm({full_name:'',username:'',password:'',role:'usuario'});await cargar();avisar('Usuario creado')}catch(e){avisar(e.message,'error')}finally{setBusy(false)}}
+  async function crear(){
+    if(!form.username||!form.password){avisar('Usuario y contraseña son obligatorios','error');return}
+    setBusy(true);
+    try{
+      await rpc('evk_create_user',{p_token:sesion.token,p_username:form.username,p_password:form.password,p_full_name:form.full_name,p_role:form.role});
+      const actual=await rpc('evk_list_users',{p_token:sesion.token})||[];
+      const creado=actual.find(u=>u.username===form.username.trim().toLowerCase());
+      if(creado && (form.whatsapp_phone || form.whatsapp_enabled)) await rpc('evk_set_user_whatsapp',{p_token:sesion.token,p_user_id:creado.id,p_phone:form.whatsapp_phone,p_enabled:form.whatsapp_enabled});
+      setForm({full_name:'',username:'',password:'',role:'usuario',whatsapp_phone:'',whatsapp_enabled:false});
+      await cargar(); avisar('Usuario creado');
+    }catch(e){avisar(e.message,'error')}finally{setBusy(false)}
+  }
   async function toggle(u){try{await rpc('evk_set_user_active',{p_token:sesion.token,p_user_id:u.id,p_active:!u.active});await cargar()}catch(e){avisar(e.message,'error')}}
   async function reset(u){const pw=prompt(`Nueva contraseña para ${u.username} (mínimo 6 caracteres):`);if(!pw)return;try{await rpc('evk_reset_user_password',{p_token:sesion.token,p_user_id:u.id,p_password:pw});avisar('Contraseña actualizada')}catch(e){avisar(e.message,'error')}}
-  return <div className="space-y-5"><EncabezadoPagina icon={ShieldCheck} titulo="Usuarios" descripcion="Administración del personal con acceso a EVK."/><div className="crm-grid"><div className="crm-card"><b>Crear usuario</b><div className="space-y-3" style={{marginTop:12}}><div><label className="lbl">Nombre</label><input className="inp" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/></div><div><label className="lbl">Usuario *</label><input className="inp" value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/></div><div><label className="lbl">Contraseña *</label><input className="inp" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></div><div><label className="lbl">Rol</label><select className="inp" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}><option value="usuario">Usuario</option><option value="admin">Administrador</option></select></div><button className="btn btn-primary" onClick={crear} disabled={busy}><UserPlus size={16}/> Crear usuario</button></div></div><div className="paper" style={{overflow:'hidden'}}>{lista.map(u=><div className="crm-list-item" key={u.id}><div className="stat-icon" style={{background:'#E4EFF1',color:'#0B6F9E',margin:0}}><Users size={20}/></div><div style={{flex:1}}><b>{u.full_name}</b><div className="text-sm muted">@{u.username} · {u.role==='admin'?'Administrador':'Usuario'} · {u.active?'Activo':'Desactivado'}</div></div><button className="btn btn-ghost" onClick={()=>reset(u)}><KeyRound size={15}/> Clave</button><button className="btn btn-ghost" onClick={()=>toggle(u)}>{u.active?'Desactivar':'Activar'}</button></div>)}</div></div></div>;
+  async function whatsapp(u){
+    const tel=prompt(`Número de WhatsApp para ${u.full_name}. Incluye código de país. Ejemplo Nicaragua: 50588887777`,u.whatsapp_phone||'');
+    if(tel===null)return;
+    const activar=confirm('¿Quieres que este usuario reciba consultas del catálogo por WhatsApp?');
+    try{await rpc('evk_set_user_whatsapp',{p_token:sesion.token,p_user_id:u.id,p_phone:tel,p_enabled:activar});await cargar();avisar(activar?'Usuario agregado a WhatsApp del catálogo':'Configuración de WhatsApp guardada')}catch(e){avisar(e.message,'error')}
+  }
+  return <div className="space-y-5"><EncabezadoPagina icon={ShieldCheck} titulo="Usuarios" descripcion="Administración del personal con acceso a EVK y asignación de consultas de WhatsApp del catálogo."/><div className="crm-grid"><div className="crm-card"><b>Crear usuario</b><div className="space-y-3" style={{marginTop:12}}><div><label className="lbl">Nombre</label><input className="inp" value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})}/></div><div><label className="lbl">Usuario *</label><input className="inp" value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/></div><div><label className="lbl">Contraseña *</label><input className="inp" type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></div><div><label className="lbl">Rol</label><select className="inp" value={form.role} onChange={e=>setForm({...form,role:e.target.value})}><option value="usuario">Usuario</option><option value="admin">Administrador</option></select></div><div><label className="lbl">WhatsApp</label><input className="inp" placeholder="Ej. 50588887777" value={form.whatsapp_phone} onChange={e=>setForm({...form,whatsapp_phone:e.target.value})}/><label style={{display:'flex',gap:8,alignItems:'center',marginTop:8,fontSize:14}}><input type="checkbox" checked={form.whatsapp_enabled} onChange={e=>setForm({...form,whatsapp_enabled:e.target.checked})}/> Recibir consultas del catálogo</label></div><button className="btn btn-primary" onClick={crear} disabled={busy}><UserPlus size={16}/> Crear usuario</button></div></div><div className="paper" style={{overflow:'hidden'}}>{lista.map(u=><div className="crm-list-item" key={u.id}><div className="stat-icon" style={{background:'#E4EFF1',color:'#0B6F9E',margin:0}}><Users size={20}/></div><div style={{flex:1}}><b>{u.full_name}</b><div className="text-sm muted">@{u.username} · {u.role==='admin'?'Administrador':'Usuario'} · {u.active?'Activo':'Desactivado'}</div><div className="text-xs" style={{marginTop:3,color:u.whatsapp_enabled?'#1D7A46':'#7B8A93'}}>{u.whatsapp_enabled&&u.whatsapp_phone?`WhatsApp catálogo: +${u.whatsapp_phone}`:'No recibe consultas del catálogo'}</div></div><button className="btn btn-ghost" onClick={()=>whatsapp(u)}><MessageCircle size={15}/> WhatsApp</button><button className="btn btn-ghost" onClick={()=>reset(u)}><KeyRound size={15}/> Clave</button><button className="btn btn-ghost" onClick={()=>toggle(u)}>{u.active?'Desactivar':'Activar'}</button></div>)}</div></div></div>;
 }
 
 function PortalCliente() {

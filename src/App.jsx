@@ -1514,6 +1514,18 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
 
             <div className="form-grid-cod">
               <div>
+                <label className="lbl" htmlFor="p-grupo">Grupo de opciones (si este producto se vende en varias versiones)</label>
+                <input id="p-grupo" className="inp" placeholder="Igual en todas las versiones. Ejemplo: XF-702E + XF-C650S" value={form.grupo} onChange={set("grupo")} />
+              </div>
+              <div>
+                <label className="lbl" htmlFor="p-opcion">Nombre de esta versión</label>
+                <input id="p-opcion" className="inp" placeholder="Ejemplo: Cabezales Epson XP600" value={form.opcion} onChange={set("opcion")} />
+                <p className="muted text-sm mt-1">El cliente ve una sola tarjeta y elige la versión; cada una tiene su código y su precio.</p>
+              </div>
+            </div>
+
+            <div className="form-grid-cod">
+              <div>
                 <label className="lbl" htmlFor="p-marca">Marca</label>
                 <input id="p-marca" className="inp" value={form.marca} onChange={set("marca")} />
               </div>

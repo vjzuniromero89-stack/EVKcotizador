@@ -12,7 +12,7 @@ const limpiar = (v) => String(v ?? "").replace(/\r/g, "").trim();
 const lineas = (v) => limpiar(v).split("\n").map((l) => l.replace(/^\s*[-•·*]\s*/, "").trim()).filter(Boolean);
 const sinAcentos = (v) => v.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export const FICHA_VACIA = { marca: "", empaque: "", resumen: "", caracteristicas: "", ficha: "", incluye: "", opcionales: "" };
+export const FICHA_VACIA = { marca: "", empaque: "", grupo: "", opcion: "", resumen: "", caracteristicas: "", ficha: "", incluye: "", opcionales: "" };
 
 /** Une los campos del formulario en el texto que se guarda. */
 export function armarDescripcion(f) {
@@ -20,6 +20,9 @@ export function armarDescripcion(f) {
   const cabecera = [];
   if (limpiar(f.marca)) cabecera.push(`Marca: ${limpiar(f.marca)}`);
   if (limpiar(f.empaque)) cabecera.push(`Empaque: ${limpiar(f.empaque)}`);
+  // Productos con el mismo grupo se muestran juntos en el catálogo, y el cliente elige la opción.
+  if (limpiar(f.grupo)) cabecera.push(`Grupo: ${limpiar(f.grupo)}`);
+  if (limpiar(f.opcion)) cabecera.push(`Opción: ${limpiar(f.opcion)}`);
   if (cabecera.length) partes.push(cabecera.join("\n"));
   if (limpiar(f.resumen)) partes.push(limpiar(f.resumen));
   for (const [clave, titulo] of SECCIONES) {
@@ -43,6 +46,10 @@ export function leerDescripcion(texto) {
     const empaque = l.match(/^(?:empaque|medidas de empaque)\s*:\s*(.+)$/i);
     if (marca && !campos.marca) { campos.marca = marca[1].trim(); continue; }
     if (empaque && !campos.empaque) { campos.empaque = empaque[1].trim(); continue; }
+    const grupo = l.match(/^grupo\s*:\s*(.+)$/i);
+    const opcion = l.match(/^opci[oó]n\s*:\s*(.+)$/i);
+    if (grupo && !campos.grupo) { campos.grupo = grupo[1].trim(); continue; }
+    if (opcion && !campos.opcion) { campos.opcion = opcion[1].trim(); continue; }
     resumen.push(l);
   }
   campos.resumen = resumen.join("\n").replace(/\n{3,}/g, "\n\n").trim();
@@ -50,6 +57,8 @@ export function leerDescripcion(texto) {
     campos,
     marca: campos.marca,
     empaque: campos.empaque,
+    grupo: campos.grupo,
+    opcion: campos.opcion,
     resumen: campos.resumen,
     caracteristicas: lineas(campos.caracteristicas),
     ficha: lineas(campos.ficha).map((l) => {

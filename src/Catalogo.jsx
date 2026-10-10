@@ -226,6 +226,16 @@ const ESTILOS = `${ESTILOS_VITRINA}
   border-radius:10px; padding:10px 12px; font-size:14.5px; color:#5F4600; }
 .cat-confirmar span { flex:1 1 260px; }
 
+.cat-opciones { padding:0 14px 12px; }
+.cat-ficha-info .cat-opciones { padding:0; margin:2px 0 4px; }
+.cat-opciones small { display:block; font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#5B6B75; margin-bottom:6px; }
+.cat-opciones > div { display:flex; flex-wrap:wrap; gap:6px; }
+.cat-opcion { display:flex; flex-direction:column; align-items:flex-start; gap:1px; border:1.5px solid #CAD4DA; border-radius:9px; padding:7px 11px;
+  background:#fff; color:#14222B; font:inherit; font-size:14px; line-height:1.2; text-align:left; cursor:pointer; }
+.cat-opcion b { font-weight:700; }
+.cat-opcion span { font-size:13px; color:#5B6B75; }
+.cat-opcion[aria-pressed="true"] { border-color:#1556B8; background:#EAF1FC; box-shadow:inset 0 0 0 1px #1556B8; }
+.cat-opcion:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
 .cat-card-editable { cursor:default; }
 .cat-card-editable:hover { transform:none; }
 .cat-card-abrir { display:flex; flex-direction:column; text-align:left; padding:0; border:0; background:none; width:100%; cursor:pointer; }
@@ -371,11 +381,12 @@ const normalizar = (p) => {
   const producto = Number(p.precio_producto ?? p.precioProducto) || 0;
   const precioCbm = Number(p.precio_cbm ?? p.precioCbm) || 0;
   const flete = cobrable * precioCbm;
+  const ficha = leerDescripcion(p.descripcion);
   return {
     id: p.id, codigo: p.codigo || "", nombre: p.nombre || "", categoria: p.categoria || "Sin categoría",
     cbm, peso, porPeso, cobrable, por: MINIMO_CBM > real ? `mínimo de ${MINIMO_CBM} CBM` : porPeso > cbm ? "peso" : "volumen",
     producto, precioCbm, flete, costo: producto + flete, venta: Number(p.precio_venta ?? p.precioVenta) || 0,
-    foto: p.foto || "", ficha: leerDescripcion(p.descripcion),
+    foto: p.foto || "", ficha, grupo: ficha.grupo, opcion: ficha.opcion,
   };
 };
 
@@ -436,7 +447,28 @@ function EditorPrecio({ p, guardar }) {
   );
 }
 
-function Tarjeta({ p, modo, abrir, guardar, pedir }) {
+/** Las opciones de un mismo producto (por ejemplo, el tipo de cabezal), cada una con su precio. */
+function Opciones({ p, opciones, elegir, modo }) {
+  if (!opciones) return null;
+  return (
+    <div className="cat-opciones" role="group" aria-label="Opciones del producto">
+      <small>Elige una opción</small>
+      <div>
+        {opciones.map((o) => {
+          const precio = modo === "cliente" ? o.venta : o.producto;
+          return (
+            <button type="button" key={o.codigo} className="cat-opcion" aria-pressed={o.codigo === p.codigo} onClick={() => elegir(o.codigo)}>
+              <b>{o.opcion || o.codigo}</b>
+              <span className="cat-num">{precio > 0 ? dinero(precio) : "Consultar"}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir }) {
   const precio = modo === "cliente" ? p.venta : p.producto;
   const contenido = <>
     <div className="cat-foto">
@@ -464,11 +496,12 @@ function Tarjeta({ p, modo, abrir, guardar, pedir }) {
       )}
     </div>
   </>;
-  if (pedir) {
+  if (pedir || (opciones && !guardar)) {
     return (
       <div className="cat-card cat-card-editable">
         <button type="button" className="cat-card-abrir" onClick={abrir} aria-label={`Ver ${p.codigo}, ${p.nombre}`}>{contenido}</button>
-        <div className="cat-pedir"><Cantidad codigo={p.codigo} cantidad={pedir.pedido[p.codigo] || 0} cambiar={pedir.cambiar} /></div>
+        <Opciones p={p} opciones={opciones} elegir={elegir} modo={modo} />
+        {pedir && <div className="cat-pedir"><Cantidad codigo={p.codigo} cantidad={pedir.pedido[p.codigo] || 0} cambiar={pedir.cambiar} /></div>}
       </div>
     );
   }
@@ -476,12 +509,13 @@ function Tarjeta({ p, modo, abrir, guardar, pedir }) {
   return (
     <div className="cat-card cat-card-editable">
       <button type="button" className="cat-card-abrir" onClick={abrir} aria-label={`Ver ${p.codigo}, ${p.nombre}`}>{contenido}</button>
+      <Opciones p={p} opciones={opciones} elegir={elegir} modo={modo} />
       <EditorPrecio p={p} guardar={guardar} />
     </div>
   );
 }
 
-function Ficha({ p, modo, cerrar, pedir }) {
+function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
   const [copiado, setCopiado] = useState(false);
   useEffect(() => {
     const tecla = (e) => { if (e.key === "Escape") cerrar(); };
@@ -513,6 +547,7 @@ function Ficha({ p, modo, cerrar, pedir }) {
             <h2 className="cat-num">{p.codigo}</h2>
             <h3>{p.nombre}</h3>
             {f.resumen && <p className="cat-resumen">{f.resumen}</p>}
+            <Opciones p={p} opciones={opciones} elegir={elegir} modo={modo} />
             <div className="cat-precio-grande">
               <small>{interno ? "Precio de costo del producto" : "Precio"}</small>
               <b className="cat-num">{precio > 0 ? dinero(precio) : "Consultar"}</b>
@@ -1172,17 +1207,43 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
     setAbierto("");
   }, []);
 
+  // Productos con el mismo "Grupo" son opciones de uno solo: en el catálogo salen en una sola tarjeta.
+  const [elegidas, setElegidas] = useState({});
+  const grupos = useMemo(() => {
+    const m = new Map();
+    for (const p of productos) if (p.grupo) m.set(p.grupo, [...(m.get(p.grupo) || []), p]);
+    for (const [g, lista] of m) if (lista.length < 2) m.delete(g);
+    return m;
+  }, [productos]);
+  const opcionesDe = (p) => (p && p.grupo && grupos.get(p.grupo)) || null;
+  const unaPorGrupo = (lista) => {
+    const vistos = new Set(), salida = [];
+    for (const p of lista) {
+      const ops = opcionesDe(p);
+      if (!ops) { salida.push(p); continue; }
+      if (vistos.has(p.grupo)) continue;
+      vistos.add(p.grupo);
+      salida.push(ops.find((o) => o.codigo === elegidas[p.grupo]) || ops[0]);
+    }
+    return salida;
+  };
+  const unicos = useMemo(() => unaPorGrupo(productos), [productos, grupos]); // eslint-disable-line react-hooks/exhaustive-deps
+  const elegirOpcion = (p, codigo, enFicha) => {
+    setElegidas((actual) => ({ ...actual, [p.grupo]: codigo }));
+    if (enFicha) { window.history.replaceState(null, "", `#${encodeURIComponent(codigo)}`); setAbierto(codigo); }
+  };
+
   const categorias = useMemo(() => {
     const cuenta = new Map();
-    for (const p of productos) cuenta.set(p.categoria, (cuenta.get(p.categoria) || 0) + 1);
+    for (const p of unicos) cuenta.set(p.categoria, (cuenta.get(p.categoria) || 0) + 1);
     return [...cuenta.entries()].sort((a, b) => a[0].localeCompare(b[0], "es"));
-  }, [productos]);
+  }, [unicos]);
 
   const filtrados = useMemo(() => {
     const s = sinAcentos(q.trim());
-    return productos.filter((p) => (!categoria || p.categoria === categoria) &&
-      (!s || sinAcentos(`${p.codigo} ${p.nombre} ${p.categoria} ${p.ficha.marca}`).includes(s)));
-  }, [productos, q, categoria]);
+    return unaPorGrupo(productos.filter((p) => (!categoria || p.categoria === categoria) &&
+      (!s || sinAcentos(`${p.codigo} ${p.nombre} ${p.categoria} ${p.ficha.marca} ${p.opcion}`).includes(s))));
+  }, [productos, q, categoria, grupos, elegidas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const seleccionado = abierto ? productos.find((p) => p.codigo.toLowerCase() === abierto.toLowerCase()) : null;
   const sinPrecio = productos.filter((p) => p.venta <= 0).length;
@@ -1264,7 +1325,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
             </div>
           )}
           </div>
-          {amarilla && !enCotizaciones && estado === "listo" && <Categorias productos={productos} activa={categoria} elegir={elegirCategoria} />}
+          {amarilla && !enCotizaciones && estado === "listo" && <Categorias productos={unicos} activa={categoria} elegir={elegirCategoria} />}
         </div>
       </header>
 
@@ -1272,7 +1333,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
         <nav className="cat-filtros" aria-label="Categorías">
           <div className="cat-wrap cat-pills">
             <button type="button" className="cat-pill" aria-pressed={!categoria} onClick={() => setCategoria("")}>
-              Todos<i>{productos.length}</i>
+              Todos<i>{unicos.length}</i>
             </button>
             {categorias.map(([c, n]) => (
               <button type="button" key={c} className="cat-pill" aria-pressed={categoria === c} onClick={() => setCategoria(c)}>
@@ -1288,7 +1349,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
           {aplicarGanancia && productos.length > 0 && <GananciaGeneral cuantos={productos.length} aplicar={aplicarGanancia} />}
           {cambiarPrecioCbm && productos.length > 0 && <PrecioCbmGeneral productos={productos} cambiar={cambiarPrecioCbm} />}
           <p className="cat-cuenta" role="status">
-            {filtrados.length === productos.length ? `${productos.length} productos` : `${filtrados.length} de ${productos.length} productos`}
+            {filtrados.length === unicos.length ? `${unicos.length} productos` : `${filtrados.length} de ${unicos.length} productos`}
             {guardarPrecio && sinPrecio > 0 && ` · ${sinPrecio} sin precio de venta`}
           </p>
           {!productos.length ? <div className="cat-vacio">Próximamente encontrarás nuestros productos aquí.</div> :
@@ -1297,13 +1358,15 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
                 <p style={{ margin: "0 0 14px" }}>Ningún producto coincide con tu búsqueda.</p>
                 <button type="button" className="cat-btn" onClick={() => { setQ(""); setCategoria(""); }}>Ver todos los productos</button>
               </div>
-            ) : <div className="cat-grid">{filtrados.map((p) => <Tarjeta key={p.id} p={p} modo={modo} abrir={() => abrir(p.codigo)} guardar={guardarPrecio} pedir={pedir} />)}</div>}
+            ) : <div className="cat-grid">{filtrados.map((p) => <Tarjeta key={p.id} p={p} modo={modo} abrir={() => abrir(p.codigo)} guardar={guardarPrecio} pedir={pedir}
+              opciones={opcionesDe(p)} elegir={(codigo) => elegirOpcion(p, codigo)} />)}</div>}
         </>}
       </main>
 
       <footer className="cat-pie-pagina">EVK Logistic · Precios en dólares.</footer>
 
-      {seleccionado && <Ficha p={seleccionado} modo={modo} cerrar={cerrar} pedir={pedir} />}
+      {seleccionado && <Ficha p={seleccionado} modo={modo} cerrar={cerrar} pedir={pedir}
+        opciones={opcionesDe(seleccionado)} elegir={(codigo) => elegirOpcion(seleccionado, codigo, true)} />}
 
       {pedir && unidades > 0 && !panel && !seleccionado && (
         <button type="button" className="cat-flotante" onClick={() => setPanel(true)}>

@@ -15,21 +15,21 @@ const sinAcentos = (v) => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "
 /* ---------- portada "Puerto con categorías": la foto del puerto de fondo y una ficha por categoría ---------- */
 export const ESTILOS_VITRINA = `
 .cats-portada { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
-.cat-ficha { display:flex; align-items:center; gap:4px; min-height:84px; padding:0; border:0; border-radius:12px; overflow:hidden; text-align:left;
+.cats-boton { display:flex; align-items:center; gap:4px; min-height:84px; padding:0; border:0; border-radius:12px; overflow:hidden; text-align:left;
   font:inherit; color:#0A1F44; background:rgba(255,255,255,.96); cursor:pointer; transition:transform .15s, box-shadow .15s; }
-.cat-ficha:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(3,10,26,.45); }
-.cat-ficha:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
-.cat-ficha[aria-pressed="true"] { box-shadow:0 0 0 3px #FF8A1F; }
-.cat-ficha img, .cat-ficha i { width:84px; height:84px; flex:none; background:#fff; }
-.cat-ficha img { object-fit:contain; padding:6px; }
-.cat-ficha i { display:grid; place-items:center; background:#E6EDF6; color:#1556B8; font-style:normal;
+.cats-boton:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(3,10,26,.45); }
+.cats-boton:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
+.cats-boton[aria-pressed="true"] { box-shadow:0 0 0 3px #FF8A1F; }
+.cats-boton img, .cats-boton i { width:84px; height:84px; flex:none; background:#fff; }
+.cats-boton img { object-fit:contain; padding:6px; }
+.cats-boton i { display:grid; place-items:center; background:#E6EDF6; color:#1556B8; font-style:normal;
   font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:32px; }
-.cat-ficha span { padding:8px 12px 8px 6px; min-width:0; }
-.cat-ficha b { display:block; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:19px; line-height:1.05; overflow-wrap:anywhere; }
-.cat-ficha small { font-size:13px; font-weight:500; color:#5B6B75; }
+.cats-boton span { padding:8px 12px 8px 6px; min-width:0; }
+.cats-boton b { display:block; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:19px; line-height:1.05; overflow-wrap:anywhere; }
+.cats-boton small { font-size:13px; font-weight:500; color:#5B6B75; }
 @media (max-width:520px) {
   .cats-portada { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-  .cat-ficha { min-height:64px; } .cat-ficha img, .cat-ficha i { width:60px; height:60px; } .cat-ficha b { font-size:17px; }
+  .cats-boton { min-height:64px; } .cats-boton img, .cats-boton i { width:60px; height:60px; } .cats-boton b { font-size:17px; }
 }
 `;
 
@@ -50,7 +50,7 @@ export function Categorias({ productos, activa = "", elegir }) {
   return (
     <div className="cats-portada">
       {lista.map((g) => (
-        <button type="button" key={g.nombre} className="cat-ficha" aria-pressed={activa === g.nombre} onClick={() => elegir(g.nombre)}>
+        <button type="button" key={g.nombre} className="cats-boton" aria-pressed={activa === g.nombre} onClick={() => elegir(g.nombre)}>
           {g.foto ? <img src={g.foto} alt="" loading="lazy" /> : <i aria-hidden="true">{g.nombre.slice(0, 1).toUpperCase()}</i>}
           <span><b>{g.nombre}</b><small>{g.cantidad} {g.cantidad === 1 ? "producto" : "productos"}</small></span>
         </button>

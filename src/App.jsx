@@ -7,7 +7,7 @@ import {
 import { createClient } from "@supabase/supabase-js";
 import { LOGO_POR_DEFECTO } from "./logo.js";
 import { KG_POR_CBM, fecha, PIE_TEXTO, hojaImagen, TIEMPOS_ENTREGA, DIAS_PRODUCCION, DIAS_ENVIO } from "./hoja.js";
-import Catalogo, { Vitrina, ESTILOS_VITRINA, EnlaceCatalogo as EnlaceDeCatalogo, VistaCotizacion, VistaCliente, precioConGanancia, numeroWhatsapp } from "./Catalogo.jsx";
+import Catalogo, { Categorias, ESTILOS_VITRINA, EnlaceCatalogo as EnlaceDeCatalogo, VistaCotizacion, VistaCliente, precioConGanancia, numeroWhatsapp } from "./Catalogo.jsx";
 import { FICHA_VACIA, armarDescripcion, leerDescripcion, cbmDeMedidas } from "./descripcion.js";
 import { CATALOGO_XPROMISE } from "./catalogoXpromise.js";
 
@@ -252,28 +252,27 @@ const STYLES = `
   font-size:clamp(28px,5vw,44px); line-height:1.05; margin:0 0 6px; }
 .hero p { font-size:15px; opacity:.9; margin:0; }
 
-.portada { position:relative; border-radius:16px; overflow:hidden; background:#F2B705; color:#14222B; display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:8px; box-shadow:0 10px 30px rgba(20,34,43,.16); }
-.portada::after { content:""; position:absolute; left:0; right:0; bottom:0; height:10px; z-index:3;
-  background:repeating-linear-gradient(135deg,#14222B 0 16px,#F2B705 16px 32px); }
-.portada-texto { padding:30px 0 40px 30px; display:flex; flex-direction:column; justify-content:flex-end; min-width:0; position:relative; z-index:2; }
+.portada { position:relative; border-radius:16px; overflow:hidden; padding:30px; color:#fff;
+  background:#0A1F44 url(/marca/evk-port-hero.jpg) center 40% / cover; box-shadow:0 10px 30px rgba(20,34,43,.16); }
+.portada::before { content:""; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(7,24,51,.3) 0%,rgba(7,24,51,.74) 45%,#071833 100%),linear-gradient(90deg,rgba(7,24,51,.85) 0%,rgba(7,24,51,0) 70%); }
+.portada > * { position:relative; }
+.portada-ruta { display:inline-flex; align-items:center; gap:8px; margin-bottom:12px; color:#FFB45C; font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
+.portada-ruta i { position:relative; width:34px; height:2px; background:currentColor; }
+.portada-ruta i::after { content:""; position:absolute; right:-1px; top:-3px; border-left:7px solid currentColor; border-top:4px solid transparent; border-bottom:4px solid transparent; }
 .portada h2 { font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:clamp(36px,4.6vw,58px); line-height:.94; margin:0; text-wrap:balance; }
-.portada p { margin:10px 0 18px; font-size:16px; font-weight:500; line-height:1.4; color:#3A2C00; max-width:400px; }
+.portada p { margin:10px 0 18px; font-size:16px; font-weight:500; line-height:1.4; color:#DCE5F3; max-width:460px; }
 .portada-datos { display:flex; flex-wrap:wrap; gap:14px 28px; margin:0; }
-.portada-datos dt { font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#5F4600; }
+.portada-datos dt { font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#A9C2EE; }
 .portada-datos dd { margin:0; font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:32px; line-height:1.05; }
 .portada-botones { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
-.portada-botones .btn { background:#14222B; color:#fff; }
-.portada-botones .btn:hover { background:#24394A; }
-.portada-botones .btn.claro { background:rgba(255,255,255,.72); color:#14222B; }
-.portada-botones .btn.claro:hover { background:#fff; }
-.portada-botones .btn:focus-visible { outline-color:#14222B; }
-.portada .vitrina { min-height:340px; }
-@media (max-width:900px) {
-  .portada { grid-template-columns:1fr; }
-  .portada-texto { padding:22px 18px 34px; }
-  .portada .vitrina { display:none; }
-}
+.portada-botones .btn { background:#FF8A1F; color:#1B1000; }
+.portada-botones .btn:hover { background:#FFA14A; }
+.portada-botones .btn.claro { background:rgba(255,255,255,.14); color:#fff; }
+.portada-botones .btn.claro:hover { background:rgba(255,255,255,.26); }
+.portada-botones .btn:focus-visible { outline-color:#FF8A1F; }
+.portada .cats-portada { margin-top:26px; }
+@media (max-width:900px) { .portada { padding:22px 18px; } }
 .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
   gap:14px; margin-top:20px; }
 .stat-card { background:#fff; border:1px solid #CAD4DA; border-radius:12px;
@@ -2691,6 +2690,7 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
       <style>{ESTILOS_VITRINA}</style>
       <div className="portada">
         <div className="portada-texto">
+          <span className="portada-ruta">China <i></i> Nicaragua</span>
           <h2>Importamos lo que necesitas</h2>
           <p>{(empresa && empresa.nombre) || "EVK Logistic"} · {totalProductos} {totalProductos === 1 ? "producto" : "productos"} en catálogo, listos para cotizar.</p>
           <dl className="portada-datos">
@@ -2703,7 +2703,7 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
             <button className="btn claro" onClick={() => irA("ganancias")}><TrendingUp size={17} />Ver ganancias</button>
           </div>
         </div>
-        <Vitrina productos={productos} />
+        <Categorias productos={productos} elegir={() => irA("catalogo-cliente")} />
       </div>
 
       <div className="stats-grid">

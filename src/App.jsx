@@ -1471,8 +1471,8 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
           <h2 className="cond text-2xl font-semibold">Catálogo XPROMISE</h2>
           <p className="muted text-sm mt-1">
             {porImportar.length === CATALOGO_XPROMISE.length
-              ? `Agrega los ${porImportar.length} equipos del catálogo XPROMISE con foto, precio, medidas y ficha técnica.`
-              : `Faltan ${porImportar.length} de ${CATALOGO_XPROMISE.length} equipos del catálogo XPROMISE.`}
+              ? `Agrega los ${porImportar.length} productos del catálogo XPROMISE con foto, precio, medidas y ficha técnica.`
+              : `Faltan ${porImportar.length} de ${CATALOGO_XPROMISE.length} productos del catálogo XPROMISE.`}
             {" "}Después puedes editar cada uno para completar el precio CBM y el precio de venta.
           </p>
           <button className="btn btn-primary mt-3" onClick={importarXpromise} disabled={guardando}>
@@ -2602,7 +2602,7 @@ function GananciasView({ clientes }) {
 
       <section>
         <div className="section-toolbar">
-          <h2 className="cond text-2xl font-semibold">Por cotización <span className="muted font-medium text-base">· toca una para ver cada máquina</span></h2>
+          <h2 className="cond text-2xl font-semibold">Por cotización <span className="muted font-medium text-base">· toca una para ver cada producto</span></h2>
           <div className="filtro-estado" style={{ marginBottom: 0 }} role="group" aria-label="Qué cotizaciones ver">
             <button type="button" aria-pressed={!verPendientes} onClick={() => setVerPendientes(false)}>Confirmadas ({delPeriodo.length})</button>
             <button type="button" aria-pressed={verPendientes} onClick={() => setVerPendientes(true)}>Pendientes ({pendientes.length})</button>
@@ -2623,7 +2623,7 @@ function GananciasView({ clientes }) {
                     <tr key={f.c.id} className={`fila-cot ${detalle ? "abierta" : ""}`} onClick={() => setAbierta(detalle ? null : f.c.id)}>
                       <th scope="row">
                         <button type="button" className="ver-maquinas" aria-expanded={detalle}
-                          aria-label={`${detalle ? "Ocultar" : "Ver"} la ganancia por máquina de ${f.c.numero}`}
+                          aria-label={`${detalle ? "Ocultar" : "Ver"} la ganancia por producto de ${f.c.numero}`}
                           onClick={(e) => { e.stopPropagation(); setAbierta(detalle ? null : f.c.id); }}>
                           <ChevronDown size={18} />
                         </button>
@@ -2691,8 +2691,8 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
       <style>{ESTILOS_VITRINA}</style>
       <div className="portada">
         <div className="portada-texto">
-          <h2>Equipos que levantan tu taller</h2>
-          <p>{(empresa && empresa.nombre) || "EVK Logistic"} · {totalProductos} {totalProductos === 1 ? "equipo" : "equipos"} en catálogo, listos para cotizar.</p>
+          <h2>Importamos lo que necesitas</h2>
+          <p>{(empresa && empresa.nombre) || "EVK Logistic"} · {totalProductos} {totalProductos === 1 ? "producto" : "productos"} en catálogo, listos para cotizar.</p>
           <dl className="portada-datos">
             <div><dt>Pendientes</dt><dd className="num">{pendientesInicio}</dd></div>
             <div><dt>Por cobrar</dt><dd className="num">{money(porCobrar)}</dd></div>
@@ -2889,7 +2889,7 @@ function AdminApp() {
   };
   const cambiarPrecioCbm = async (precioCbm) => {
     const ok = await guardarProductos(productos.map((p) => ({ ...p, precioCbm })));
-    if (ok) avisar(`Precio del CBM actualizado a ${money(precioCbm)} en todos los equipos`);
+    if (ok) avisar(`Precio del CBM actualizado a ${money(precioCbm)} en todos los productos`);
     return ok;
   };
   const aplicarGanancia = async (porcentaje) => {

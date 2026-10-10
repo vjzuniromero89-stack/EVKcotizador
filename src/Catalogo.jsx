@@ -383,7 +383,7 @@ function Foto({ src, alt }) {
 
 const PORCENTAJES = [20, 30, 40];
 
-/** Fija el precio de venta de un equipo: por porcentaje de ganancia sobre el costo o escrito a mano. */
+/** Fija el precio de venta de un producto: por porcentaje de ganancia sobre el costo o escrito a mano. */
 function EditorPrecio({ p, guardar }) {
   const [precio, setPrecio] = useState(p.venta > 0 ? String(p.venta) : "");
   const [guardando, setGuardando] = useState(false);
@@ -539,7 +539,7 @@ function Ficha({ p, modo, cerrar, pedir }) {
             <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
               {pedir && <Cantidad completo codigo={p.codigo} cantidad={pedir.pedido[p.codigo] || 0} cambiar={pedir.cambiar} />}
               <button type="button" className="cat-btn claro" onClick={compartir}>
-                {copiado ? <><Check size={17} />Enlace copiado</> : <><Share2 size={17} />Compartir este equipo</>}
+                {copiado ? <><Check size={17} />Enlace copiado</> : <><Share2 size={17} />Compartir este producto</>}
               </button>
             </div>
           </div>
@@ -595,7 +595,7 @@ export function EnlaceCatalogo({ modo, avisar }) {
   );
 }
 
-/** Cambia el precio que se paga por cada CBM en todos los equipos a la vez. */
+/** Cambia el precio que se paga por cada CBM en todos los productos a la vez. */
 function PrecioCbmGeneral({ productos, cambiar }) {
   const actual = useMemo(() => {
     const cuenta = new Map();
@@ -614,8 +614,8 @@ function PrecioCbmGeneral({ productos, cambiar }) {
       <div>
         <b>Precio del CBM</b>
         <small>
-          Lo que te cobran hoy por cada m³. El flete de cada equipo es su CBM a cobrar por este precio.
-          {distintos > 0 && ` ${distintos} ${distintos === 1 ? "equipo tiene" : "equipos tienen"} otro precio.`}
+          Lo que te cobran hoy por cada m³. El flete de cada producto es su CBM a cobrar por este precio.
+          {distintos > 0 && ` ${distintos} ${distintos === 1 ? "producto tiene" : "productos tienen"} otro precio.`}
         </small>
       </div>
       <div className="cat-porcentajes">
@@ -624,14 +624,14 @@ function PrecioCbmGeneral({ productos, cambiar }) {
           por m³
         </label>
         <button type="button" className="cat-btn" disabled={!valido || trabajando || (n === actual && distintos === 0)} onClick={enviar}>
-          {trabajando ? "Guardando…" : "Aplicar a todos los equipos"}
+          {trabajando ? "Guardando…" : "Aplicar a todos los productos"}
         </button>
       </div>
     </section>
   );
 }
 
-/** Aplica un mismo porcentaje de ganancia a todos los equipos. */
+/** Aplica un mismo porcentaje de ganancia a todos los productos. */
 function GananciaGeneral({ cuantos, aplicar }) {
   const [porcentaje, setPorcentaje] = useState("");
   const [confirmar, setConfirmar] = useState(false);
@@ -642,8 +642,8 @@ function GananciaGeneral({ cuantos, aplicar }) {
   return (
     <section className="cat-general">
       <div>
-        <b>Ganancia para todos los equipos</b>
-        <small>Calcula el precio de venta sobre el costo (producto + flete). Después puedes ajustar cada equipo.</small>
+        <b>Ganancia para todos los productos</b>
+        <small>Calcula el precio de venta sobre el costo (producto + flete). Después puedes ajustar cada producto.</small>
       </div>
       <div className="cat-porcentajes" role="group" aria-label="Ganancia para todos">
         {PORCENTAJES.map((x) => (
@@ -657,7 +657,7 @@ function GananciaGeneral({ cuantos, aplicar }) {
       </div>
       {confirmar && (
         <div className="cat-confirmar" role="alert">
-          <span>Se cambiará el precio de venta de {cuantos} equipos a costo + {n}%, incluidos los que escribiste a mano.</span>
+          <span>Se cambiará el precio de venta de {cuantos} productos a costo + {n}%, incluidos los que escribiste a mano.</span>
           <button type="button" className="cat-btn claro" onClick={() => setConfirmar(false)}>Cancelar</button>
           <button type="button" className="cat-btn" onClick={enviar} disabled={trabajando}>{trabajando ? "Aplicando…" : "Sí, aplicar"}</button>
         </div>
@@ -718,17 +718,17 @@ function useEmpresaPublica(activo) {
   return empresa;
 }
 
-/** Hoja de cotización que ve el cliente: equipos, cantidades y precios de venta. */
+/** Hoja de cotización que ve el cliente: productos, cantidades y precios de venta. */
 function datosHojaCliente(cot, empresa) {
   const columnas = [
-    { t: "Foto" }, { t: "Equipo" }, { t: "Cant.", r: true }, { t: "Precio unitario", r: true }, { t: "Total", r: true, fuerte: true },
+    { t: "Foto" }, { t: "Producto" }, { t: "Cant.", r: true }, { t: "Precio unitario", r: true }, { t: "Total", r: true, fuerte: true },
   ];
   const filas = cot.lineas.map((l) => ({
     foto: l.foto, nombre: l.nombre, sub: l.codigo,
     valores: [String(l.cantidad), l.precio > 0 ? dinero(l.precio) : "Por consultar", l.precio > 0 ? dinero(l.precio * l.cantidad) : "Por consultar"],
   }));
-  const totales = [["Equipos", String(cot.lineas.reduce((s, l) => s + l.cantidad, 0))]];
-  if (cot.lineas.some((l) => !(l.precio > 0))) totales.push(["Equipos por consultar", "No incluidos en el total"]);
+  const totales = [["Productos", String(cot.lineas.reduce((s, l) => s + l.cantidad, 0))]];
+  if (cot.lineas.some((l) => !(l.precio > 0))) totales.push(["Productos por consultar", "No incluidos en el total"]);
   totales.push(...TIEMPOS_ENTREGA);
   return {
     empresa, columnas, filas, totales, total: dinero(cot.total), totalLabel: "Total",
@@ -798,11 +798,11 @@ function CotizacionLista({ cot, empresa, alTerminar }) {
         )}
         {empresa.whatsapp && (
           <a className="cat-btn cat-enviar" href={enlaceWhatsapp(cot, empresa.whatsapp)} target="_blank" rel="noopener noreferrer">
-            <Send size={17} />Enviar al taller por WhatsApp
+            <Send size={17} />Enviar por WhatsApp
           </a>
         )}
       </div>
-      {empresa.whatsapp && <p className="cat-nota-envio">Se abrirá WhatsApp con el chat del taller. Solo tienes que tocar “Enviar”.</p>}
+      {empresa.whatsapp && <p className="cat-nota-envio">Se abrirá WhatsApp con nuestro chat. Solo tienes que tocar “Enviar”.</p>}
       {alTerminar && (
         <div className="cat-seguir">
           <b>Sigue tu pedido aquí</b>
@@ -869,7 +869,7 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
         <div className="cat-panel-in">
           <h2 className="cat-cond">{creada ? `Cotización ${creada.numero}` : "Mi cotización"}</h2>
           {creada ? <CotizacionLista cot={creada} empresa={empresa} alTerminar={cerrar} /> : !lineas.length ? (
-            <p className="cat-resumen">Todavía no has agregado equipos. Toca “Agregar a mi cotización” en los equipos que te interesan.</p>
+            <p className="cat-resumen">Todavía no has agregado productos. Toca “Agregar a mi cotización” en los productos que te interesan.</p>
           ) : (
             <form onSubmit={crear} noValidate>
               <ul className="cat-lineas">
@@ -890,7 +890,7 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
               </ul>
               {total > 0 && (
                 <div className="cat-total">
-                  <span>Total{hayConsultar && " (sin los equipos por consultar)"}</span>
+                  <span>Total{hayConsultar && " (sin los productos por consultar)"}</span>
                   <b className="cat-num">{dinero(total)}</b>
                 </div>
               )}
@@ -918,7 +918,7 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
               <p className="cat-tiempos">
                 Entrega aproximada: <b>{DIAS_PRODUCCION + DIAS_ENVIO} días</b> ({DIAS_PRODUCCION} de producción + {DIAS_ENVIO} de envío).
               </p>
-              <p className="cat-nota-envio">Verás tu cotización como imagen y podrás enviarla al taller por WhatsApp.</p>
+              <p className="cat-nota-envio">Verás tu cotización como imagen y podrás enviarla por WhatsApp.</p>
             </form>
           )}
         </div>
@@ -1060,7 +1060,7 @@ export function VistaCotizacion({ id }) {
   const [datos, estado] = useDatosVivos(`/api/solicitudes/${encodeURIComponent(id)}`);
   const cot = datos?.cotizacion || null;
   const sinWhatsapp = useMemo(() => ({ ...empresa, whatsapp: "" }), [empresa]);
-  // La hoja solo se vuelve a dibujar si cambian los equipos o el total, no con cada cambio de estado.
+  // La hoja solo se vuelve a dibujar si cambian los productos o el total, no con cada cambio de estado.
   const huella = cot ? JSON.stringify([cot.lineas, cot.total, cot.cliente, cot.telefono]) : "";
   const paraHoja = useMemo(() => cot, [huella]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
@@ -1091,7 +1091,7 @@ export function VistaCliente({ token }) {
         {estado === "no-existe" ? "Todavía no hay cotizaciones en este enlace." : AVISOS[estado] || AVISOS.cargando}
       </div> : <>
         <p className="cat-cuenta" style={{ marginTop: 0 }}>
-          {lista.length === 0 ? "Todavía no tienes cotizaciones. Abre la pestaña Catálogo, agrega los equipos que te interesan y envía tu cotización."
+          {lista.length === 0 ? "Todavía no tienes cotizaciones. Abre la pestaña Catálogo, agrega los productos que te interesan y envía tu cotización."
             : `${lista.length === 1 ? "Tienes 1 cotización." : `Tienes ${lista.length} cotizaciones.`} Esta página se actualiza sola.`}
         </p>
         <div className="cat-mis">
@@ -1103,7 +1103,7 @@ export function VistaCliente({ token }) {
                   <b className="cat-cond cat-num">{cot.numero}</b>
                   <EtiquetaEstado cot={cot} />
                 </div>
-                <span className="cat-mi-fecha">{fechaCorta(cot.fecha)} · {cot.lineas.reduce((s, l) => s + l.cantidad, 0)} equipos</span>
+                <span className="cat-mi-fecha">{fechaCorta(cot.fecha)} · {cot.lineas.reduce((s, l) => s + l.cantidad, 0)} productos</span>
                 <span className="cat-mi-equipos">{cot.lineas.map((l) => `${l.cantidad} × ${l.codigo}`).join(", ")}</span>
                 <div className="cat-mi-abajo">
                   <span><small>Total</small><b className="cat-num">{cot.total > 0 ? dinero(cot.total) : "Por consultar"}</b></span>
@@ -1127,7 +1127,7 @@ const TITULOS = { cliente: "Catálogo cliente", interno: "Catálogo interno" };
 
 /**
  * modo "cliente": precio de venta, sin costos. modo "interno": precio de costo, flete y CBM.
- * Con `productos` se muestra dentro de la app; con `guardarPrecio` cada equipo trae su editor de precio de venta.
+ * Con `productos` se muestra dentro de la app; con `guardarPrecio` cada producto trae su editor de precio de venta.
  */
 export default function Catalogo({ modo = "cliente", productos: propios, guardarPrecio, aplicarGanancia, cambiarPrecioCbm, whatsapp: whatsappPropio, avisar, cuenta }) {
   const dentro = Array.isArray(propios);
@@ -1224,19 +1224,19 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
           {modo === "interno" ? <>
             <span className="cat-aviso">Uso interno · precios de costo</span>
             <h1>Catálogo <em>interno</em></h1>
-            <p>Precio de costo, flete y CBM de cada equipo. No lo compartas con clientes.</p>
+            <p>Precio de costo, flete y CBM de cada producto. No lo compartas con clientes.</p>
           </> : dentro ? <>
             <h1>Catálogo <em>cliente</em></h1>
-            <p>Define aquí el precio de venta de cada equipo. Tus clientes solo ven el precio de venta, nunca el costo.</p>
+            <p>Define aquí el precio de venta de cada producto. Tus clientes solo ven el precio de venta, nunca el costo.</p>
             <p className="cat-estado-wa">{numeroWhatsapp(whatsappPropio)
               ? `Tus clientes pueden armar su cotización y enviártela al WhatsApp +${numeroWhatsapp(whatsappPropio)}.`
               : "Para que tus clientes te envíen su cotización por WhatsApp, escribe tu número en Producto, en los datos de tu empresa."}</p>
           </> : cuenta ? <>
             <h1>{cuenta.titulo}</h1>
-            <p>Aquí ves el estado de tus pedidos y puedes cotizar más equipos del catálogo.</p>
+            <p>Aquí ves el estado de tus pedidos y puedes cotizar más productos del catálogo.</p>
           </> : <>
-            <h1>Equipos que levantan tu <em>taller</em></h1>
-            <p>Elevadores, alineadoras, desmontadoras, balanceadoras y más. Toca un equipo para ver su ficha técnica completa.</p>
+            <h1>Importamos lo que <em>necesitas</em></h1>
+            <p>Productos de todas las categorías, traídos desde China. Elige una categoría o toca un producto para ver su ficha completa.</p>
             {miEnlace && <p style={{ marginTop: 12 }}><a className="cat-btn cat-mis-boton" href={`/cliente/${miEnlace}?ver=cotizaciones`}><ClipboardList size={17} />Mis cotizaciones</a></p>}
           </>}
           {dentro && <EnlaceCatalogo modo={modo} avisar={avisar} />}
@@ -1251,7 +1251,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
           {!enCotizaciones && (
             <div className="cat-buscar">
               <Search size={20} aria-hidden="true" />
-              <input type="search" placeholder="Buscar por modelo, nombre o categoría" aria-label="Buscar equipo"
+              <input type="search" placeholder="Buscar por modelo, nombre o categoría" aria-label="Buscar producto"
                 value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
           )}
@@ -1276,18 +1276,18 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
       )}
 
       <main className="cat-wrap">
-        {enCotizaciones ? <div style={{ paddingBottom: 56 }}>{cuenta.contenido}</div> : estado === "cargando" ? <p className="cat-cuenta" role="status">Cargando equipos…</p> : <>
+        {enCotizaciones ? <div style={{ paddingBottom: 56 }}>{cuenta.contenido}</div> : estado === "cargando" ? <p className="cat-cuenta" role="status">Cargando productos…</p> : <>
           {aplicarGanancia && productos.length > 0 && <GananciaGeneral cuantos={productos.length} aplicar={aplicarGanancia} />}
           {cambiarPrecioCbm && productos.length > 0 && <PrecioCbmGeneral productos={productos} cambiar={cambiarPrecioCbm} />}
           <p className="cat-cuenta" role="status">
-            {filtrados.length === productos.length ? `${productos.length} equipos` : `${filtrados.length} de ${productos.length} equipos`}
+            {filtrados.length === productos.length ? `${productos.length} productos` : `${filtrados.length} de ${productos.length} productos`}
             {guardarPrecio && sinPrecio > 0 && ` · ${sinPrecio} sin precio de venta`}
           </p>
-          {!productos.length ? <div className="cat-vacio">Próximamente encontrarás nuestros equipos aquí.</div> :
+          {!productos.length ? <div className="cat-vacio">Próximamente encontrarás nuestros productos aquí.</div> :
             !filtrados.length ? (
               <div className="cat-vacio">
-                <p style={{ margin: "0 0 14px" }}>Ningún equipo coincide con tu búsqueda.</p>
-                <button type="button" className="cat-btn" onClick={() => { setQ(""); setCategoria(""); }}>Ver todos los equipos</button>
+                <p style={{ margin: "0 0 14px" }}>Ningún producto coincide con tu búsqueda.</p>
+                <button type="button" className="cat-btn" onClick={() => { setQ(""); setCategoria(""); }}>Ver todos los productos</button>
               </div>
             ) : <div className="cat-grid">{filtrados.map((p) => <Tarjeta key={p.id} p={p} modo={modo} abrir={() => abrir(p.codigo)} guardar={guardarPrecio} pedir={pedir} />)}</div>}
         </>}
@@ -1300,7 +1300,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
       {pedir && unidades > 0 && !panel && !seleccionado && (
         <button type="button" className="cat-flotante" onClick={() => setPanel(true)}>
           <ClipboardList size={20} />
-          <span>Mi cotización · {unidades} {unidades === 1 ? "equipo" : "equipos"}</span>
+          <span>Mi cotización · {unidades} {unidades === 1 ? "producto" : "productos"}</span>
           <b>Ver y enviar</b>
         </button>
       )}

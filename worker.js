@@ -110,7 +110,7 @@ export default {
         if (codigo && cantidad >= 1) pedidas.set(codigo, Math.min(99, cantidad));
       }
       if (!nombre || telefono.replace(/\D/g, "").length < 8 || !pedidas.size) {
-        return json({ ok: false, error: "Faltan el nombre, el teléfono o los equipos." }, 400);
+        return json({ ok: false, error: "Faltan el nombre, el teléfono o los productos." }, 400);
       }
       const codigos = [...pedidas.keys()].map((c) => `"${c}"`).join(",");
       const prod = await sbRequest(env, `productos?select=id,codigo,nombre,cbm,peso,precio_cbm,precio_producto,precio_venta,foto&codigo=in.(${encodeURIComponent(codigos)})`);
@@ -124,7 +124,7 @@ export default {
           precioProducto: Number(p.precio_producto) || 0, precioVenta: Number(p.precio_venta) || 0, cantidad,
         });
       }
-      if (!lineas.length) return json({ ok: false, error: "Esos equipos ya no están en el catálogo." }, 400);
+      if (!lineas.length) return json({ ok: false, error: "Esos productos ya no están en el catálogo." }, 400);
 
       // El mismo teléfono conserva el mismo enlace de cliente (/cliente/<token>).
       const tel = telefono.replace(/\D/g, "");

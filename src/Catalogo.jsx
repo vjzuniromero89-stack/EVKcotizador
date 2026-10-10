@@ -204,7 +204,11 @@ const ESTILOS = `${ESTILOS_VITRINA}
 .cat-incluye li { break-inside:avoid; padding:5px 0; border-bottom:1px solid #EEF2F4; overflow-wrap:anywhere; }
 .cat-pie-pagina { background:#14222B; color:#9FB0B9; font-size:13px; text-align:center; padding:22px 16px; }
 .cat-dentro { min-height:0; border-radius:14px; overflow:clip; border:1px solid #CAD4DA; }
-.cat-dentro .cat-top h1 { font-size:clamp(32px,5vw,48px); margin-top:18px; }
+.cat-interno.cat-dentro .cat-top h1 { font-size:clamp(32px,5vw,48px); margin-top:18px; }
+.cat-propio { background:#14222B; color:#fff; padding:16px 20px 18px; }
+.cat-propio b { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:700; }
+.cat-propio p { margin:4px 0 0; color:#C4D1D7; font-size:15px; line-height:1.4; max-width:760px; }
+.cat-propio .cat-enlace { margin-top:12px; }
 
 @media (max-width:860px) { .cat-dentro .cat-filtros { top:60px; } }
 @media (max-width:760px) {
@@ -1274,7 +1278,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
   // En la cuenta del cliente: pestaña Catálogo o pestaña Mis cotizaciones (?ver=cotizaciones la abre directo).
   const [vista, setVista] = useState(() => (cuenta && new URLSearchParams(window.location.search).get("ver") === "cotizaciones" ? "cotizaciones" : "catalogo"));
   const enCotizaciones = Boolean(cuenta) && vista === "cotizaciones";
-  const amarilla = !dentro && modo === "cliente"; // portada del puerto en todo lo que ve el cliente
+  const amarilla = modo === "cliente"; // portada del puerto en todo lo que ve el cliente, también en la pestaña de la app
   const elegirCategoria = (c) => {
     setCategoria((actual) => (actual === c ? "" : c));
     document.getElementById("cat-lista")?.scrollIntoView({ behavior: "smooth" });
@@ -1305,9 +1309,19 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
   return (
     <div className={`cat cat-${modo}${dentro ? " cat-dentro" : ""}${amarilla ? " cat-amarilla" : ""}${amarilla && enCotizaciones ? " sin-vitrina" : ""}`}>
       <style>{ESTILOS}</style>
+      {dentro && modo === "cliente" && (
+        <div className="cat-propio">
+          <b>Así ven tus clientes el catálogo</b>
+          <p>Es el mismo que abre el enlace de abajo: solo el precio de venta, nunca el costo. El precio se pone en Producto; si un producto no lo tiene, el cliente ve «Consultar».</p>
+          <p className="cat-estado-wa">{numeroWhatsapp(whatsappPropio)
+            ? `Tus clientes pueden armar su cotización y enviártela al WhatsApp +${numeroWhatsapp(whatsappPropio)}.`
+            : "Para que tus clientes te envíen su cotización por WhatsApp, escribe tu número en Producto, en los datos de tu empresa."}</p>
+          <EnlaceCatalogo modo={modo} avisar={avisar} />
+        </div>
+      )}
       <header className="cat-top">
         <div className="cat-wrap cat-top-in">
-          {amarilla && <SelectorIdioma />}
+          {amarilla && !dentro && <SelectorIdioma />}
           <div className="cat-top-texto">
           <div className="cat-marca">
             <img src={LOGO_POR_DEFECTO} alt="" />
@@ -1317,12 +1331,6 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
             <span className="cat-aviso">Uso interno · precios de costo</span>
             <h1>Catálogo <em>interno</em></h1>
             <p>Precio de costo, flete y CBM de cada producto. No lo compartas con clientes.</p>
-          </> : dentro ? <>
-            <h1>Catálogo <em>cliente</em></h1>
-            <p>Así ven tus clientes el catálogo: solo el precio de venta, nunca el costo. El precio se pone en Producto; si un producto no lo tiene, el cliente ve «Consultar».</p>
-            <p className="cat-estado-wa">{numeroWhatsapp(whatsappPropio)
-              ? `Tus clientes pueden armar su cotización y enviártela al WhatsApp +${numeroWhatsapp(whatsappPropio)}.`
-              : "Para que tus clientes te envíen su cotización por WhatsApp, escribe tu número en Producto, en los datos de tu empresa."}</p>
           </> : cuenta ? <>
             <h1>{cuenta.titulo}</h1>
             <p>{T("Aquí ves el estado de tus pedidos y puedes cotizar más productos del catálogo.")}</p>
@@ -1331,7 +1339,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
             <p>{T("Elige una categoría o busca directamente.")}</p>
             {miEnlace && <p style={{ marginTop: 12 }}><a className="cat-btn cat-mis-boton" href={`/cliente/${miEnlace}?ver=cotizaciones`}><ClipboardList size={17} />{T("Mis cotizaciones")}</a></p>}
           </>}
-          {dentro && <EnlaceCatalogo modo={modo} avisar={avisar} />}
+          {dentro && modo === "interno" && <EnlaceCatalogo modo={modo} avisar={avisar} />}
           {cuenta && (
             <div className="cat-tabs" role="tablist" aria-label={T("Secciones")}>
               <button type="button" role="tab" aria-selected={!enCotizaciones} onClick={() => verVista("catalogo")}>{T("Catálogo")}</button>

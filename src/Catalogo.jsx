@@ -1218,7 +1218,7 @@ const TITULOS = { cliente: "Catálogo cliente", interno: "Catálogo interno" };
  * modo "cliente": precio de venta, sin costos. modo "interno": precio de costo, flete y CBM.
  * Con `productos` se muestra dentro de la app; con `guardarPrecio` cada producto trae su editor de precio de venta.
  */
-export default function Catalogo({ modo = "cliente", productos: propios, guardarPrecio, aplicarGanancia, cambiarPrecioCbm, whatsapp: whatsappPropio, avisar, cuenta, cabeceras }) {
+export default function Catalogo({ modo = "cliente", productos: propios, guardarPrecio, aplicarGanancia, cambiarPrecioCbm, whatsapp: whatsappPropio, avisar, cuenta, cabeceras, vistaPrevia }) {
   const dentro = Array.isArray(propios);
   const [descargados, setProductos] = useState([]);
   const [descarga, setEstado] = useState("cargando");
@@ -1332,12 +1332,12 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
   const cerrarPanel = useMemo(() => () => setPanel(false), []);
 
   return (
-    <div className={`cat cat-${modo}${dentro ? " cat-dentro" : ""}${amarilla ? " cat-amarilla" : ""}${amarilla && enCotizaciones ? " sin-vitrina" : ""}`}>
+    <div className={`cat cat-${modo}${dentro || vistaPrevia ? " cat-dentro" : ""}${amarilla ? " cat-amarilla" : ""}${amarilla && enCotizaciones ? " sin-vitrina" : ""}`}>
       <style>{ESTILOS}</style>
-      {dentro && modo === "cliente" && (
+      {vistaPrevia && (
         <div className="cat-propio">
           <b>Así ven tus clientes el catálogo</b>
-          <p>Es el mismo que abre el enlace de abajo: solo el precio de venta, nunca el costo. El precio se pone en Producto; si un producto no lo tiene, el cliente ve «Consultar».</p>
+          <p>Es exactamente lo que abre el enlace de abajo, con los mismos botones. El precio se pone en Producto; si un producto no lo tiene, el cliente ve «Consultar». Ojo: si aquí creas una cotización, se registra de verdad.</p>
           <p className="cat-estado-wa">{numeroWhatsapp(whatsappPropio)
             ? `Tus clientes pueden armar su cotización y enviártela al WhatsApp +${numeroWhatsapp(whatsappPropio)}.`
             : "Para que tus clientes te envíen su cotización por WhatsApp, escribe tu número en Producto, en los datos de tu empresa."}</p>
@@ -1346,7 +1346,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
       )}
       <header className="cat-top">
         <div className="cat-wrap cat-top-in">
-          {amarilla && !dentro && <SelectorIdioma />}
+          {amarilla && !dentro && !vistaPrevia && <SelectorIdioma />}
           <div className="cat-top-texto">
           <div className="cat-marca">
             <img src={LOGO_POR_DEFECTO} alt="" />
@@ -1405,7 +1405,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
           {cambiarPrecioCbm && productos.length > 0 && <PrecioCbmGeneral productos={productos} cambiar={cambiarPrecioCbm} />}
           <p className="cat-cuenta" role="status">
             {filtrados.length === unicos.length ? T("{n} productos", { n: unicos.length }) : T("{a} de {b} productos", { a: filtrados.length, b: unicos.length })}
-            {dentro && modo === "cliente" && sinPrecio > 0 && ` · ${sinPrecio} sin precio de venta`}
+            
           </p>
           {!productos.length ? <div className="cat-vacio">{T("Próximamente encontrarás nuestros productos aquí.")}</div> :
             !filtrados.length ? (

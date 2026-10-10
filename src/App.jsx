@@ -3110,7 +3110,7 @@ function AdminApp({ sesion }) {
                 )}
                 {tab === "catalogo-interno" && <Catalogo modo="interno" productos={productos} avisar={avisar} cambiarPrecioCbm={cambiarPrecioCbm} />}
                 {tab === "catalogo-cliente" && (
-                  <Catalogo modo="cliente" productos={productos} avisar={avisar} whatsapp={empresa.whatsapp} />
+                  <Catalogo modo="cliente" vistaPrevia avisar={avisar} whatsapp={empresa.whatsapp} />
                 )}
                 {tab === "ganancias" && <GananciasView clientes={clientes} />}
                 {tab === "usuarios" && esAdmin && (

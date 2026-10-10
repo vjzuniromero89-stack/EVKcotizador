@@ -1612,9 +1612,45 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
               </div>
             </div>
 
-            <p className="text-sm muted" style={{ lineHeight: 1.3 }}>
-              El precio de venta es opcional. Se carga solo en las cotizaciones clientes.
-            </p>
+            {(() => {
+              const costo = num(form.precioProducto) + cbmCobro(num(form.cbm), num(form.peso)).cobrable * num(form.precioCbm);
+              const venta = num(form.precioVenta);
+              const ganancia = venta - costo;
+              const porcentaje = costo > 0 && venta > 0 ? (ganancia / costo) * 100 : null;
+              const fijos = [20, 30, 40];
+              const poner = (n) => setForm((f) => ({ ...f, precioVenta: String(precioConGanancia(costo, n)) }));
+              const esFijo = fijos.some((n) => venta === precioConGanancia(costo, n));
+              return (
+                <div className="paper p-3" style={{ background: "#FFF9E6", borderColor: "#E2C45C" }}>
+                  <div className="font-semibold">Precio de venta por porcentaje de ganancia</div>
+                  <p className="text-sm muted num" style={{ margin: "2px 0 10px", lineHeight: 1.3 }}>
+                    {costo > 0
+                      ? `Costo ${money(costo)} (producto ${money(num(form.precioProducto))} + flete ${money(costo - num(form.precioProducto))}). Toca un porcentaje o escribe el precio de venta arriba.`
+                      : "Escribe primero el precio del producto, el CBM y el precio del CBM para poder calcular."}
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                    {fijos.map((n) => (
+                      <button type="button" key={n} disabled={costo <= 0} aria-pressed={venta > 0 && venta === precioConGanancia(costo, n)}
+                        className={`btn ${venta > 0 && venta === precioConGanancia(costo, n) ? "btn-primary" : "btn-ghost"}`} onClick={() => poner(n)}>{n}%</button>
+                    ))}
+                    <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <span className="lbl" style={{ margin: 0 }}>Otro</span>
+                      <input className="inp num" style={{ width: 90 }} inputMode="decimal" placeholder="%" aria-label="Otro porcentaje de ganancia" disabled={costo <= 0}
+                        value={porcentaje === null || esFijo ? "" : String(Math.round(porcentaje * 10) / 10)}
+                        onChange={(e) => {
+                          const n = parseFloat(e.target.value.replace(",", "."));
+                          setForm((f) => ({ ...f, precioVenta: e.target.value === "" || isNaN(n) ? "" : String(precioConGanancia(costo, n)) }));
+                        }} />
+                      <span>%</span>
+                    </label>
+                  </div>
+                  <p className="text-sm num mt-2" style={{ fontWeight: 600, color: venta <= 0 ? "#7A5A00" : ganancia < 0 ? "#A3321F" : "#1D7A46" }}>
+                    {venta <= 0 ? "Sin precio de venta: en el catálogo el cliente verá «Consultar»."
+                      : `${ganancia < 0 ? "Pierdes" : "Ganas"} ${money(Math.abs(ganancia))}${porcentaje === null ? "" : ` (${porcentaje.toLocaleString("en-US", { maximumFractionDigits: 1 })}%)`}`}
+                  </p>
+                </div>
+              );
+            })()}
 
             <div>
               <label className="lbl" htmlFor="p-resumen">Descripción</label>
@@ -2927,20 +2963,9 @@ function AdminApp({ sesion }) {
       return false;
     }
   };
-  const guardarPrecioVenta = async (id, precioVenta) => {
-    const ok = await guardarProductos(productos.map((p) => (p.id === id ? { ...p, precioVenta } : p)));
-    if (ok) avisar(precioVenta > 0 ? "Precio de venta guardado" : "Precio de venta quitado");
-    return ok;
-  };
   const cambiarPrecioCbm = async (precioCbm) => {
     const ok = await guardarProductos(productos.map((p) => ({ ...p, precioCbm })));
     if (ok) avisar(`Precio del CBM actualizado a ${money(precioCbm)} en todos los productos`);
-    return ok;
-  };
-  const aplicarGanancia = async (porcentaje) => {
-    const costo = (p) => num(p.precioProducto) + cbmCobro(p.cbm, p.peso).cobrable * num(p.precioCbm);
-    const ok = await guardarProductos(productos.map((p) => (costo(p) > 0 ? { ...p, precioVenta: precioConGanancia(costo(p), porcentaje) } : p)));
-    if (ok) avisar(`Precio de venta actualizado: costo + ${porcentaje}%`);
     return ok;
   };
   const guardarInternas = async (data) => {
@@ -3085,8 +3110,7 @@ function AdminApp({ sesion }) {
                 )}
                 {tab === "catalogo-interno" && <Catalogo modo="interno" productos={productos} avisar={avisar} cambiarPrecioCbm={cambiarPrecioCbm} />}
                 {tab === "catalogo-cliente" && (
-                  <Catalogo modo="cliente" productos={productos} avisar={avisar} whatsapp={empresa.whatsapp}
-                    guardarPrecio={guardarPrecioVenta} aplicarGanancia={aplicarGanancia} />
+                  <Catalogo modo="cliente" productos={productos} avisar={avisar} whatsapp={empresa.whatsapp} />
                 )}
                 {tab === "ganancias" && <GananciasView clientes={clientes} />}
                 {tab === "usuarios" && esAdmin && (

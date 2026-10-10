@@ -1319,7 +1319,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
             <p>Precio de costo, flete y CBM de cada producto. No lo compartas con clientes.</p>
           </> : dentro ? <>
             <h1>Catálogo <em>cliente</em></h1>
-            <p>Define aquí el precio de venta de cada producto. Tus clientes solo ven el precio de venta, nunca el costo.</p>
+            <p>Así ven tus clientes el catálogo: solo el precio de venta, nunca el costo. El precio se pone en Producto; si un producto no lo tiene, el cliente ve «Consultar».</p>
             <p className="cat-estado-wa">{numeroWhatsapp(whatsappPropio)
               ? `Tus clientes pueden armar su cotización y enviártela al WhatsApp +${numeroWhatsapp(whatsappPropio)}.`
               : "Para que tus clientes te envíen su cotización por WhatsApp, escribe tu número en Producto, en los datos de tu empresa."}</p>
@@ -1373,7 +1373,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
           {cambiarPrecioCbm && productos.length > 0 && <PrecioCbmGeneral productos={productos} cambiar={cambiarPrecioCbm} />}
           <p className="cat-cuenta" role="status">
             {filtrados.length === unicos.length ? T("{n} productos", { n: unicos.length }) : T("{a} de {b} productos", { a: filtrados.length, b: unicos.length })}
-            {guardarPrecio && sinPrecio > 0 && ` · ${sinPrecio} sin precio de venta`}
+            {dentro && modo === "cliente" && sinPrecio > 0 && ` · ${sinPrecio} sin precio de venta`}
           </p>
           {!productos.length ? <div className="cat-vacio">{T("Próximamente encontrarás nuestros productos aquí.")}</div> :
             !filtrados.length ? (

@@ -91,7 +91,7 @@ const ESTILOS = `${ESTILOS_VITRINA}
 .cat-amarilla .cat-top::before { inset:0; width:auto; height:auto; border-radius:0;
   background:linear-gradient(180deg,rgba(7,24,51,.3) 0%,rgba(7,24,51,.74) 45%,#071833 100%),linear-gradient(90deg,rgba(7,24,51,.85) 0%,rgba(7,24,51,0) 70%); }
 .cat-amarilla .cat-top::after { display:none; }
-.cat-amarilla .cat-top-in { padding-bottom:30px; }
+.cat-amarilla .cat-top-in { padding:28px 20px 30px; }
 .cat-amarilla .cat-marca span { color:#C9D6EC; }
 .cat-amarilla .cat-top h1 { font-weight:800; font-size:clamp(40px,5.4vw,64px); }
 .cat-amarilla .cat-top h1 em { color:#FFB45C; }

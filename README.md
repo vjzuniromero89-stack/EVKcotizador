@@ -1,122 +1,34 @@
-# Cotizador CBM — EVK Transportaciones
+# EVK Logistic — Cotizador CBM
 
-Aplicación para cotizar productos importados calculando el CBM que realmente cobra
-la naviera, llevando el registro interno con costos y ganancia, y entregando al
-cliente una hoja profesional para imprimir o enviar por WhatsApp.
+Copia independiente del cotizador de Taller Gregoriana. Tiene su propio repositorio,
+su propio despliegue en Vercel y su propia base de datos en Supabase: nada de lo que
+se guarde aquí llega al otro proyecto, ni al revés.
 
-## Contenido del paquete
+## Dónde vive
 
-### `index.html` — la app lista para publicar
+- Código: `vjzuniromero89-stack/EVKcotizador` (rama `main`; cada push publica en Vercel).
+- Sitio: https://evkcotizador.vercel.app
+- Base de datos: proyecto Supabase `evk-logistic` (`atltdrpxseildyvfeltq`).
 
-Un solo archivo con todo adentro (React, estilos y código ya compilados).
-No necesita instalar nada ni carpeta de assets.
+## Cómo está armado
 
-- Para publicarla: súbelo tal cual a Vercel, Netlify o cualquier hosting.
-- Para probarla en la computadora: ábrelo con doble clic.
+- `src/App.jsx` — la aplicación interna. `src/Catalogo.jsx` — catálogos y enlaces del cliente.
+- `worker.js` — la API (`/api/*`) y `/runtime-config.js`, delante de Supabase.
+- `api/index.js` + `vercel.json` — hacen que Vercel ejecute ese mismo `worker.js`.
+- `migrations/` — el esquema de la base (4 tablas: productos, cotizaciones_clientes,
+  cotizaciones_internas, configuracion).
 
-### `proyecto-react/` — el código fuente
+## Variables en Vercel
 
-El proyecto sin compilar, para seguir desarrollando:
+`SUPABASE_URL` y `SUPABASE_ANON_KEY` (la clave publishable; nunca `service_role` ni
+`sb_secret_`, porque la aplicación la comparte con el navegador).
+
+## Comprobaciones
 
 ```bash
-cd proyecto-react
-npm install
-npm run dev      # abre la app mientras la editas
-npm run build    # genera la versión final en dist/
+npm run build
+npm test
 ```
 
-Archivos:
-
-- `src/App.jsx` — toda la aplicación.
-- `src/logo.js` — el logo de EVK Transportaciones que viene por defecto.
-- `src/main.jsx`, `src/index.css`, `index.html` — arranque del proyecto.
-- `package.json`, `vite.config.js`, `tailwind.config.js`, `postcss.config.js` — configuración.
-
-Este código genera exactamente el `index.html` de arriba, así que las dos
-versiones ya están sincronizadas: lo que cambies en `src/App.jsx` y compiles con
-`npm run build` se puede volver a empaquetar en un solo archivo.
-
-### `index-version-anterior.html`
-
-La versión que estabas usando antes de unificar, por si quieres comparar o
-volver atrás. Funciona igual; puedes borrarla cuando ya no la necesites.
-
-## Qué hace la app
-
-**Producto**
-
-- Tarjeta de tu empresa: logo, nombre y contacto. Aparecen en las cotizaciones.
-- Catálogo con foto, código, nombre, CBM, peso, precio CBM, precio producto y precio de venta.
-- Compara el CBM por volumen contra el CBM por peso (peso ÷ 350) y resalta el mayor,
-  que es el que cobra la naviera.
-
-**Cotizaciones clientes**
-
-- Se arma con todos los productos que quieras; cada línea permite ajustar cantidad,
-  precio CBM y precio de venta sin tocar el catálogo.
-- Campo de descuento en porcentaje: resta del total y muestra "Total con descuento".
-- Al registrar recibe número CLI-XXXX y se copia automáticamente al registro interno
-  con el mismo número.
-- Hoja del cliente: solo cantidades, CBM, peso, precio de venta y totales.
-
-**Cotizaciones internas**
-
-- Solo registro: no se crean a mano, llegan desde las cotizaciones de clientes.
-- Muestran precio de productos, precio CBM, subtotal, cargo del 3% de la página,
-  total de venta al cliente y la ganancia.
-- Etiqueta amarilla con el porcentaje cuando la cotización lleva descuento.
-- Al eliminar la cotización del cliente se borra también este registro.
-
-**Hoja de cotización**
-
-- Botones Imprimir, Ver y WhatsApp en cada cotización.
-- Imprimir abre el diálogo del sistema; desde ahí puedes guardar en PDF.
-- Ver muestra la hoja en pantalla tal como saldrá.
-- WhatsApp la envía como imagen PNG.
-- La hoja interna sale marcada en rojo como USO INTERNO.
-
-## Reglas de cálculo
-
-- CBM a cobrar = el mayor entre el CBM por volumen y el peso ÷ 350.
-- Precio CBM de la línea = CBM a cobrar × precio CBM × cantidad.
-- Costo interno = precio de los productos + precio CBM.
-- Cargo de la página = 3% del subtotal interno.
-- Ganancia = total de venta al cliente (ya con descuento) − total general interno.
-
-## Dónde se guardan los datos
-
-Todo se guarda en el navegador del dispositivo (IndexedDB), no en un servidor:
-
-- Cada celular o computadora tiene su propia lista de productos y cotizaciones.
-- Los datos sobreviven al cerrar el navegador, pero se pierden si borras los datos
-  de navegación del sitio.
-- Si publicas la app en otro dominio, ese dominio empieza vacío.
-
-Conviene ir guardando en PDF las cotizaciones importantes.
-
-## Funciones EVK agregadas
-- CRM de clientes: alta, edición, eliminación y ficha con cotizaciones/órdenes.
-- Al registrar una cotización, el cliente se agrega automáticamente a la cartera.
-- Cotizaciones de cliente con estados: Pendiente / Aprobada / Rechazada.
-- Botón "Cliente aprobó · Crear orden": cambia el estado y genera una orden automáticamente.
-- Órdenes con número ORD-####, productos, total, costo, ganancia, estado y notas.
-- Estados de orden: Nueva / En proceso / Completada / Cancelada.
-- Ganancias calculadas a partir de órdenes aprobadas/no canceladas.
-- Persistencia local con IndexedDB y, cuando Supabase está disponible, sincronización de clientes/órdenes/estados usando la tabla `configuracion`.
-
-
-## Supabase / CreditFlow
-Esta versión apunta por defecto al proyecto Supabase `creditflow` (ref `hpimqcnkcoqmalslknnn`). Las variables Vercel `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` pueden sobrescribir estos valores.
-
-
-## Actualización de productos
-- Se agregó el campo **Descripción** a productos.
-- La descripción se guarda en Supabase, se copia a cotizaciones y órdenes, aparece en detalles e impresiones y participa en la búsqueda del catálogo.
-
-## Catálogo público EVK
-- Nueva pestaña **Catálogo** dentro de la aplicación.
-- Todo producto registrado en `productos` aparece automáticamente en el catálogo público.
-- El catálogo público solo muestra código, nombre, descripción, foto y precio de venta.
-- No muestra CBM, peso, costo del producto, costo de flete, precio CBM, ganancias ni cotizaciones internas.
-- Link público: abre la pestaña Catálogo y usa **Copiar link para cliente**.
-- El enlace usa `?catalogo=1` y no requiere iniciar sesión.
+`npm run dev` inicia solo Vite, con respuestas de prueba para el catálogo del cliente.
+Después de publicar, https://evkcotizador.vercel.app/api/health debe mostrar `ok: true`.

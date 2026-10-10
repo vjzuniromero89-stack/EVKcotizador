@@ -1,0 +1,244 @@
+/** API (se ejecuta en Vercel desde api/index.js): proxies product persistence to Supabase. */
+const json = (body, status = 200) => new Response(JSON.stringify(body), {
+  status,
+  headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+});
+
+function sbHeaders(env, extra = {}) {
+  return {
+    apikey: env.SUPABASE_ANON_KEY,
+    ...(env.SUPABASE_ANON_KEY.startsWith("sb_publishable_") ? {} : { authorization: `Bearer ${env.SUPABASE_ANON_KEY}` }),
+    "content-type": "application/json",
+    ...extra,
+  };
+}
+
+async function sbRequest(env, path, init = {}) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    const missing = ["SUPABASE_URL", "SUPABASE_ANON_KEY"].filter(name => !env[name]);
+    return { ok: false, status: 503, error: `Falta configurar ${missing.join(" y ")} en Vercel → Settings → Environment Variables. Guarda y vuelve a desplegar.` };
+  }
+  const base = env.SUPABASE_URL.replace(/\/$/, "");
+  let res;
+  try {
+    res = await fetch(`${base}/rest/v1/${path}`, {
+    ...init,
+    headers: sbHeaders(env, init.headers || {}),
+  });
+  } catch {
+    return { ok: false, status: 502, error: "No se pudo conectar con Supabase. Comprueba SUPABASE_URL y que el proyecto esté activo." };
+  }
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  return res.ok ? { ok: true, status: res.status, data } : { ok: false, status: res.status, error: data || text };
+}
+
+const KG_POR_CBM = 350;
+const MINIMO_CBM = 1; // el transporte cobra como mínimo 1 CBM por cada máquina
+const texto = (valor, maximo) => String(valor ?? "").replace(/\s+/g, " ").trim().slice(0, maximo);
+
+/** Clientes creados a mano en la app (nombre, teléfono y su enlace). */
+async function fichasDeClientes(env) {
+  const r = await sbRequest(env, "configuracion?clave=eq.clientes&select=valor&limit=1");
+  const valor = r.ok && Array.isArray(r.data) ? r.data[0]?.valor : null;
+  return Array.isArray(valor) ? valor : [];
+}
+
+/** Lo que el cliente puede ver de su cotización: nunca costos ni flete. */
+function cotizacionPublica(fila) {
+  const contacto = fila.totales?.contacto || {};
+  return {
+    id: fila.id, numero: fila.numero, fecha: fila.fecha, cliente: fila.cliente || "",
+    telefono: contacto.telefono || "", direccion: contacto.direccion || "", nota: contacto.nota || "", total: Number(fila.total_final) || 0,
+    token: contacto.token || "", estado: fila.totales?.estado || "pendiente",
+    confirmadaEl: fila.totales?.confirmadaEl || null, entregadaEl: fila.totales?.entregadaEl || null,
+    pagado: (Array.isArray(fila.totales?.pagos) ? fila.totales.pagos : []).reduce((s, p) => s + (Number(p.monto) || 0), 0),
+    pagos: (Array.isArray(fila.totales?.pagos) ? fila.totales.pagos : []).map((p) => ({ fecha: p.fecha || null, monto: Number(p.monto) || 0, nota: String(p.nota || "") })),
+    lineas: (Array.isArray(fila.lineas) ? fila.lineas : []).map((l) => ({
+      codigo: l.codigo, nombre: l.nombre, cantidad: Number(l.cantidad) || 0, precio: Number(l.precioVenta) || 0, foto: l.foto || "",
+    })),
+  };
+}
+
+const CATALOGOS = {
+  "/api/catalogo": ["id", "codigo", "nombre", "descripcion", "categoria", "peso", "precio_venta", "foto"],
+  "/api/catalogo-interno": ["id", "codigo", "nombre", "descripcion", "categoria", "cbm", "peso", "precio_cbm", "precio_producto", "precio_venta", "foto"],
+};
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/runtime-config.js") {
+      const config = { SUPABASE_URL: env.SUPABASE_URL || "", SUPABASE_ANON_KEY: env.SUPABASE_ANON_KEY || "" };
+      return new Response(`globalThis.__APP_CONFIG__ = ${JSON.stringify(config)};`, {
+        headers: { "content-type": "application/javascript; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" },
+      });
+    }
+
+    if (url.pathname === "/api/health") {
+      const result = await sbRequest(env, "productos?select=id&limit=1");
+      return json({
+        ok: result.ok,
+        service: "evk-logistic",
+        supabaseConfigured: Boolean(env.SUPABASE_URL && env.SUPABASE_ANON_KEY),
+        productosReadable: result.ok,
+        ...(result.ok ? {} : { error: result.error }),
+      }, result.ok ? 200 : result.status);
+    }
+
+    // WhatsApp del taller, para que el catálogo de clientes pueda enviarle cotizaciones.
+    if (url.pathname === "/api/contacto" && request.method === "GET") {
+      const r = await sbRequest(env, "configuracion?clave=eq.empresa&select=valor&limit=1");
+      const valor = r.ok && Array.isArray(r.data) && r.data[0]?.valor && typeof r.data[0].valor === "object" ? r.data[0].valor : {};
+      return json({
+        nombre: String(valor.nombre || ""), contacto: String(valor.contacto || ""), logo: String(valor.logo || ""),
+        whatsapp: String(valor.whatsapp || "").replace(/\D/g, ""),
+      });
+    }
+
+    // El cliente envía su cotización desde el catálogo: se registra con precios tomados de la base de datos.
+    if (url.pathname === "/api/solicitudes" && request.method === "POST") {
+      let cuerpo;
+      try { cuerpo = await request.json(); } catch { return json({ ok: false, error: "JSON inválido" }, 400); }
+      const nombre = texto(cuerpo?.nombre, 80), telefono = texto(cuerpo?.telefono, 30), nota = texto(cuerpo?.nota, 300);
+      const direccion = texto(cuerpo?.direccion, 160);
+      const pedidas = new Map();
+      for (const l of Array.isArray(cuerpo?.lineas) ? cuerpo.lineas.slice(0, 40) : []) {
+        const codigo = texto(l?.codigo, 60).replace(/["\\]/g, ""), cantidad = Math.floor(Number(l?.cantidad));
+        if (codigo && cantidad >= 1) pedidas.set(codigo, Math.min(99, cantidad));
+      }
+      if (!nombre || telefono.replace(/\D/g, "").length < 8 || !pedidas.size) {
+        return json({ ok: false, error: "Faltan el nombre, el teléfono o los equipos." }, 400);
+      }
+      const codigos = [...pedidas.keys()].map((c) => `"${c}"`).join(",");
+      const prod = await sbRequest(env, `productos?select=id,codigo,nombre,cbm,peso,precio_cbm,precio_producto,precio_venta,foto&codigo=in.(${encodeURIComponent(codigos)})`);
+      if (!prod.ok || !Array.isArray(prod.data)) return json({ ok: false, error: "No se pudo registrar la cotización." }, 503);
+      const lineas = [];
+      for (const [codigo, cantidad] of pedidas) {
+        const p = prod.data.find((x) => x.codigo === codigo);
+        if (p) lineas.push({
+          id: crypto.randomUUID(), productId: p.id, codigo: p.codigo, nombre: p.nombre, foto: p.foto || "",
+          cbm: Number(p.cbm) || 0, peso: Number(p.peso) || 0, minimoCbm: MINIMO_CBM, precioCbm: Number(p.precio_cbm) || 0,
+          precioProducto: Number(p.precio_producto) || 0, precioVenta: Number(p.precio_venta) || 0, cantidad,
+        });
+      }
+      if (!lineas.length) return json({ ok: false, error: "Esos equipos ya no están en el catálogo." }, 400);
+
+      // El mismo teléfono conserva el mismo enlace de cliente (/cliente/<token>).
+      const tel = telefono.replace(/\D/g, "");
+      const previa = await sbRequest(env, `cotizaciones_clientes?select=totales&totales-%3Econtacto-%3E%3Etel=eq.${tel}&order=fecha.desc&limit=1`);
+      const tokenPrevio = previa.ok && Array.isArray(previa.data) ? previa.data[0]?.totales?.contacto?.token : "";
+      // Enlace del cliente: el de la cuenta desde la que cotiza, el que ya tenía ese teléfono, o uno nuevo.
+      const esToken = (v) => /^[0-9a-f]{32}$/.test(v || "");
+      let token = "";
+      const fichas = await fichasDeClientes(env);
+      const pedido = String(cuerpo?.token || "");
+      if (esToken(pedido)) {
+        const conEse = fichas.some((f) => f.token === pedido) ? { ok: true, data: [1] }
+          : await sbRequest(env, `cotizaciones_clientes?select=id&totales-%3Econtacto-%3E%3Etoken=eq.${pedido}&limit=1`);
+        if (conEse.ok && Array.isArray(conEse.data) && conEse.data.length) token = pedido;
+      }
+      if (!token && esToken(tokenPrevio)) token = tokenPrevio;
+      if (!token) token = fichas.find((f) => f.tel && f.tel === tel)?.token || "";
+      if (!esToken(token)) token = crypto.randomUUID().replace(/-/g, "");
+
+      const ultima = await sbRequest(env, "cotizaciones_clientes?select=numero&numero=like.WEB-*&order=numero.desc&limit=1");
+      if (!ultima.ok) return json({ ok: false, error: "No se pudo registrar la cotización." }, 503);
+      const siguiente = (parseInt(String(ultima.data?.[0]?.numero || "").split("-")[1], 10) || 0) + 1;
+      const t = { totalCantidad: 0, totalCbm: 0, totalPeso: 0, totalProducto: 0, totalCosto: 0, totalFlete: 0, totalVenta: 0 };
+      for (const l of lineas) {
+        const cobrable = Math.max(l.cbm, l.peso / KG_POR_CBM, MINIMO_CBM);
+        t.totalCantidad += l.cantidad; t.totalCbm += cobrable * l.cantidad; t.totalPeso += l.peso * l.cantidad;
+        t.totalProducto += l.precioProducto * l.cantidad; t.totalFlete += cobrable * l.precioCbm * l.cantidad;
+        t.totalVenta += l.precioVenta * l.cantidad;
+      }
+      t.totalCosto = t.totalProducto + t.totalFlete;
+      t.ganancia = t.totalVenta - t.totalCosto;
+      t.margen = t.totalVenta > 0 ? t.ganancia / t.totalVenta : 0;
+      const fila = {
+        id: crypto.randomUUID(), numero: `WEB-${String(siguiente).padStart(4, "0")}`, fecha: new Date().toISOString(), cliente: nombre,
+        descuento: 0, descuento_monto: 0, total_final: t.totalVenta, lineas,
+        totales: { ...t, contacto: { telefono, tel, token, direccion, nota, origen: "catalogo" } },
+      };
+      const guardada = await sbRequest(env, "cotizaciones_clientes", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(fila) });
+      if (!guardada.ok) return json({ ok: false, error: "No se pudo registrar la cotización." }, 503);
+      return json({ ok: true, cotizacion: cotizacionPublica(fila) }, 201);
+    }
+
+    // Una cotización enviada desde el catálogo, sin costos, para verla con su enlace.
+    const idSolicitud = request.method === "GET" && url.pathname.match(/^\/api\/solicitudes\/([A-Za-z0-9-]{8,40})$/)?.[1];
+    if (idSolicitud) {
+      const r = await sbRequest(env, `cotizaciones_clientes?id=eq.${idSolicitud}&select=id,numero,fecha,cliente,total_final,lineas,totales&limit=1`);
+      if (!r.ok) return json({ ok: false, error: "No se pudo cargar la cotización." }, 503);
+      const fila = Array.isArray(r.data) ? r.data[0] : null;
+      if (!fila) return json({ ok: false, error: "No existe." }, 404);
+      return json({ ok: true, cotizacion: cotizacionPublica(fila) });
+    }
+
+    // Todas las cotizaciones de un cliente, con su estado, para su enlace propio.
+    const tokenCliente = request.method === "GET" && url.pathname.match(/^\/api\/cliente\/([0-9a-f]{32})$/)?.[1];
+    if (tokenCliente) {
+      const r = await sbRequest(env, `cotizaciones_clientes?select=id,numero,fecha,cliente,total_final,lineas,totales&totales-%3Econtacto-%3E%3Etoken=eq.${tokenCliente}&order=fecha.desc&limit=100`);
+      if (!r.ok || !Array.isArray(r.data)) return json({ ok: false, error: "No se pudo cargar." }, 503);
+      const ficha = (await fichasDeClientes(env)).find((f) => f.token === tokenCliente);
+      if (!r.data.length && !ficha) return json({ ok: false, error: "No existe." }, 404);
+      return json({ ok: true, nombre: ficha?.nombre || r.data[0]?.cliente || "", cotizaciones: r.data.map(cotizacionPublica) });
+    }
+
+    // Catálogo para clientes: solo precio de venta, nunca costos. Catálogo interno: costos, flete y CBM.
+    const campos = request.method === "GET" && CATALOGOS[url.pathname];
+    if (campos) {
+      const productos = [];
+      // Stable ordering and pagination avoid truncating large catalogs.
+      for (let offset = 0; ; ) {
+        const r = await sbRequest(env, `productos?select=${campos.join(",")}&order=creado.desc,id.asc&limit=500&offset=${offset}`);
+        if (!r.ok) return json({ ok: false, error: "El catálogo no está disponible temporalmente." }, 503);
+        if (!Array.isArray(r.data)) return json({ ok: false, error: "Respuesta de catálogo inválida." }, 502);
+        if (!r.data.length) break;
+        productos.push(...r.data.map((fila) => Object.fromEntries(campos.map((campo) => [campo, fila[campo]]))));
+        offset += r.data.length;
+      }
+      return json(productos);
+    }
+
+    if (url.pathname === "/api/productos" && request.method === "GET") {
+      const r = await sbRequest(env, "productos?select=*&order=creado.desc");
+      return r.ok ? json(r.data || []) : json({ ok: false, error: r.error }, r.status);
+    }
+
+    if (url.pathname === "/api/productos" && request.method === "DELETE") {
+      const id = url.searchParams.get("id");
+      if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) return json({ ok: false, error: "ID de producto inválido" }, 400);
+      const result = await sbRequest(env, `productos?id=eq.${encodeURIComponent(id)}&select=id`, {
+        method: "DELETE",
+        headers: { Prefer: "return=representation" },
+      });
+      if (!result.ok) return json({ ok: false, error: result.error }, result.status);
+      if (!Array.isArray(result.data) || !result.data.some(row => row.id === id)) {
+        return json({ ok: false, error: "No se eliminó el producto. Puede que ya no exista o que falten permisos SELECT/DELETE en Supabase." }, 409);
+      }
+      return json({ ok: true, deleted: id });
+    }
+
+    if (url.pathname === "/api/productos" && request.method === "PUT") {
+      let lista;
+      try { lista = await request.json(); } catch { return json({ ok: false, error: "JSON inválido" }, 400); }
+      if (!Array.isArray(lista)) return json({ ok: false, error: "Se esperaba una lista de productos" }, 400);
+
+      if (lista.length) {
+        const ins = await sbRequest(env, "productos?on_conflict=id", {
+          method: "POST",
+          headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+          body: JSON.stringify(lista),
+        });
+        if (!ins.ok) return json({ ok: false, stage: "upsert", status: ins.status, error: ins.error }, ins.status);
+        return json({ ok: true, count: lista.length, saved: Array.isArray(ins.data) ? ins.data.length : lista.length });
+      }
+      return json({ ok: true, count: 0, saved: 0 });
+    }
+
+    return env.ASSETS.fetch(request);
+  },
+};

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/runtime-config.js", "destination": "/api/index?__ruta=/runtime-config.js" },
+    { "source": "/api/:ruta*", "destination": "/api/index?__ruta=:ruta*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

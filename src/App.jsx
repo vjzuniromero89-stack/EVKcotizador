@@ -3168,11 +3168,10 @@ function AdminApp({ sesion }) {
 
 function EnlaceCatalogo({ avisar }) {
   return <section className="paper p-4">
-    <h2 className="cond text-2xl font-semibold">Catálogos para compartir</h2>
-    <p className="muted text-sm mt-1">Cada catálogo tiene su propio enlace. El de clientes muestra solo el precio de venta; el interno muestra el precio de costo.</p>
+    <h2 className="cond text-2xl font-semibold">Catálogo para compartir</h2>
+    <p className="muted text-sm mt-1">Este es el enlace para tus clientes: muestra solo el precio de venta. El catálogo interno, con precios de costo, no tiene enlace para compartir; se ve solo aquí adentro.</p>
     <div className="enlaces-catalogo">
       <div><span className="lbl">Catálogo cliente (precio de venta)</span><EnlaceDeCatalogo modo="cliente" avisar={avisar} /></div>
-      <div><span className="lbl">Catálogo interno (precio de costo)</span><EnlaceDeCatalogo modo="interno" avisar={avisar} /></div>
     </div>
   </section>;
 }

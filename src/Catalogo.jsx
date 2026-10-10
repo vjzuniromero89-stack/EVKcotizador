@@ -254,7 +254,7 @@ const ESTILOS = `${ESTILOS_VITRINA}
 .cat-opciones small { display:block; font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#1556B8; margin-bottom:7px; }
 .cat-opciones > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 .cat-ficha-info .cat-opciones > div { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
-.cat-opcion { display:flex; flex-direction:column; justify-content:space-between; gap:4px; width:100%; min-height:62px; border:1.5px solid #C9D8F0; border-radius:11px;
+.cat-opcion { display:flex; flex-direction:column; justify-content:center; gap:4px; width:100%; min-height:48px; border:1.5px solid #C9D8F0; border-radius:11px;
   padding:9px 11px; background:#F3F7FE; color:#0A1F44; font:inherit; line-height:1.15; text-align:left; cursor:pointer;
   transition:transform .12s, box-shadow .12s, border-color .12s; }
 .cat-opcion:hover { border-color:#1556B8; transform:translateY(-1px); }
@@ -283,6 +283,8 @@ const ESTILOS = `${ESTILOS_VITRINA}
 .cat-dato small + b + small { display:block; margin-top:2px; font-weight:500; }
 .cat-estado-wa { margin-top:8px !important; color:#FF8A1F !important; font-size:14.5px !important; }
 .cat-pedir { margin-top:auto; padding:0 14px 14px; }
+.cat-consultar { width:100%; justify-content:center; margin-bottom:8px; background:#128C4A; color:#fff; text-decoration:none; font-weight:700; }
+.cat-consultar:hover { background:#0E6F3B; }
 .cat-agregar { width:100%; justify-content:center; background:#FF8A1F; color:#1B1000; border:0; font-weight:700; box-shadow:0 6px 14px rgba(255,138,31,.3); }
 .cat-agregar:hover { background:#FFA14A; }
 .cat-cantidad { display:flex; align-items:center; justify-content:space-between; gap:6px; background:#EAF1FC; border-radius:8px; padding:4px;
@@ -478,6 +480,16 @@ function EditorPrecio({ p, guardar }) {
   );
 }
 
+/** Sin precio de venta: el cliente pregunta por WhatsApp, con el producto ya escrito en el mensaje. */
+function ConsultarPrecio({ p, whatsapp }) {
+  const mensaje = [T("Hola, quiero consultar el precio de:"), `*${p.codigo}* · ${p.nombre}`, `${window.location.origin}/catalogo-cliente#${encodeURIComponent(p.codigo)}`].join("\n");
+  return (
+    <a className="cat-btn cat-consultar" href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(mensaje)}`} target="_blank" rel="noopener noreferrer">
+      <Send size={17} />{T("Consultar precio por WhatsApp")}
+    </a>
+  );
+}
+
 /** Las opciones de un mismo producto (por ejemplo, el tipo de cabezal), cada una con su precio. */
 function Opciones({ p, opciones, elegir, modo }) {
   if (!opciones) return null;
@@ -490,7 +502,7 @@ function Opciones({ p, opciones, elegir, modo }) {
           return (
             <button type="button" key={o.codigo} className="cat-opcion" aria-pressed={o.codigo === p.codigo} onClick={() => elegir(o.codigo)}>
               <b>{o.opcion || o.codigo}</b>
-              <span className="cat-num">{precio > 0 ? dinero(precio) : T("Consultar")}</span>
+              {precio > 0 && <span className="cat-num">{dinero(precio)}</span>}
             </button>
           );
         })}
@@ -532,7 +544,12 @@ function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir }) {
       <div className="cat-card cat-card-editable">
         <button type="button" className="cat-card-abrir" onClick={abrir} aria-label={`Ver ${p.codigo}, ${p.nombre}`}>{contenido}</button>
         <Opciones p={p} opciones={opciones} elegir={elegir} modo={modo} />
-        {pedir && <div className="cat-pedir"><Cantidad codigo={p.codigo} cantidad={pedir.pedido[p.codigo] || 0} cambiar={pedir.cambiar} /></div>}
+        {pedir && (
+          <div className="cat-pedir">
+            {!(precio > 0) && <ConsultarPrecio p={p} whatsapp={pedir.whatsapp} />}
+            <Cantidad codigo={p.codigo} cantidad={pedir.pedido[p.codigo] || 0} cambiar={pedir.cambiar} />
+          </div>
+        )}
       </div>
     );
   }
@@ -583,6 +600,7 @@ function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
               <small>{interno ? "Precio de costo del producto" : T("Precio")}</small>
               <b className="cat-num">{precio > 0 ? dinero(precio) : T("Consultar")}</b>
             </div>
+            {pedir && !(precio > 0) && <ConsultarPrecio p={p} whatsapp={pedir.whatsapp} />}
             {interno ? (
               <>
                 <div className="cat-datos">
@@ -1308,7 +1326,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
     return nuevo;
   }), []);
   const vaciarPedido = () => { guardarLocal(CLAVE_PEDIDO, {}); setPedido({}); };
-  const pedir = whatsapp ? { pedido, cambiar: cambiarPedido } : null;
+  const pedir = whatsapp ? { pedido, cambiar: cambiarPedido, whatsapp } : null;
   const lineas = productos.filter((p) => pedido[p.codigo] > 0).map((p) => ({ ...p, cantidad: pedido[p.codigo] }));
   const unidades = lineas.reduce((s, l) => s + l.cantidad, 0);
   const cerrarPanel = useMemo(() => () => setPanel(false), []);

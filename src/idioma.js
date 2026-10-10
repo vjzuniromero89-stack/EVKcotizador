@@ -58,6 +58,8 @@ const INGLES = {
   "Precio": "Price",
   "Consultar": "Ask us",
   "Elige una opción": "Choose an option",
+  "Consultar precio por WhatsApp": "Ask for the price on WhatsApp",
+  "Hola, quiero consultar el precio de:": "Hello, I would like to ask for the price of:",
   "Opciones del producto": "Product options",
   "Peso": "Weight",
   "Medidas de empaque": "Packing size",

@@ -1168,7 +1168,7 @@ const TITULOS = { cliente: "Catálogo cliente", interno: "Catálogo interno" };
  * modo "cliente": precio de venta, sin costos. modo "interno": precio de costo, flete y CBM.
  * Con `productos` se muestra dentro de la app; con `guardarPrecio` cada producto trae su editor de precio de venta.
  */
-export default function Catalogo({ modo = "cliente", productos: propios, guardarPrecio, aplicarGanancia, cambiarPrecioCbm, whatsapp: whatsappPropio, avisar, cuenta }) {
+export default function Catalogo({ modo = "cliente", productos: propios, guardarPrecio, aplicarGanancia, cambiarPrecioCbm, whatsapp: whatsappPropio, avisar, cuenta, cabeceras }) {
   const dentro = Array.isArray(propios);
   const [descargados, setProductos] = useState([]);
   const [descarga, setEstado] = useState("cargando");
@@ -1184,7 +1184,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
     (async () => {
       let lista = null;
       try {
-        const res = await fetch(API[modo], { cache: "no-store", signal: controller.signal });
+        const res = await fetch(API[modo], { cache: "no-store", signal: controller.signal, headers: cabeceras ? await cabeceras() : undefined });
         const data = await res.json();
         if (res.ok && Array.isArray(data)) lista = data;
       } catch (error) { if (error.name === "AbortError") return; }

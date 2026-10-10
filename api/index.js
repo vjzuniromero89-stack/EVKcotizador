@@ -19,6 +19,7 @@ export default function handler(request) {
   const env = {
     SUPABASE_URL: process.env.SUPABASE_URL || "",
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
+    EVK_CLAVE_SERVICIO: process.env.EVK_CLAVE_SERVICIO || "",
     ASSETS: { fetch: noExiste },
   };
   return worker.fetch(new Request(url, request), env);

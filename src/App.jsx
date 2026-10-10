@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Camera, Image as ImageIcon, Pencil, Trash2, X, Plus, Search, FileText,
   Printer, Share2, Eye, Home, Package, FileText as FileTextIcon, Users, Menu,
-  TrendingUp, DollarSign, Ship, Cloud, CloudOff, BookOpen, Tag, Contact, ChevronDown,
+  TrendingUp, DollarSign, Ship, Cloud, CloudOff, BookOpen, Tag, Contact, ChevronDown, ShieldCheck, LogOut,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { LOGO_POR_DEFECTO } from "./logo.js";
@@ -10,6 +10,7 @@ import { KG_POR_CBM, fecha, PIE_TEXTO, hojaImagen, TIEMPOS_ENTREGA, DIAS_PRODUCC
 import Catalogo, { Categorias, ESTILOS_VITRINA, EnlaceCatalogo as EnlaceDeCatalogo, VistaCotizacion, VistaCliente, precioConGanancia, numeroWhatsapp } from "./Catalogo.jsx";
 import { FICHA_VACIA, armarDescripcion, leerDescripcion, cbmDeMedidas } from "./descripcion.js";
 import { CATALOGO_XPROMISE } from "./catalogoXpromise.js";
+import Acceso, { UsuariosView } from "./Acceso.jsx";
 
 const runtimeEnv = globalThis.__APP_CONFIG__ || {};
 const SUPABASE_URL = runtimeEnv.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || "";
@@ -214,6 +215,10 @@ const STYLES = `
 .nav-icon { flex-shrink:0; color:currentColor; }
 .sidebar-footer { padding:12px 16px; border-top:1px solid #2E4150;
   font-size:11px; color:#5B6B75; text-align:center; }
+.sidebar-footer .sesion { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; color:#fff; font-size:14px; font-weight:600; }
+.sidebar-footer .sesion button { display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.12); color:#fff; border:0; border-radius:6px; padding:5px 9px; font-size:13px; font-weight:600; }
+.sidebar-footer .sesion button:hover { background:rgba(255,255,255,.22); }
+.sidebar-footer .sesion button:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
 .sidebar-footer .estado { display:flex; align-items:center; justify-content:center; gap:5px; margin-top:4px; }
 .sidebar-footer .estado.ok { color:#86D9A8; }
 .sidebar-footer .estado.off { color:#F4A08C; }
@@ -388,9 +393,16 @@ const cbmCobro = (cbm, peso, minimo = MINIMO_CBM) => {
 const minimoDeLinea = (l) => num(l.minimoCbm);
 
 /* ---------- Supabase helpers ---------- */
+// La API interna (/api/productos, /api/catalogo-interno) pide la sesión de quien entró.
+async function cabecerasSesion(extra = {}) {
+  if (!supabase) return extra;
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+  return token ? { ...extra, authorization: `Bearer ${token}` } : extra;
+}
 async function sbLoadProductos() {
   try {
-    const res = await fetch("/api/productos", { cache: "no-store" });
+    const res = await fetch("/api/productos", { cache: "no-store", headers: await cabecerasSesion() });
     const data = await res.json();
     if (!res.ok) { console.error("Error cargando productos:", data); return null; }
     return (data || []).map((p) => ({
@@ -410,7 +422,7 @@ async function sbSaveProductos(lista) {
     }));
     const res = await fetch("/api/productos", {
       method: "PUT",
-      headers: { "content-type": "application/json" },
+      headers: await cabecerasSesion({ "content-type": "application/json" }),
       body: JSON.stringify(filas),
     });
     const result = await res.json().catch(() => ({}));
@@ -2802,7 +2814,9 @@ const TABS = [
   { id: "catalogo-interno", label: "Catálogo interno", corto: "Cat. interno", icon: BookOpen },
 ];
 
-function AdminApp() {
+function AdminApp({ sesion }) {
+  const esAdmin = sesion?.perfil?.rol === "admin";
+  const pestanas = esAdmin ? [...TABS, { id: "usuarios", label: "Usuarios", icon: ShieldCheck }] : TABS;
   const [tab, setTab] = useState("inicio");
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [productos, setProductos] = useState([]);
@@ -2877,7 +2891,7 @@ function AdminApp() {
   };
   const eliminarProducto = async (id) => {
     try {
-      const res = await fetch(`/api/productos?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      const res = await fetch(`/api/productos?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: await cabecerasSesion() });
       const result = await res.json().catch(() => ({}));
       if (!res.ok || !result.ok || result.deleted !== id) {
         const detail = result.error?.message || result.error || `HTTP ${res.status}`;
@@ -2991,7 +3005,7 @@ function AdminApp() {
         <button className="hamburger" aria-label="Abrir menú" onClick={() => setMenuAbierto(true)}>
           <Menu size={22} />
         </button>
-        <div className="mobile-topbar-title">{TABS.find((item) => item.id === tab)?.label}</div>
+        <div className="mobile-topbar-title">{pestanas.find((item) => item.id === tab)?.label}</div>
         <span className={`mobile-status ${online ? "ok" : ""}`} title={online ? "Sincronizado" : "Sin nube"} />
       </div>
 
@@ -3007,7 +3021,7 @@ function AdminApp() {
             </div>
           </div>
           <nav className="sidebar-nav" role="tablist">
-            {TABS.map((t) => {
+            {pestanas.map((t) => {
               const Icon = t.icon;
               return (
                 <button key={t.id} role="tab" className="nav-item" aria-selected={tab === t.id}
@@ -3022,6 +3036,12 @@ function AdminApp() {
             })}
           </nav>
           <div className="sidebar-footer">
+            {sesion?.perfil && (
+              <div className="sesion">
+                <span className="truncate">{sesion.perfil.nombre || sesion.perfil.usuario}</span>
+                <button type="button" onClick={sesion.salir}><LogOut size={14} />Salir</button>
+              </div>
+            )}
             v1.0 · {new Date().getFullYear()}
             <div className={`estado ${online ? "ok" : "off"}`}>
               {online ? <Cloud size={12} /> : <CloudOff size={12} />}
@@ -3050,6 +3070,9 @@ function AdminApp() {
                     guardarPrecio={guardarPrecioVenta} aplicarGanancia={aplicarGanancia} />
                 )}
                 {tab === "ganancias" && <GananciasView clientes={clientes} />}
+                {tab === "usuarios" && esAdmin && (
+                  <UsuariosView supabase={supabase} perfil={sesion.perfil} avisar={avisar} Encabezado={EncabezadoPagina} />
+                )}
                 {tab === "internas" && (
                   <CotizacionInternaView cotiz={internas} guardarCotizaciones={guardarInternas}
                     clientes={clientes} avisar={avisar} empresa={empresa} />
@@ -3075,7 +3098,7 @@ function AdminApp() {
       </div>
 
       <nav className="mobile-bottom-nav" aria-label="Navegación principal">
-        {TABS.map((item) => {
+        {pestanas.map((item) => {
           const Icon = item.icon;
           return (
             <button key={item.id} className="mobile-nav-item" aria-selected={tab === item.id}
@@ -3115,10 +3138,10 @@ export default function App() {
   const ruta = window.location.pathname.replace(/\/+$/, "");
   // "/catalogo" es la dirección anterior del catálogo general y sigue funcionando.
   if (ruta === "/catalogo-cliente" || ruta === "/catalogo") return <Catalogo modo="cliente" />;
-  if (ruta === "/catalogo-interno") return <Catalogo modo="interno" />;
+  if (ruta === "/catalogo-interno") return <Acceso supabase={supabase}>{() => <Catalogo modo="interno" cabeceras={cabecerasSesion} />}</Acceso>;
   if (ruta.startsWith("/cotizacion/")) return <VistaCotizacion id={ruta.slice("/cotizacion/".length)} />;
   if (ruta.startsWith("/cliente/")) return <VistaCliente token={ruta.slice("/cliente/".length)} />;
-  return <AdminApp />;
+  return <Acceso supabase={supabase}>{(sesion) => <AdminApp sesion={sesion} />}</Acceso>;
 }
 
 function FichaProducto({ p, acciones, children, mostrarCategoria = true }) {

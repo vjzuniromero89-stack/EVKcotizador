@@ -4,16 +4,19 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
   headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
 });
 
-function sbHeaders(env, extra = {}) {
-  return {
-    apikey: env.SUPABASE_ANON_KEY,
-    ...(env.SUPABASE_ANON_KEY.startsWith("sb_publishable_") ? {} : { authorization: `Bearer ${env.SUPABASE_ANON_KEY}` }),
-    "content-type": "application/json",
-    ...extra,
-  };
+// Con "token" la consulta se hace como el usuario que entró (parte interna).
+// Sin él, la hace la página pública, que se identifica ante la base con su propia clave.
+function sbHeaders(env, extra = {}, token = "") {
+  const acceso = token
+    ? { authorization: `Bearer ${token}` }
+    : {
+      ...(env.SUPABASE_ANON_KEY.startsWith("sb_publishable_") ? {} : { authorization: `Bearer ${env.SUPABASE_ANON_KEY}` }),
+      ...(env.EVK_CLAVE_SERVICIO ? { "x-evk-clave": env.EVK_CLAVE_SERVICIO } : {}),
+    };
+  return { apikey: env.SUPABASE_ANON_KEY, ...acceso, "content-type": "application/json", ...extra };
 }
 
-async function sbRequest(env, path, init = {}) {
+async function sbRequest(env, path, init = {}, token = "") {
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
     const missing = ["SUPABASE_URL", "SUPABASE_ANON_KEY"].filter(name => !env[name]);
     return { ok: false, status: 503, error: `Falta configurar ${missing.join(" y ")} en Vercel → Settings → Environment Variables. Guarda y vuelve a desplegar.` };
@@ -23,7 +26,7 @@ async function sbRequest(env, path, init = {}) {
   try {
     res = await fetch(`${base}/rest/v1/${path}`, {
     ...init,
-    headers: sbHeaders(env, init.headers || {}),
+    headers: sbHeaders(env, init.headers || {}, token),
   });
   } catch {
     return { ok: false, status: 502, error: "No se pudo conectar con Supabase. Comprueba SUPABASE_URL y que el proyecto esté activo." };
@@ -187,13 +190,18 @@ export default {
       return json({ ok: true, nombre: ficha?.nombre || r.data[0]?.cliente || "", cotizaciones: r.data.map(cotizacionPublica) });
     }
 
+    // Lo que sigue con costos (catálogo interno y productos) es solo para quien entró con su usuario.
+    const token = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+    const interno = url.pathname === "/api/catalogo-interno" || url.pathname === "/api/productos";
+    if (interno && !token) return json({ ok: false, error: "Entra con tu usuario para continuar." }, 401);
+
     // Catálogo para clientes: solo precio de venta, nunca costos. Catálogo interno: costos, flete y CBM.
     const campos = request.method === "GET" && CATALOGOS[url.pathname];
     if (campos) {
       const productos = [];
       // Stable ordering and pagination avoid truncating large catalogs.
       for (let offset = 0; ; ) {
-        const r = await sbRequest(env, `productos?select=${campos.join(",")}&order=creado.desc,id.asc&limit=500&offset=${offset}`);
+        const r = await sbRequest(env, `productos?select=${campos.join(",")}&order=creado.desc,id.asc&limit=500&offset=${offset}`, {}, interno ? token : "");
         if (!r.ok) return json({ ok: false, error: "El catálogo no está disponible temporalmente." }, 503);
         if (!Array.isArray(r.data)) return json({ ok: false, error: "Respuesta de catálogo inválida." }, 502);
         if (!r.data.length) break;
@@ -204,7 +212,7 @@ export default {
     }
 
     if (url.pathname === "/api/productos" && request.method === "GET") {
-      const r = await sbRequest(env, "productos?select=*&order=creado.desc");
+      const r = await sbRequest(env, "productos?select=*&order=creado.desc", {}, token);
       return r.ok ? json(r.data || []) : json({ ok: false, error: r.error }, r.status);
     }
 
@@ -214,7 +222,7 @@ export default {
       const result = await sbRequest(env, `productos?id=eq.${encodeURIComponent(id)}&select=id`, {
         method: "DELETE",
         headers: { Prefer: "return=representation" },
-      });
+      }, token);
       if (!result.ok) return json({ ok: false, error: result.error }, result.status);
       if (!Array.isArray(result.data) || !result.data.some(row => row.id === id)) {
         return json({ ok: false, error: "No se eliminó el producto. Puede que ya no exista o que falten permisos SELECT/DELETE en Supabase." }, 409);
@@ -232,7 +240,7 @@ export default {
           method: "POST",
           headers: { Prefer: "resolution=merge-duplicates,return=representation" },
           body: JSON.stringify(lista),
-        });
+        }, token);
         if (!ins.ok) return json({ ok: false, stage: "upsert", status: ins.status, error: ins.error }, ins.status);
         return json({ ok: true, count: lista.length, saved: Array.isArray(ins.data) ? ins.data.length : lista.length });
       }

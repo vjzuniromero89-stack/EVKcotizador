@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import worker from './worker.js';
 const env = { SUPABASE_URL: 'https://atltdrpxseildyvfeltq.supabase.co', SUPABASE_ANON_KEY: 'test-anon' };
-const req = (path, method='GET', body) => new Request('https://example.com'+path,{method,...(body ? {body:JSON.stringify(body)} : {})});
+const req = (path, method='GET', body, token='sesion-de-prueba') => new Request('https://example.com'+path,{method,...(token ? {headers:{authorization:'Bearer '+token}} : {}),...(body ? {body:JSON.stringify(body)} : {})});
 let r = await worker.fetch(req('/api/productos','PUT',[{id:'test'}]),{});
 assert.equal(r.status,503); assert.match((await r.json()).error,/SUPABASE_URL/);
 r = await worker.fetch(req('/api/health'),{}); assert.equal((await r.json()).ok,false);
@@ -15,7 +15,7 @@ r=await worker.fetch(req('/api/productos','PUT',[{id:'test'}]),env); assert.equa
 globalThis.fetch=async()=>{throw new Error('network');};
 r=await worker.fetch(req('/api/productos','PUT',[{id:'test'}]),env); assert.equal(r.status,502);
 globalThis.fetch=async(url,init)=>{assert.equal(init.headers.authorization,undefined);assert.equal(init.headers.apikey,'sb_publishable_test');return Response.json([]);};
-r=await worker.fetch(req('/api/productos'),{...env,SUPABASE_ANON_KEY:'sb_publishable_test'}); assert.equal(r.status,200);
+r=await worker.fetch(req('/api/catalogo'),{...env,SUPABASE_ANON_KEY:'sb_publishable_test'}); assert.equal(r.status,200);
 console.log('8 comprobaciones correctas (Supabase simulado; sin modificar datos reales).');
 // Deletion regression checks: selected row only, final row, denied access, zero affected rows.
 rows=[{id:'one'},{id:'two'}];
@@ -82,3 +82,15 @@ r=await pedir({nombre:'Beto',telefono:'7777-1111',lineas:[{codigo:'A-1',cantidad
 globalThis.fetch=async()=>Response.json([guardado]);
 r=await worker.fetch(req('/api/solicitudes/'+guardado.id),env);assert.equal(r.status,200);assert.equal((await r.text()).includes('precioProducto'),false);
 console.log('Cotizaciones del catálogo: registro, numeración, validación y vista sin costos.');
+
+// Acceso: lo interno pide sesión y se consulta como ese usuario; lo público lleva la clave de la página.
+globalThis.fetch=()=>{throw new Error('Sin sesión no se debe consultar la base');};
+for(const [ruta,metodo] of [['/api/productos','GET'],['/api/productos','PUT'],['/api/productos?id=one','DELETE'],['/api/catalogo-interno','GET']]){r=await worker.fetch(req(ruta,metodo,metodo==='PUT'?[]:undefined,''),env);assert.equal(r.status,401);}
+const conClave={...env,EVK_CLAVE_SERVICIO:'clave-de-la-pagina'};let vistas=[];
+globalThis.fetch=async(url,init)=>{vistas.push(init.headers);return Response.json([]);};
+r=await worker.fetch(req('/api/productos'),conClave);assert.equal(r.status,200);
+assert.equal(vistas.at(-1).authorization,'Bearer sesion-de-prueba');assert.equal(vistas.at(-1)['x-evk-clave'],undefined);
+r=await worker.fetch(req('/api/catalogo-interno'),conClave);assert.equal(vistas.at(-1).authorization,'Bearer sesion-de-prueba');
+r=await worker.fetch(req('/api/catalogo'),conClave);assert.equal(r.status,200);
+assert.equal(vistas.at(-1)['x-evk-clave'],'clave-de-la-pagina');assert.equal(vistas.at(-1).authorization,'Bearer test-anon');
+console.log('Acceso: lo interno exige sesión; lo público usa la clave de la página.');

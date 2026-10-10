@@ -2809,7 +2809,7 @@ function AdminApp() {
       p = await sbLoadProductos();
       setOnline(p !== null);
       if (supabase) {
-        [ci, cc, em] = await Promise.all([
+        [cc, ci, em] = await Promise.all([
           sbLoadCotizacionesClientes(), sbLoadCotizacionesInternas(), sbLoadEmpresa(),
         ]);
       }

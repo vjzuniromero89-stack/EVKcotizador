@@ -1,4 +1,5 @@
 /* Hoja de cotización dibujada como imagen. La usan la app y el catálogo de clientes. */
+import { T, IDIOMA } from "./idioma.js";
 export const KG_POR_CBM = 350;
 
 // Tiempos que se le informan al cliente en cada cotización.
@@ -12,8 +13,8 @@ export const TIEMPOS_ENTREGA = [
 
 export const fecha = (iso) => {
   const d = new Date(iso);
-  return d.toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric" }) + ", " +
-    d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString(IDIOMA, { day: "2-digit", month: "short", year: "numeric" }) + ", " +
+    d.toLocaleTimeString(IDIOMA, { hour: "2-digit", minute: "2-digit" });
 };
 
 export const PIE_TEXTO = (interno) =>
@@ -89,7 +90,7 @@ export async function hojaImagen(d) {
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#14222B"; ctx.font = `bold 32px ${F}`;
-  ctx.fillText("COTIZACIÓN", W - M, yTop + 30);
+  ctx.fillText(T("COTIZACIÓN"), W - M, yTop + 30);
   ctx.font = `bold 22px ${F}`;
   ctx.fillText(cot.numero, W - M, yTop + 60);
   ctx.fillStyle = "#5B6B75"; ctx.font = `15px ${F}`;
@@ -106,9 +107,9 @@ export async function hojaImagen(d) {
 
   ctx.textAlign = "left";
   ctx.fillStyle = "#5B6B75"; ctx.font = `13px ${F}`;
-  ctx.fillText("CLIENTE", M, yLinea + 30);
+  ctx.fillText(T("CLIENTE"), M, yLinea + 30);
   ctx.fillStyle = "#14222B"; ctx.font = `bold 20px ${F}`;
-  ctx.fillText(cot.cliente || "Sin cliente", M, yLinea + 56);
+  ctx.fillText(cot.cliente || T("Sin cliente"), M, yLinea + 56);
 
   let yT = yLinea + 84;
   ctx.fillStyle = "#14222B"; ctx.fillRect(M, yT, W - M * 2, 38);

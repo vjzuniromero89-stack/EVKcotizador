@@ -59,13 +59,13 @@ function cotizacionPublica(fila) {
     pagado: (Array.isArray(fila.totales?.pagos) ? fila.totales.pagos : []).reduce((s, p) => s + (Number(p.monto) || 0), 0),
     pagos: (Array.isArray(fila.totales?.pagos) ? fila.totales.pagos : []).map((p) => ({ fecha: p.fecha || null, monto: Number(p.monto) || 0, nota: String(p.nota || "") })),
     lineas: (Array.isArray(fila.lineas) ? fila.lineas : []).map((l) => ({
-      codigo: l.codigo, nombre: l.nombre, cantidad: Number(l.cantidad) || 0, precio: Number(l.precioVenta) || 0, foto: l.foto || "",
+      codigo: l.codigo, nombre: l.nombre, nombreEn: l.nombreEn || "", cantidad: Number(l.cantidad) || 0, precio: Number(l.precioVenta) || 0, foto: l.foto || "",
     })),
   };
 }
 
 const CATALOGOS = {
-  "/api/catalogo": ["id", "codigo", "nombre", "descripcion", "categoria", "peso", "precio_venta", "foto"],
+  "/api/catalogo": ["id", "codigo", "nombre", "descripcion", "categoria", "peso", "precio_venta", "foto", "en"],
   "/api/catalogo-interno": ["id", "codigo", "nombre", "descripcion", "categoria", "cbm", "peso", "precio_cbm", "precio_producto", "precio_venta", "foto"],
 };
 
@@ -116,13 +116,13 @@ export default {
         return json({ ok: false, error: "Faltan el nombre, el teléfono o los productos." }, 400);
       }
       const codigos = [...pedidas.keys()].map((c) => `"${c}"`).join(",");
-      const prod = await sbRequest(env, `productos?select=id,codigo,nombre,cbm,peso,precio_cbm,precio_producto,precio_venta,foto&codigo=in.(${encodeURIComponent(codigos)})`);
+      const prod = await sbRequest(env, `productos?select=id,codigo,nombre,en,cbm,peso,precio_cbm,precio_producto,precio_venta,foto&codigo=in.(${encodeURIComponent(codigos)})`);
       if (!prod.ok || !Array.isArray(prod.data)) return json({ ok: false, error: "No se pudo registrar la cotización." }, 503);
       const lineas = [];
       for (const [codigo, cantidad] of pedidas) {
         const p = prod.data.find((x) => x.codigo === codigo);
         if (p) lineas.push({
-          id: crypto.randomUUID(), productId: p.id, codigo: p.codigo, nombre: p.nombre, foto: p.foto || "",
+          id: crypto.randomUUID(), productId: p.id, codigo: p.codigo, nombre: p.nombre, nombreEn: String(p.en?.nombre || ""), foto: p.foto || "",
           cbm: Number(p.cbm) || 0, peso: Number(p.peso) || 0, minimoCbm: MINIMO_CBM, precioCbm: Number(p.precio_cbm) || 0,
           precioProducto: Number(p.precio_producto) || 0, precioVenta: Number(p.precio_venta) || 0, cantidad,
         });

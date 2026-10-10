@@ -3,6 +3,7 @@ import { Search, X, Camera, Share2, Check, Box, Scale, Ship, ChevronRight, Plus,
 import { LOGO_POR_DEFECTO } from "./logo.js";
 import { hojaImagen, TIEMPOS_ENTREGA, DIAS_PRODUCCION, DIAS_ENVIO } from "./hoja.js";
 import { leerDescripcion } from "./descripcion.js";
+import { T, EN, IDIOMA, cambiarIdioma } from "./idioma.js";
 import { CATALOGO_XPROMISE } from "./catalogoXpromise.js";
 
 const KG_POR_CBM = 350;
@@ -14,6 +15,11 @@ const sinAcentos = (v) => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "
 
 /* ---------- portada "Puerto con categorías": la foto del puerto de fondo y una ficha por categoría ---------- */
 export const ESTILOS_VITRINA = `
+.cat-idioma { position:absolute; right:20px; top:26px; z-index:3; display:inline-flex; gap:2px; padding:3px; border-radius:999px; background:rgba(255,255,255,.16); backdrop-filter:blur(6px); }
+.cat-idioma button { border:0; border-radius:999px; padding:6px 13px; background:none; color:#fff; font:inherit; font-size:14px; font-weight:700; cursor:pointer; }
+.cat-idioma button[aria-pressed="true"] { background:#fff; color:#0A1F44; }
+.cat-idioma button:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
+@media (max-width:520px) { .cat-idioma { right:12px; top:18px; } .cat-idioma button { padding:5px 10px; font-size:13px; } }
 .cats-portada { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
 .cats-boton { display:flex; align-items:center; gap:4px; min-height:84px; padding:0; border:0; border-radius:12px; overflow:hidden; text-align:left;
   font:inherit; color:#0A1F44; background:rgba(255,255,255,.96); cursor:pointer; transition:transform .15s, box-shadow .15s; }
@@ -33,13 +39,23 @@ export const ESTILOS_VITRINA = `
 }
 `;
 
+/** Botón ES / EN de las páginas del cliente. */
+function SelectorIdioma() {
+  return (
+    <div className="cat-idioma" role="group" aria-label="Idioma / Language">
+      <button type="button" aria-pressed={!EN} onClick={() => EN && cambiarIdioma("es")}>Español</button>
+      <button type="button" aria-pressed={EN} onClick={() => !EN && cambiarIdioma("en")}>English</button>
+    </div>
+  );
+}
+
 /** Una ficha por categoría, con la foto de uno de sus productos y cuántos tiene. */
 export function Categorias({ productos, activa = "", elegir }) {
   const lista = useMemo(() => {
     const grupos = new Map();
     for (const p of productos || []) {
       const nombre = p.categoria || "Sin categoría";
-      const g = grupos.get(nombre) || { nombre, cantidad: 0, foto: "" };
+      const g = grupos.get(nombre) || { nombre, vista: p.categoriaVista || T(nombre), cantidad: 0, foto: "" };
       g.cantidad += 1;
       if (!g.foto && p.foto) g.foto = p.foto;
       grupos.set(nombre, g);
@@ -52,7 +68,7 @@ export function Categorias({ productos, activa = "", elegir }) {
       {lista.map((g) => (
         <button type="button" key={g.nombre} className="cats-boton" aria-pressed={activa === g.nombre} onClick={() => elegir(g.nombre)}>
           {g.foto ? <img src={g.foto} alt="" loading="lazy" /> : <i aria-hidden="true">{g.nombre.slice(0, 1).toUpperCase()}</i>}
-          <span><b>{g.nombre}</b><small>{g.cantidad} {g.cantidad === 1 ? "producto" : "productos"}</small></span>
+          <span><b>{g.vista}</b><small>{g.cantidad} {T(g.cantidad === 1 ? "producto" : "productos")}</small></span>
         </button>
       ))}
     </div>
@@ -381,12 +397,16 @@ const normalizar = (p) => {
   const producto = Number(p.precio_producto ?? p.precioProducto) || 0;
   const precioCbm = Number(p.precio_cbm ?? p.precioCbm) || 0;
   const flete = cobrable * precioCbm;
-  const ficha = leerDescripcion(p.descripcion);
+  const fichaEs = leerDescripcion(p.descripcion);
+  // En inglés se usa la versión guardada en "en" (nombre, categoría y ficha); lo que falte sale en español.
+  const en = EN && p.en && typeof p.en === "object" ? p.en : {};
+  const ficha = en.descripcion ? { ...leerDescripcion(en.descripcion), grupo: fichaEs.grupo } : fichaEs;
+  const categoria = p.categoria || "Sin categoría";
   return {
-    id: p.id, codigo: p.codigo || "", nombre: p.nombre || "", categoria: p.categoria || "Sin categoría",
+    id: p.id, codigo: p.codigo || "", nombre: en.nombre || p.nombre || "", categoria, categoriaVista: en.categoria || T(categoria),
     cbm, peso, porPeso, cobrable, por: MINIMO_CBM > real ? `mínimo de ${MINIMO_CBM} CBM` : porPeso > cbm ? "peso" : "volumen",
     producto, precioCbm, flete, costo: producto + flete, venta: Number(p.precio_venta ?? p.precioVenta) || 0,
-    foto: p.foto || "", ficha, grupo: ficha.grupo, opcion: ficha.opcion,
+    foto: p.foto || "", ficha, grupo: fichaEs.grupo, opcion: ficha.opcion || fichaEs.opcion,
   };
 };
 
@@ -451,15 +471,15 @@ function EditorPrecio({ p, guardar }) {
 function Opciones({ p, opciones, elegir, modo }) {
   if (!opciones) return null;
   return (
-    <div className="cat-opciones" role="group" aria-label="Opciones del producto">
-      <small>Elige una opción</small>
+    <div className="cat-opciones" role="group" aria-label={T("Opciones del producto")}>
+      <small>{T("Elige una opción")}</small>
       <div>
         {opciones.map((o) => {
           const precio = modo === "cliente" ? o.venta : o.producto;
           return (
             <button type="button" key={o.codigo} className="cat-opcion" aria-pressed={o.codigo === p.codigo} onClick={() => elegir(o.codigo)}>
               <b>{o.opcion || o.codigo}</b>
-              <span className="cat-num">{precio > 0 ? dinero(precio) : "Consultar"}</span>
+              <span className="cat-num">{precio > 0 ? dinero(precio) : T("Consultar")}</span>
             </button>
           );
         })}
@@ -476,7 +496,7 @@ function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir }) {
       <Foto src={p.foto} alt="" />
     </div>
     <div className="cat-cuerpo">
-      <span className="cat-categoria">{p.categoria}</span>
+      <span className="cat-categoria">{p.categoriaVista}</span>
       <span className="cat-modelo cat-num">{p.codigo}</span>
       <span className="cat-nombre">{p.nombre}</span>
       {modo === "interno" && (
@@ -488,10 +508,10 @@ function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir }) {
       {!guardar && (
         <div className="cat-pie">
           <div className="cat-precio">
-            <small>{modo === "cliente" ? "Precio" : "Precio de costo"}</small>
-            <b className="cat-num">{precio > 0 ? dinero(precio) : "Consultar"}</b>
+            <small>{modo === "cliente" ? T("Precio") : "Precio de costo"}</small>
+            <b className="cat-num">{precio > 0 ? dinero(precio) : T("Consultar")}</b>
           </div>
-          <span className="cat-ver">Ver ficha<ChevronRight size={15} /></span>
+          <span className="cat-ver">{T("Ver ficha")}<ChevronRight size={15} /></span>
         </div>
       )}
     </div>
@@ -539,18 +559,18 @@ function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
   return (
     <div className="cat-fondo" onMouseDown={(e) => { if (e.target === e.currentTarget) cerrar(); }}>
       <article className="cat-ficha" role="dialog" aria-modal="true" aria-label={`${p.codigo}, ${p.nombre}`}>
-        <button type="button" className="cat-cerrar" onClick={cerrar} aria-label="Cerrar ficha" autoFocus><X size={20} /></button>
+        <button type="button" className="cat-cerrar" onClick={cerrar} aria-label={T("Cerrar ficha")} autoFocus><X size={20} /></button>
         <div className="cat-ficha-arriba">
           <div className="cat-ficha-foto"><Foto src={p.foto} alt={`${p.codigo}, ${p.nombre}`} /></div>
           <div className="cat-ficha-info">
-            <span className="cat-categoria">{[f.marca, p.categoria].filter(Boolean).join(" · ")}</span>
+            <span className="cat-categoria">{[f.marca, p.categoriaVista].filter(Boolean).join(" · ")}</span>
             <h2 className="cat-num">{p.codigo}</h2>
             <h3>{p.nombre}</h3>
             {f.resumen && <p className="cat-resumen">{f.resumen}</p>}
             <Opciones p={p} opciones={opciones} elegir={elegir} modo={modo} />
             <div className="cat-precio-grande">
-              <small>{interno ? "Precio de costo del producto" : "Precio"}</small>
-              <b className="cat-num">{precio > 0 ? dinero(precio) : "Consultar"}</b>
+              <small>{interno ? "Precio de costo del producto" : T("Precio")}</small>
+              <b className="cat-num">{precio > 0 ? dinero(precio) : T("Consultar")}</b>
             </div>
             {interno ? (
               <>
@@ -571,14 +591,14 @@ function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
               </>
             ) : p.peso > 0 && (
               <div className="cat-datos">
-                <div className="cat-dato"><small><Scale size={13} />Peso</small><b className="cat-num">{kilos(p.peso)}</b></div>
+                <div className="cat-dato"><small><Scale size={13} />{T("Peso")}</small><b className="cat-num">{kilos(p.peso)}</b></div>
               </div>
             )}
-            {f.empaque && <div className="cat-dato"><small>Medidas de empaque</small><b className="cat-num">{f.empaque}</b></div>}
+            {f.empaque && <div className="cat-dato"><small>{T("Medidas de empaque")}</small><b className="cat-num">{f.empaque}</b></div>}
             <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
               {pedir && <Cantidad completo codigo={p.codigo} cantidad={pedir.pedido[p.codigo] || 0} cambiar={pedir.cambiar} />}
               <button type="button" className="cat-btn claro" onClick={compartir}>
-                {copiado ? <><Check size={17} />Enlace copiado</> : <><Share2 size={17} />Compartir este producto</>}
+                {copiado ? <><Check size={17} />{T("Enlace copiado")}</> : <><Share2 size={17} />{T("Compartir este producto")}</>}
               </button>
             </div>
           </div>
@@ -587,13 +607,13 @@ function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
           <div className="cat-secciones">
             {f.caracteristicas.length > 0 && (
               <section className="cat-seccion">
-                <h4>Características</h4>
+                <h4>{T("Características")}</h4>
                 <ul className="cat-lista">{f.caracteristicas.map((c, i) => <li key={i}><Check size={16} /><span>{c}</span></li>)}</ul>
               </section>
             )}
             {f.ficha.length > 0 && (
               <section className="cat-seccion">
-                <h4>Ficha técnica</h4>
+                <h4>{T("Ficha técnica")}</h4>
                 <table className="cat-tabla"><tbody>
                   {f.ficha.map(([k, v], i) => <tr key={i}><th scope="row">{k}</th><td className="cat-num">{v}</td></tr>)}
                 </tbody></table>
@@ -601,13 +621,13 @@ function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
             )}
             {f.incluye.length > 0 && (
               <section className="cat-seccion" style={{ gridColumn: f.incluye.length > 8 ? "1 / -1" : undefined }}>
-                <h4>Incluye</h4>
+                <h4>{T("Incluye")}</h4>
                 <ul className="cat-incluye">{f.incluye.map((c, i) => <li key={i}>{c}</li>)}</ul>
               </section>
             )}
             {f.opcionales.length > 0 && (
               <section className="cat-seccion">
-                <h4>Accesorios opcionales</h4>
+                <h4>{T("Accesorios opcionales")}</h4>
                 <ul className="cat-lista">{f.opcionales.map((c, i) => <li key={i}><Check size={16} /><span>{c}</span></li>)}</ul>
               </section>
             )}
@@ -723,22 +743,22 @@ function Cantidad({ codigo, cantidad, cambiar, completo }) {
   if (!cantidad) {
     return (
       <button type="button" className={`cat-btn ${completo ? "" : "cat-agregar"}`} onClick={() => cambiar(codigo, 1)}>
-        <Plus size={17} />Agregar a mi cotización
+        <Plus size={17} />{T("Agregar a mi cotización")}
       </button>
     );
   }
   return (
     <div className="cat-cantidad" role="group" aria-label={`Cantidad de ${codigo}`}>
-      <button type="button" onClick={() => cambiar(codigo, cantidad - 1)} aria-label={cantidad === 1 ? "Quitar de mi cotización" : "Uno menos"}>
+      <button type="button" onClick={() => cambiar(codigo, cantidad - 1)} aria-label={T(cantidad === 1 ? "Quitar de mi cotización" : "Uno menos")}>
         {cantidad === 1 ? <Trash2 size={16} /> : <Minus size={16} />}
       </button>
-      <span className="cat-num" aria-live="polite">{cantidad} en tu cotización</span>
-      <button type="button" onClick={() => cambiar(codigo, cantidad + 1)} aria-label="Uno más"><Plus size={16} /></button>
+      <span className="cat-num" aria-live="polite">{T("{n} en tu cotización", { n: cantidad })}</span>
+      <button type="button" onClick={() => cambiar(codigo, cantidad + 1)} aria-label={T("Uno más")}><Plus size={16} /></button>
     </div>
   );
 }
 
-const EMPRESA_PUBLICA = { nombre: "EVK Logistic", contacto: "Importaciones desde China a Nicaragua", logo: LOGO_POR_DEFECTO, whatsapp: "" };
+const EMPRESA_PUBLICA = { nombre: "EVK Logistic", contacto: T("Importaciones desde China a Nicaragua"), logo: LOGO_POR_DEFECTO, whatsapp: "" };
 
 /** Nombre, contacto, logo y WhatsApp del taller para el catálogo de clientes y sus cotizaciones. */
 function useEmpresaPublica(activo) {
@@ -760,18 +780,18 @@ function useEmpresaPublica(activo) {
 /** Hoja de cotización que ve el cliente: productos, cantidades y precios de venta. */
 function datosHojaCliente(cot, empresa) {
   const columnas = [
-    { t: "Foto" }, { t: "Producto" }, { t: "Cant.", r: true }, { t: "Precio unitario", r: true }, { t: "Total", r: true, fuerte: true },
+    { t: T("Foto") }, { t: T("Producto") }, { t: T("Cant."), r: true }, { t: T("Precio unitario"), r: true }, { t: T("Total"), r: true, fuerte: true },
   ];
   const filas = cot.lineas.map((l) => ({
-    foto: l.foto, nombre: l.nombre, sub: l.codigo,
-    valores: [String(l.cantidad), l.precio > 0 ? dinero(l.precio) : "Por consultar", l.precio > 0 ? dinero(l.precio * l.cantidad) : "Por consultar"],
+    foto: l.foto, nombre: (EN && l.nombreEn) || l.nombre, sub: l.codigo,
+    valores: [String(l.cantidad), l.precio > 0 ? dinero(l.precio) : T("Por consultar"), l.precio > 0 ? dinero(l.precio * l.cantidad) : T("Por consultar")],
   }));
-  const totales = [["Productos", String(cot.lineas.reduce((s, l) => s + l.cantidad, 0))]];
-  if (cot.lineas.some((l) => !(l.precio > 0))) totales.push(["Productos por consultar", "No incluidos en el total"]);
-  totales.push(...TIEMPOS_ENTREGA);
+  const totales = [[T("Productos"), String(cot.lineas.reduce((s, l) => s + l.cantidad, 0))]];
+  if (cot.lineas.some((l) => !(l.precio > 0))) totales.push([T("Productos por consultar"), T("No incluidos en el total")]);
+  totales.push(...TIEMPOS_ENTREGA.map(([k, v]) => [T(k), v.replace("días", T("días"))]));
   return {
-    empresa, columnas, filas, totales, total: dinero(cot.total), totalLabel: "Total",
-    pie: "Precios en dólares estadounidenses.",
+    empresa: { ...empresa, contacto: T(String(empresa.contacto || "").split("\n")[0]) }, columnas, filas, totales, total: dinero(cot.total), totalLabel: T("Total"),
+    pie: T("Precios en dólares estadounidenses."),
     cot: { numero: cot.numero, fecha: cot.fecha, cliente: [cot.cliente, cot.telefono && `Tel. ${cot.telefono}`].filter(Boolean).join(" · ") },
   };
 }
@@ -799,7 +819,7 @@ function useImagenCotizacion(cot, empresa) {
 async function compartirImagen(imagen, numero) {
   const archivo = new File([imagen.blob], `Cotizacion-${numero}.png`, { type: "image/png" });
   try {
-    if (navigator.canShare && navigator.canShare({ files: [archivo] })) { await navigator.share({ files: [archivo], title: `Cotización ${numero}` }); return; }
+    if (navigator.canShare && navigator.canShare({ files: [archivo] })) { await navigator.share({ files: [archivo], title: `${T("Cotización")} ${numero}` }); return; }
   } catch (e) { if (e && e.name === "AbortError") return; }
   const a = document.createElement("a");
   a.href = imagen.url; a.download = archivo.name;
@@ -825,31 +845,31 @@ function CotizacionLista({ cot, empresa, alTerminar }) {
   const imagen = useImagenCotizacion(cot, empresa);
   return (
     <div className="cat-lista-ok">
-      {alTerminar && <p className="cat-guardada" role="status"><Check size={18} />Tu cotización <b>{cot.numero}</b> quedó registrada.</p>}
-      {!imagen ? <p className="cat-resumen">Preparando la imagen…</p> :
-        imagen.error ? <p className="cat-error">No se pudo dibujar la imagen, pero tu cotización sí quedó registrada.</p> :
+      {alTerminar && <p className="cat-guardada" role="status"><Check size={18} />{T("Tu cotización")} <b>{cot.numero}</b> {T("quedó registrada.")}</p>}
+      {!imagen ? <p className="cat-resumen">{T("Preparando la imagen…")}</p> :
+        imagen.error ? <p className="cat-error">{T("No se pudo dibujar la imagen, pero tu cotización sí quedó registrada.")}</p> :
           <img className="cat-hoja-img" src={imagen.url} alt={`Cotización ${cot.numero} de ${cot.cliente}`} />}
       <div className="cat-panel-botones">
         {imagen?.blob && (
           <button type="button" className="cat-btn claro" onClick={() => compartirImagen(imagen, cot.numero)}>
-            <Share2 size={17} />Compartir o guardar la imagen
+            <Share2 size={17} />{T("Compartir o guardar la imagen")}
           </button>
         )}
         {empresa.whatsapp && (
           <a className="cat-btn cat-enviar" href={enlaceWhatsapp(cot, empresa.whatsapp)} target="_blank" rel="noopener noreferrer">
-            <Send size={17} />Enviar por WhatsApp
+            <Send size={17} />{T("Enviar por WhatsApp")}
           </a>
         )}
       </div>
-      {empresa.whatsapp && <p className="cat-nota-envio">Se abrirá WhatsApp con nuestro chat. Solo tienes que tocar “Enviar”.</p>}
+      {empresa.whatsapp && <p className="cat-nota-envio">{T("Se abrirá WhatsApp con nuestro chat. Solo tienes que tocar “Enviar”.")}</p>}
       {alTerminar && (
         <div className="cat-seguir">
-          <b>Sigue tu pedido aquí</b>
-          <span>En este enlace verás cuando tu cotización esté confirmada, en producción, en camino y entregada.</span>
+          <b>{T("Sigue tu pedido aquí")}</b>
+          <span>{T("En este enlace verás cuando tu cotización esté confirmada, en producción, en camino y entregada.")}</span>
           <a href={enlaceCotizacion(cot)}>{enlaceCotizacion(cot)}</a>
         </div>
       )}
-      {alTerminar && <div className="cat-panel-botones"><button type="button" className="cat-btn claro" onClick={alTerminar}>Listo</button></div>}
+      {alTerminar && <div className="cat-panel-botones"><button type="button" className="cat-btn claro" onClick={alTerminar}>{T("Listo")}</button></div>}
     </div>
   );
 }
@@ -881,8 +901,8 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
     e.preventDefault();
     if (trabajando) return;
     const nombre = datos.nombre.trim(), telefono = datos.telefono.trim(), direccion = datos.direccion.trim();
-    if (!nombre) { setError("Escribe tu nombre."); return; }
-    if (telefono.replace(/\D/g, "").length < 8) { setError("Escribe tu número de teléfono completo."); return; }
+    if (!nombre) { setError(T("Escribe tu nombre.")); return; }
+    if (telefono.replace(/\D/g, "").length < 8) { setError(T("Escribe tu número de teléfono completo.")); return; }
     setError(""); setTrabajando(true);
     if (recordar) guardarLocal(`${CLAVE_PEDIDO}-datos-${token}`, { nombre, telefono, direccion });
     try {
@@ -897,18 +917,18 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
       vaciar();
     } catch (err) {
       console.error(err);
-      setError("No pudimos registrar tu cotización. Revisa tu conexión e inténtalo de nuevo.");
+      setError(T("No pudimos registrar tu cotización. Revisa tu conexión e inténtalo de nuevo."));
     } finally { setTrabajando(false); }
   };
 
   return (
     <div className="cat-fondo" onMouseDown={(e) => { if (e.target === e.currentTarget) cerrar(); }}>
-      <section className={`cat-ficha cat-panel${creada ? " cat-panel-ancho" : ""}`} role="dialog" aria-modal="true" aria-label="Mi cotización">
-        <button type="button" className="cat-cerrar" onClick={cerrar} aria-label="Cerrar mi cotización"><X size={20} /></button>
+      <section className={`cat-ficha cat-panel${creada ? " cat-panel-ancho" : ""}`} role="dialog" aria-modal="true" aria-label={T("Mi cotización")}>
+        <button type="button" className="cat-cerrar" onClick={cerrar} aria-label={T("Cerrar mi cotización")}><X size={20} /></button>
         <div className="cat-panel-in">
-          <h2 className="cat-cond">{creada ? `Cotización ${creada.numero}` : "Mi cotización"}</h2>
+          <h2 className="cat-cond">{creada ? `${T("Cotización")} ${creada.numero}` : T("Mi cotización")}</h2>
           {creada ? <CotizacionLista cot={creada} empresa={empresa} alTerminar={cerrar} /> : !lineas.length ? (
-            <p className="cat-resumen">Todavía no has agregado productos. Toca “Agregar a mi cotización” en los productos que te interesan.</p>
+            <p className="cat-resumen">{T("Todavía no has agregado productos. Toca “Agregar a mi cotización” en los productos que te interesan.")}</p>
           ) : (
             <form onSubmit={crear} noValidate>
               <ul className="cat-lineas">
@@ -918,7 +938,7 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
                     <div className="cat-linea-info">
                       <b className="cat-num">{l.codigo}</b>
                       <span>{l.nombre}</span>
-                      <small className="cat-num">{l.venta > 0 ? `${dinero(l.venta)} c/u` : "Precio por consultar"}</small>
+                      <small className="cat-num">{l.venta > 0 ? `${dinero(l.venta)} ${T("c/u")}` : T("Precio por consultar")}</small>
                     </div>
                     <div className="cat-linea-cant">
                       <Cantidad codigo={l.codigo} cantidad={l.cantidad} cambiar={cambiar} />
@@ -929,35 +949,35 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
               </ul>
               {total > 0 && (
                 <div className="cat-total">
-                  <span>Total{hayConsultar && " (sin los productos por consultar)"}</span>
+                  <span>{T("Total")}{hayConsultar && T(" (sin los productos por consultar)")}</span>
                   <b className="cat-num">{dinero(total)}</b>
                 </div>
               )}
               <div className="cat-campos">
-                <label>Tu nombre
+                <label>{T("Tu nombre")}
                   <input value={datos.nombre} onChange={set("nombre")} autoComplete="name" maxLength={80} />
                 </label>
-                <label>Tu teléfono o WhatsApp
+                <label>{T("Tu teléfono o WhatsApp")}
                   <input value={datos.telefono} onChange={set("telefono")} inputMode="tel" autoComplete="tel" placeholder="8888 8888" maxLength={30} />
                 </label>
-                <label className="ancho">Ciudad o dirección de entrega (opcional)
-                  <input value={datos.direccion} onChange={set("direccion")} autoComplete="street-address" maxLength={160} placeholder="Managua, barrio o dirección" />
+                <label className="ancho">{T("Ciudad o dirección de entrega (opcional)")}
+                  <input value={datos.direccion} onChange={set("direccion")} autoComplete="street-address" maxLength={160} placeholder={T("Managua, barrio o dirección")} />
                 </label>
-                <label className="ancho">Nota (opcional)
-                  <textarea rows={2} value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} placeholder="Fecha en que lo necesitas, preguntas" />
+                <label className="ancho">{T("Nota (opcional)")}
+                  <textarea rows={2} value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} placeholder={T("Fecha en que lo necesitas, preguntas")} />
                 </label>
               </div>
               {error && <p className="cat-error" role="alert">{error}</p>}
               <div className="cat-panel-botones">
-                <button type="button" className="cat-btn claro" onClick={vaciar} disabled={trabajando}>Vaciar</button>
+                <button type="button" className="cat-btn claro" onClick={vaciar} disabled={trabajando}>{T("Vaciar")}</button>
                 <button type="submit" className="cat-btn cat-enviar" disabled={trabajando}>
-                  <ClipboardList size={17} />{trabajando ? "Creando tu cotización…" : "Crear mi cotización"}
+                  <ClipboardList size={17} />{T(trabajando ? "Creando tu cotización…" : "Crear mi cotización")}
                 </button>
               </div>
               <p className="cat-tiempos">
-                Entrega aproximada: <b>{DIAS_PRODUCCION + DIAS_ENVIO} días</b> ({DIAS_PRODUCCION} de producción + {DIAS_ENVIO} de envío).
+                {T("Entrega aproximada")}: <b>{DIAS_PRODUCCION + DIAS_ENVIO} {T("días")}</b> ({T("{a} de producción + {b} de envío", { a: DIAS_PRODUCCION, b: DIAS_ENVIO })}).
               </p>
-              <p className="cat-nota-envio">Verás tu cotización como imagen y podrás enviarla por WhatsApp.</p>
+              <p className="cat-nota-envio">{T("Verás tu cotización como imagen y podrás enviarla por WhatsApp.")}</p>
             </form>
           )}
         </div>
@@ -967,17 +987,17 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
 }
 
 /* ---------- seguimiento del pedido: lo que ve el cliente en su enlace ---------- */
-const PASOS = [["pendiente", "Recibida"], ["confirmada", "Confirmada"], ["produccion", "En producción"], ["camino", "En camino"], ["entregada", "Entregada"]];
+const PASOS = [["pendiente", T("Recibida")], ["confirmada", T("Confirmada")], ["produccion", T("En producción")], ["camino", T("En camino")], ["entregada", T("Entregada")]];
 const TEXTO_ESTADO = {
-  pendiente: ["Pendiente de confirmar", "Recibimos tu cotización. Aquí verás cuando esté confirmada."],
-  confirmada: ["Confirmada", "Tu pedido está confirmado."],
-  produccion: ["En producción", "Tu pedido se está fabricando."],
-  camino: ["En camino", "Tu pedido ya va en camino."],
-  entregada: ["Entregada", "Tu pedido fue entregado. Gracias por tu compra."],
-  cancelada: ["Cancelada", "Esta cotización fue cancelada."],
+  pendiente: [T("Pendiente de confirmar"), T("Recibimos tu cotización. Aquí verás cuando esté confirmada.")],
+  confirmada: [T("Confirmada"), T("Tu pedido está confirmado.")],
+  produccion: [T("En producción"), T("Tu pedido se está fabricando.")],
+  camino: [T("En camino"), T("Tu pedido ya va en camino.")],
+  entregada: [T("Entregada"), T("Tu pedido fue entregado. Gracias por tu compra.")],
+  cancelada: [T("Cancelada"), T("Esta cotización fue cancelada.")],
 };
 const estadoPublico = (cot) => (TEXTO_ESTADO[cot.estado] ? cot.estado : "pendiente");
-const fechaCorta = (d) => new Date(d).toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric" });
+const fechaCorta = (d) => new Date(d).toLocaleDateString(IDIOMA, { day: "2-digit", month: "short", year: "numeric" });
 const entregaDe = (cot) => (cot.confirmadaEl ? new Date(new Date(cot.confirmadaEl).getTime() + (DIAS_PRODUCCION + DIAS_ENVIO) * 86400000) : null);
 
 /** Pide una dirección y la vuelve a pedir cada cierto tiempo, para que el cliente vea los cambios sin recargar. */
@@ -1016,18 +1036,18 @@ function Seguimiento({ cot }) {
   const entrega = entregaDe(cot);
   const saldo = Math.max(0, cot.total - cot.pagado);
   return (
-    <section className="cat-seguimiento" aria-label="Estado de tu pedido">
+    <section className="cat-seguimiento" aria-label={T("Estado de tu pedido")}>
       <div className="cat-seg-arriba">
         <div>
-          <small>Estado de tu pedido</small>
+          <small>{T("Estado de tu pedido")}</small>
           <b>{TEXTO_ESTADO[estado][0]}</b>
           <p>{TEXTO_ESTADO[estado][1]}</p>
         </div>
         {estado !== "cancelada" && estado !== "entregada" && (
           <div className="cat-seg-entrega">
-            <small>Entrega estimada</small>
-            <b className="cat-num">{entrega ? fechaCorta(entrega) : `${DIAS_PRODUCCION + DIAS_ENVIO} días`}</b>
-            <span>{entrega ? `${DIAS_PRODUCCION} días de producción + ${DIAS_ENVIO} de envío` : "a partir de la confirmación"}</span>
+            <small>{T("Entrega estimada")}</small>
+            <b className="cat-num">{entrega ? fechaCorta(entrega) : `${DIAS_PRODUCCION + DIAS_ENVIO} ${T("días")}`}</b>
+            <span>{entrega ? T("{a} días de producción + {b} de envío", { a: DIAS_PRODUCCION, b: DIAS_ENVIO }) : T("a partir de la confirmación")}</span>
           </div>
         )}
       </div>
@@ -1043,26 +1063,26 @@ function Seguimiento({ cot }) {
       )}
       {cot.pagado > 0 && (
         <div className="cat-datos" style={{ marginTop: 14 }}>
-          <div className="cat-dato"><small>Total</small><b className="cat-num">{dinero(cot.total)}</b></div>
-          <div className="cat-dato"><small>Pagado</small><b className="cat-num">{dinero(cot.pagado)}</b></div>
-          <div className="cat-dato cobro"><small>Saldo</small><b className="cat-num">{dinero(saldo)}</b></div>
+          <div className="cat-dato"><small>{T("Total")}</small><b className="cat-num">{dinero(cot.total)}</b></div>
+          <div className="cat-dato"><small>{T("Pagado")}</small><b className="cat-num">{dinero(cot.pagado)}</b></div>
+          <div className="cat-dato cobro"><small>{T("Saldo")}</small><b className="cat-num">{dinero(saldo)}</b></div>
         </div>
       )}
       {cot.pagos?.length > 0 && (
         <div className="cat-pagos">
-          <b>Pagos recibidos</b>
+          <b>{T("Pagos recibidos")}</b>
           <ul>
             {cot.pagos.map((p, i) => (
               <li key={i}>
-                <span className="cat-num">{p.fecha ? fechaCorta(p.fecha) : "Sin fecha"}</span>
-                <span className="cat-pago-nota">{p.nota || "Pago"}</span>
+                <span className="cat-num">{p.fecha ? fechaCorta(p.fecha) : T("Sin fecha")}</span>
+                <span className="cat-pago-nota">{p.nota || T("Pago")}</span>
                 <b className="cat-num">{dinero(p.monto)}</b>
               </li>
             ))}
           </ul>
         </div>
       )}
-      <p className="cat-seg-nota">Esta página se actualiza sola. Guarda el enlace para revisar tu pedido cuando quieras.</p>
+      <p className="cat-seg-nota">{T("Esta página se actualiza sola. Guarda el enlace para revisar tu pedido cuando quieras.")}</p>
     </section>
   );
 }
@@ -1073,10 +1093,11 @@ function PaginaCliente({ empresa, titulo, children }) {
       <style>{ESTILOS}</style>
       <header className="cat-top">
         <div className="cat-wrap cat-top-in">
+          <SelectorIdioma />
           <div className="cat-top-texto">
             <div className="cat-marca">
               <img src={empresa.logo} alt="" />
-              <div><b>{empresa.nombre}</b><span>{empresa.contacto.split("\n")[0]}</span></div>
+              <div><b>{empresa.nombre}</b><span>{T(empresa.contacto.split("\n")[0])}</span></div>
             </div>
             <h1>{titulo}</h1>
           </div>
@@ -1088,9 +1109,9 @@ function PaginaCliente({ empresa, titulo, children }) {
 }
 
 const AVISOS = {
-  cargando: "Cargando…",
-  "no-existe": "Este enlace ya no existe.",
-  error: "No pudimos cargar la información. Inténtalo de nuevo en un momento.",
+  cargando: T("Cargando…"),
+  "no-existe": T("Este enlace ya no existe."),
+  error: T("No pudimos cargar la información. Inténtalo de nuevo en un momento."),
 };
 
 /** Página pública de una cotización: /cotizacion/<id>. Muestra el estado del pedido y la hoja. */
@@ -1103,15 +1124,15 @@ export function VistaCotizacion({ id }) {
   const huella = cot ? JSON.stringify([cot.lineas, cot.total, cot.cliente, cot.telefono]) : "";
   const paraHoja = useMemo(() => cot, [huella]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <PaginaCliente empresa={empresa} titulo={cot ? <>Cotización <em>{cot.numero}</em></> : "Cotización"}>
+    <PaginaCliente empresa={empresa} titulo={cot ? <>{T("Cotización")} <em>{cot.numero}</em></> : T("Cotización")}>
       {!cot ? <div className="cat-vacio" role="status">{AVISOS[estado] || AVISOS.cargando}</div> : <>
         <Seguimiento cot={cot} />
         <div className="cat-vista" style={{ marginTop: 16 }}><CotizacionLista cot={paraHoja} empresa={sinWhatsapp} /></div>
       </>}
       <p style={{ marginTop: 18, display: "flex", gap: 8, flexWrap: "wrap" }}>
         {cot?.token
-          ? <a className="cat-btn" href={`/cliente/${cot.token}?ver=cotizaciones`}>Mis cotizaciones</a>
-          : <a className="cat-btn claro" href="/catalogo-cliente">Ver el catálogo</a>}
+          ? <a className="cat-btn" href={`/cliente/${cot.token}?ver=cotizaciones`}>{T("Mis cotizaciones")}</a>
+          : <a className="cat-btn claro" href="/catalogo-cliente">{T("Ver el catálogo")}</a>}
       </p>
     </PaginaCliente>
   );
@@ -1121,17 +1142,17 @@ export function VistaCotizacion({ id }) {
 export function VistaCliente({ token }) {
   const [datos, estado] = useDatosVivos(`/api/cliente/${encodeURIComponent(token)}`);
   const lista = datos?.cotizaciones || [];
-  // El catálogo recuerda a este cliente para ofrecerle el botón "Mis cotizaciones".
+  // El catálogo recuerda a este cliente para ofrecerle el botón T("Mis cotizaciones").
   useEffect(() => { if (datos) guardarLocal(CLAVE_TOKEN, token); }, [datos, token]);
   const arriba = (
-    <section className="cat-cuenta-mis" aria-label="Mis cotizaciones">
-      <h2 className="cat-cond">Mis cotizaciones</h2>
+    <section className="cat-cuenta-mis" aria-label={T("Mis cotizaciones")}>
+      <h2 className="cat-cond">{T("Mis cotizaciones")}</h2>
       {!datos ? <div className="cat-vacio" style={{ marginBottom: 0 }} role="status">
-        {estado === "no-existe" ? "Todavía no hay cotizaciones en este enlace." : AVISOS[estado] || AVISOS.cargando}
+        {estado === "no-existe" ? T("Todavía no hay cotizaciones en este enlace.") : AVISOS[estado] || AVISOS.cargando}
       </div> : <>
         <p className="cat-cuenta" style={{ marginTop: 0 }}>
-          {lista.length === 0 ? "Todavía no tienes cotizaciones. Abre la pestaña Catálogo, agrega los productos que te interesan y envía tu cotización."
-            : `${lista.length === 1 ? "Tienes 1 cotización." : `Tienes ${lista.length} cotizaciones.`} Esta página se actualiza sola.`}
+          {lista.length === 0 ? T("Todavía no tienes cotizaciones. Abre la pestaña Catálogo, agrega los productos que te interesan y envía tu cotización.")
+            : `${T(lista.length === 1 ? "Tienes 1 cotización." : "Tienes {n} cotizaciones.", { n: lista.length })} ${T("Esta página se actualiza sola.")}`}
         </p>
         <div className="cat-mis">
           {lista.map((cot) => {
@@ -1142,13 +1163,13 @@ export function VistaCliente({ token }) {
                   <b className="cat-cond cat-num">{cot.numero}</b>
                   <EtiquetaEstado cot={cot} />
                 </div>
-                <span className="cat-mi-fecha">{fechaCorta(cot.fecha)} · {cot.lineas.reduce((s, l) => s + l.cantidad, 0)} productos</span>
+                <span className="cat-mi-fecha">{fechaCorta(cot.fecha)} · {cot.lineas.reduce((s, l) => s + l.cantidad, 0)} {T("productos")}</span>
                 <span className="cat-mi-equipos">{cot.lineas.map((l) => `${l.cantidad} × ${l.codigo}`).join(", ")}</span>
                 <div className="cat-mi-abajo">
-                  <span><small>Total</small><b className="cat-num">{cot.total > 0 ? dinero(cot.total) : "Por consultar"}</b></span>
-                  {cot.pagado > 0 && <span><small>Saldo</small><b className="cat-num">{dinero(Math.max(0, cot.total - cot.pagado))}</b></span>}
-                  {entrega && e !== "entregada" && e !== "cancelada" && <span><small>Entrega estimada</small><b className="cat-num">{fechaCorta(entrega)}</b></span>}
-                  <span className="cat-ver" style={{ display: "inline-flex", marginLeft: "auto" }}>Ver pedido<ChevronRight size={15} /></span>
+                  <span><small>{T("Total")}</small><b className="cat-num">{cot.total > 0 ? dinero(cot.total) : T("Por consultar")}</b></span>
+                  {cot.pagado > 0 && <span><small>{T("Saldo")}</small><b className="cat-num">{dinero(Math.max(0, cot.total - cot.pagado))}</b></span>}
+                  {entrega && e !== "entregada" && e !== "cancelada" && <span><small>{T("Entrega estimada")}</small><b className="cat-num">{fechaCorta(entrega)}</b></span>}
+                  <span className="cat-ver" style={{ display: "inline-flex", marginLeft: "auto" }}>{T("Ver pedido")}<ChevronRight size={15} /></span>
                 </div>
               </a>
             );
@@ -1157,7 +1178,7 @@ export function VistaCliente({ token }) {
       </>}
     </section>
   );
-  return <Catalogo modo="cliente" cuenta={{ token, nombre: datos?.nombre || "", titulo: datos?.nombre ? <>Hola, <em>{datos.nombre}</em></> : <>Mis <em>cotizaciones</em></>, contenido: arriba, cantidad: lista.length }} />;
+  return <Catalogo modo="cliente" cuenta={{ token, nombre: datos?.nombre || "", titulo: datos?.nombre ? <>{T("Hola,")} <em>{datos.nombre}</em></> : EN ? <>My <em>quotes</em></> : <>Mis <em>cotizaciones</em></>, contenido: arriba, cantidad: lista.length }} />;
 }
 
 const RUTAS = { cliente: "/catalogo-cliente", interno: "/catalogo-interno" };
@@ -1233,6 +1254,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
     if (enFicha) { window.history.replaceState(null, "", `#${encodeURIComponent(codigo)}`); setAbierto(codigo); }
   };
 
+  const etiquetas = useMemo(() => new Map(productos.map((p) => [p.categoria, p.categoriaVista])), [productos]);
   const categorias = useMemo(() => {
     const cuenta = new Map();
     for (const p of unicos) cuenta.set(p.categoria, (cuenta.get(p.categoria) || 0) + 1);
@@ -1242,7 +1264,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
   const filtrados = useMemo(() => {
     const s = sinAcentos(q.trim());
     return unaPorGrupo(productos.filter((p) => (!categoria || p.categoria === categoria) &&
-      (!s || sinAcentos(`${p.codigo} ${p.nombre} ${p.categoria} ${p.ficha.marca} ${p.opcion}`).includes(s))));
+      (!s || sinAcentos(`${p.codigo} ${p.nombre} ${p.categoria} ${p.categoriaVista} ${p.ficha.marca} ${p.opcion}`).includes(s))));
   }, [productos, q, categoria, grupos, elegidas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const seleccionado = abierto ? productos.find((p) => p.codigo.toLowerCase() === abierto.toLowerCase()) : null;
@@ -1285,10 +1307,11 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
       <style>{ESTILOS}</style>
       <header className="cat-top">
         <div className="cat-wrap cat-top-in">
+          {amarilla && <SelectorIdioma />}
           <div className="cat-top-texto">
           <div className="cat-marca">
             <img src={LOGO_POR_DEFECTO} alt="" />
-            <div><b>EVK Logistic</b><span>Importaciones desde China a Nicaragua</span></div>
+            <div><b>EVK Logistic</b><span>{T("Importaciones desde China a Nicaragua")}</span></div>
           </div>
           {modo === "interno" ? <>
             <span className="cat-aviso">Uso interno · precios de costo</span>
@@ -1302,25 +1325,25 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
               : "Para que tus clientes te envíen su cotización por WhatsApp, escribe tu número en Producto, en los datos de tu empresa."}</p>
           </> : cuenta ? <>
             <h1>{cuenta.titulo}</h1>
-            <p>Aquí ves el estado de tus pedidos y puedes cotizar más productos del catálogo.</p>
+            <p>{T("Aquí ves el estado de tus pedidos y puedes cotizar más productos del catálogo.")}</p>
           </> : <>
-            <h1>Importamos lo que <em>necesitas</em></h1>
-            <p>Elige una categoría o busca directamente.</p>
-            {miEnlace && <p style={{ marginTop: 12 }}><a className="cat-btn cat-mis-boton" href={`/cliente/${miEnlace}?ver=cotizaciones`}><ClipboardList size={17} />Mis cotizaciones</a></p>}
+            <h1>{EN ? <>We import what you <em>need</em></> : <>Importamos lo que <em>necesitas</em></>}</h1>
+            <p>{T("Elige una categoría o busca directamente.")}</p>
+            {miEnlace && <p style={{ marginTop: 12 }}><a className="cat-btn cat-mis-boton" href={`/cliente/${miEnlace}?ver=cotizaciones`}><ClipboardList size={17} />{T("Mis cotizaciones")}</a></p>}
           </>}
           {dentro && <EnlaceCatalogo modo={modo} avisar={avisar} />}
           {cuenta && (
-            <div className="cat-tabs" role="tablist" aria-label="Secciones">
-              <button type="button" role="tab" aria-selected={!enCotizaciones} onClick={() => verVista("catalogo")}>Catálogo</button>
+            <div className="cat-tabs" role="tablist" aria-label={T("Secciones")}>
+              <button type="button" role="tab" aria-selected={!enCotizaciones} onClick={() => verVista("catalogo")}>{T("Catálogo")}</button>
               <button type="button" role="tab" aria-selected={enCotizaciones} onClick={() => verVista("cotizaciones")}>
-                Mis cotizaciones<i>{cuenta.cantidad}</i>
+                {T("Mis cotizaciones")}<i>{cuenta.cantidad}</i>
               </button>
             </div>
           )}
           {!enCotizaciones && (
             <div className="cat-buscar">
               <Search size={20} aria-hidden="true" />
-              <input type="search" placeholder="Buscar por modelo, nombre o categoría" aria-label="Buscar producto"
+              <input type="search" placeholder={T("Buscar por modelo, nombre o categoría")} aria-label={T("Buscar producto")}
                 value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
           )}
@@ -1330,14 +1353,14 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
       </header>
 
       {estado === "listo" && categorias.length > 1 && !enCotizaciones && (
-        <nav className="cat-filtros" aria-label="Categorías">
+        <nav className="cat-filtros" aria-label={T("Categorías")}>
           <div className="cat-wrap cat-pills">
             <button type="button" className="cat-pill" aria-pressed={!categoria} onClick={() => setCategoria("")}>
-              Todos<i>{unicos.length}</i>
+              {T("Todos")}<i>{unicos.length}</i>
             </button>
             {categorias.map(([c, n]) => (
               <button type="button" key={c} className="cat-pill" aria-pressed={categoria === c} onClick={() => setCategoria(c)}>
-                {c}<i>{n}</i>
+                {etiquetas.get(c) || T(c)}<i>{n}</i>
               </button>
             ))}
           </div>
@@ -1345,25 +1368,25 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
       )}
 
       <main className="cat-wrap" id="cat-lista">
-        {enCotizaciones ? <div style={{ paddingBottom: 56 }}>{cuenta.contenido}</div> : estado === "cargando" ? <p className="cat-cuenta" role="status">Cargando productos…</p> : <>
+        {enCotizaciones ? <div style={{ paddingBottom: 56 }}>{cuenta.contenido}</div> : estado === "cargando" ? <p className="cat-cuenta" role="status">{T("Cargando productos…")}</p> : <>
           {aplicarGanancia && productos.length > 0 && <GananciaGeneral cuantos={productos.length} aplicar={aplicarGanancia} />}
           {cambiarPrecioCbm && productos.length > 0 && <PrecioCbmGeneral productos={productos} cambiar={cambiarPrecioCbm} />}
           <p className="cat-cuenta" role="status">
-            {filtrados.length === unicos.length ? `${unicos.length} productos` : `${filtrados.length} de ${unicos.length} productos`}
+            {filtrados.length === unicos.length ? T("{n} productos", { n: unicos.length }) : T("{a} de {b} productos", { a: filtrados.length, b: unicos.length })}
             {guardarPrecio && sinPrecio > 0 && ` · ${sinPrecio} sin precio de venta`}
           </p>
-          {!productos.length ? <div className="cat-vacio">Próximamente encontrarás nuestros productos aquí.</div> :
+          {!productos.length ? <div className="cat-vacio">{T("Próximamente encontrarás nuestros productos aquí.")}</div> :
             !filtrados.length ? (
               <div className="cat-vacio">
-                <p style={{ margin: "0 0 14px" }}>Ningún producto coincide con tu búsqueda.</p>
-                <button type="button" className="cat-btn" onClick={() => { setQ(""); setCategoria(""); }}>Ver todos los productos</button>
+                <p style={{ margin: "0 0 14px" }}>{T("Ningún producto coincide con tu búsqueda.")}</p>
+                <button type="button" className="cat-btn" onClick={() => { setQ(""); setCategoria(""); }}>{T("Ver todos los productos")}</button>
               </div>
             ) : <div className="cat-grid">{filtrados.map((p) => <Tarjeta key={p.id} p={p} modo={modo} abrir={() => abrir(p.codigo)} guardar={guardarPrecio} pedir={pedir}
               opciones={opcionesDe(p)} elegir={(codigo) => elegirOpcion(p, codigo)} />)}</div>}
         </>}
       </main>
 
-      <footer className="cat-pie-pagina">EVK Logistic · Precios en dólares.</footer>
+      <footer className="cat-pie-pagina">EVK Logistic · {T("Precios en dólares.")}</footer>
 
       {seleccionado && <Ficha p={seleccionado} modo={modo} cerrar={cerrar} pedir={pedir}
         opciones={opcionesDe(seleccionado)} elegir={(codigo) => elegirOpcion(seleccionado, codigo, true)} />}
@@ -1371,8 +1394,8 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
       {pedir && unidades > 0 && !panel && !seleccionado && (
         <button type="button" className="cat-flotante" onClick={() => setPanel(true)}>
           <ClipboardList size={20} />
-          <span>Mi cotización · {unidades} {unidades === 1 ? "producto" : "productos"}</span>
-          <b>Ver y enviar</b>
+          <span>{T("Mi cotización")} · {unidades} {T(unidades === 1 ? "producto" : "productos")}</span>
+          <b>{T("Ver y enviar")}</b>
         </button>
       )}
       {pedir && panel && <PanelCotizacion lineas={lineas} cambiar={cambiarPedido} vaciar={vaciarPedido} empresa={empresa} cerrar={cerrarPanel} token={cuenta?.token} nombre={cuenta?.nombre} />}

@@ -409,7 +409,7 @@ async function sbLoadProductos() {
       id: p.id, codigo: p.codigo || "", nombre: p.nombre || "",
       cbm: p.cbm || 0, peso: p.peso || 0,
       precioCbm: p.precio_cbm || 0, precioProducto: p.precio_producto || 0,
-      precioVenta: p.precio_venta || 0, foto: p.foto || "", descripcion: p.descripcion || "", categoria: p.categoria || "Sin categoría",
+      precioVenta: p.precio_venta || 0, foto: p.foto || "", descripcion: p.descripcion || "", categoria: p.categoria || "Sin categoría", en: p.en || {},
     }));
   } catch (e) { console.error("Error cargando productos:", e); return null; }
 }
@@ -418,7 +418,7 @@ async function sbSaveProductos(lista) {
     const filas = lista.map((p) => ({
       id: p.id, codigo: p.codigo, nombre: p.nombre,
       cbm: p.cbm, peso: p.peso, precio_cbm: p.precioCbm,
-      precio_producto: p.precioProducto, precio_venta: p.precioVenta, foto: p.foto || "", descripcion: p.descripcion || "", categoria: p.categoria || "Sin categoría",
+      precio_producto: p.precioProducto, precio_venta: p.precioVenta, foto: p.foto || "", descripcion: p.descripcion || "", categoria: p.categoria || "Sin categoría", en: p.en || {},
     }));
     const res = await fetch("/api/productos", {
       method: "PUT",
@@ -1295,7 +1295,7 @@ function EncabezadoPagina({ icon: Icon, titulo, descripcion, tono = "" }) {
   );
 }
 
-const VACIO = { codigo: "", nombre: "", categoria: "", cbm: "", peso: "", precioCbm: "", precioProducto: "", precioVenta: "", foto: "", ...FICHA_VACIA };
+const VACIO = { nombreEn: "", categoriaEn: "", descripcionEn: "", codigo: "", nombre: "", categoria: "", cbm: "", peso: "", precioCbm: "", precioProducto: "", precioVenta: "", foto: "", ...FICHA_VACIA };
 const EMPRESA_POR_DEFECTO = {
   nombre: "EVK Logistic",
   contacto: "Importaciones desde China a Nicaragua",
@@ -1412,6 +1412,7 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
     const categoria = categorias.find(c => c.toLocaleLowerCase("es") === categoriaEscrita.toLocaleLowerCase("es")) || categoriaEscrita;
     const item = {
       id: editId || uid(), codigo, nombre, categoria, descripcion: armarDescripcion(form),
+      en: Object.fromEntries([["nombre", form.nombreEn], ["categoria", form.categoriaEn], ["descripcion", form.descripcionEn]].map(([k, v]) => [k, String(v || "").trim()]).filter(([, v]) => v)),
       cbm: num(form.cbm), peso: num(form.peso), precioCbm: num(form.precioCbm),
       precioProducto: num(form.precioProducto), precioVenta: num(form.precioVenta), foto: form.foto,
     };
@@ -1429,6 +1430,7 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
     setCreandoCategoria(false);
     setForm({
       ...leerDescripcion(p.descripcion).campos,
+      nombreEn: p.en?.nombre || "", categoriaEn: p.en?.categoria || "", descripcionEn: p.en?.descripcion || "",
       codigo: p.codigo, nombre: p.nombre, categoria: p.categoria || "Sin categoría", cbm: String(p.cbm), peso: p.peso ? String(p.peso) : "",
       precioCbm: String(p.precioCbm), precioProducto: String(p.precioProducto),
       precioVenta: p.precioVenta ? String(p.precioVenta) : "", foto: p.foto || "",
@@ -1523,6 +1525,23 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
               }}>{creandoCategoria ? "Elegir categoría existente" : "Nueva categoría"}</button>
               {creandoCategoria && <p className="muted text-sm mt-1">La categoría se guardará junto con el producto.</p>}
             </div>
+
+            <details className="paper p-3">
+              <summary className="font-semibold" style={{ cursor: "pointer" }}>Versión en inglés (opcional){form.nombreEn || form.descripcionEn ? " · con datos" : ""}</summary>
+              <p className="muted text-sm mt-2">Es lo que ve el cliente cuando pone el catálogo en inglés. Lo que dejes vacío se muestra en español.</p>
+              <div className="form-grid-cod mt-2">
+                <div>
+                  <label className="lbl" htmlFor="p-nombre-en">Nombre en inglés</label>
+                  <input id="p-nombre-en" className="inp" value={form.nombreEn} onChange={set("nombreEn")} />
+                </div>
+                <div>
+                  <label className="lbl" htmlFor="p-categoria-en">Categoría en inglés</label>
+                  <input id="p-categoria-en" className="inp" value={form.categoriaEn} onChange={set("categoriaEn")} />
+                </div>
+              </div>
+              <label className="lbl mt-2" htmlFor="p-descripcion-en">Ficha en inglés (mismo orden que la ficha en español; deja los títulos «Marca:», «Características:», «Ficha técnica:», «Incluye:» tal cual)</label>
+              <textarea id="p-descripcion-en" className="inp" rows={6} value={form.descripcionEn} onChange={set("descripcionEn")} />
+            </details>
 
             <div className="form-grid-cod">
               <div>

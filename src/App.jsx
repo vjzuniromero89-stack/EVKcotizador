@@ -102,6 +102,13 @@ const STYLES = `
 .tablero-canceladas { border-top:1px solid #E1E7EA; padding:10px 16px 14px; }
 .tablero-canceladas summary { cursor:pointer; font-weight:700; color:#5B6B75; }
 .tablero-canceladas > div { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; margin-top:10px; }
+.mas-fotos { margin-top:14px; }
+.mas-fotos-lista { display:flex; flex-wrap:wrap; gap:8px; }
+.mas-fotos-lista > div { position:relative; width:64px; height:64px; border:1.5px solid #9DB0C6; border-radius:8px; background:#fff; overflow:hidden; }
+.mas-fotos-lista img { width:100%; height:100%; object-fit:contain; display:block; }
+.mas-fotos-lista > div button { position:absolute; right:2px; top:2px; width:20px; height:20px; border:0; border-radius:50%; background:#A3321F; color:#fff; display:flex; align-items:center; justify-content:center; }
+.mas-fotos-lista label { width:64px; height:64px; border:2px dashed #1556B8; border-radius:8px; color:#1556B8; font-size:12px; font-weight:700; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; background:#EAF1FC; }
+.mas-fotos-lista label.ocupado { opacity:.6; cursor:wait; }
 .pagos-porc { margin-top:12px; padding:10px 12px; border-radius:10px; background:#EAF1FC; border:1px solid #C9D8F0; }
 .pagos-porc > div { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; }
 .estado-caja.off { border-color:#C3CDD3; background:#F3F6F7; }
@@ -487,7 +494,7 @@ async function sbLoadProductos() {
       id: p.id, codigo: p.codigo || "", nombre: p.nombre || "",
       cbm: p.cbm || 0, peso: p.peso || 0,
       precioCbm: p.precio_cbm || 0, precioProducto: p.precio_producto || 0,
-      precioVenta: p.precio_venta || 0, foto: p.foto || "", descripcion: p.descripcion || "", categoria: p.categoria || "Sin categoría", en: p.en || {},
+      precioVenta: p.precio_venta || 0, foto: p.foto || "", descripcion: p.descripcion || "", categoria: p.categoria || "Sin categoría", en: p.en || {}, fotos: Array.isArray(p.fotos) ? p.fotos : [],
     }));
   } catch (e) { console.error("Error cargando productos:", e); return null; }
 }
@@ -496,7 +503,7 @@ async function sbSaveProductos(lista) {
     const filas = lista.map((p) => ({
       id: p.id, codigo: p.codigo, nombre: p.nombre,
       cbm: p.cbm, peso: p.peso, precio_cbm: p.precioCbm,
-      precio_producto: p.precioProducto, precio_venta: p.precioVenta, foto: p.foto || "", descripcion: p.descripcion || "", categoria: p.categoria || "Sin categoría", en: p.en || {},
+      precio_producto: p.precioProducto, precio_venta: p.precioVenta, foto: p.foto || "", descripcion: p.descripcion || "", categoria: p.categoria || "Sin categoría", en: p.en || {}, fotos: Array.isArray(p.fotos) ? p.fotos : [],
     }));
     const res = await fetch("/api/productos", {
       method: "PUT",
@@ -974,6 +981,51 @@ function AccionesHoja({ onImprimir, onCompartir, datos }) {
   );
 }
 
+/** Fotos extra del producto, para la galería del catálogo. Se guardan en el almacén de la base, no dentro del producto. */
+function MasFotos({ fotos, cambiar, avisar }) {
+  const [id] = useState(() => "mas-fotos-" + uid());
+  const [subiendo, setSubiendo] = useState(false);
+  async function agregar(e) {
+    const input = e.target;
+    const archivos = [...(input.files || [])].slice(0, 12 - fotos.length);
+    if (!archivos.length) return;
+    setSubiendo(true);
+    const nuevas = [];
+    for (const archivo of archivos) {
+      try {
+        const grande = await resizeSrc(await fileToDataUrl(archivo), 1400, 0.82);
+        if (!supabase) { nuevas.push(grande); continue; }
+        const blob = await (await fetch(grande)).blob();
+        const ruta = `${uid()}.jpg`;
+        const { error } = await supabase.storage.from("productos").upload(ruta, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
+        if (error) throw error;
+        nuevas.push(supabase.storage.from("productos").getPublicUrl(ruta).data.publicUrl);
+      } catch (err) { console.error(err); avisar?.(`No se pudo subir ${archivo.name}.`, "error"); }
+    }
+    if (nuevas.length) cambiar([...fotos, ...nuevas]);
+    setSubiendo(false);
+    input.value = "";
+  }
+  return (
+    <div className="mas-fotos">
+      <span className="lbl">Más fotos para el catálogo (opcional)</span>
+      <div className="mas-fotos-lista">
+        {fotos.map((f, n) => (
+          <div key={f.slice(-40) + n}>
+            <img src={f} alt={`Foto extra ${n + 1}`} />
+            <button type="button" onClick={() => cambiar(fotos.filter((_, k) => k !== n))} aria-label={`Quitar la foto extra ${n + 1}`}><X size={14} /></button>
+          </div>
+        ))}
+        {fotos.length < 12 && (
+          <label htmlFor={id} className={subiendo ? "ocupado" : ""}>{subiendo ? "Subiendo…" : <><Plus size={18} />Agregar</>}</label>
+        )}
+      </div>
+      <input id={id} type="file" accept="image/*" multiple onChange={agregar} disabled={subiendo} style={OCULTO} tabIndex={-1} />
+      <p className="muted text-sm mt-1">La foto de arriba es la principal. Con dos fotos o más, el cliente ve una galería con miniaturas.</p>
+    </div>
+  );
+}
+
 const OCULTO = { position: "absolute", left: 0, top: 0, width: 1, height: 1, opacity: 0, overflow: "hidden" };
 
 function PhotoBox({ value, onChange }) {
@@ -1373,7 +1425,7 @@ function EncabezadoPagina({ icon: Icon, titulo, descripcion, tono = "" }) {
   );
 }
 
-const VACIO = { nombreEn: "", categoriaEn: "", descripcionEn: "", codigo: "", nombre: "", categoria: "", cbm: "", peso: "", precioCbm: "", precioProducto: "", precioVenta: "", foto: "", ...FICHA_VACIA };
+const VACIO = { fotos: [], nombreEn: "", categoriaEn: "", descripcionEn: "", codigo: "", nombre: "", categoria: "", cbm: "", peso: "", precioCbm: "", precioProducto: "", precioVenta: "", foto: "", ...FICHA_VACIA };
 const EMPRESA_POR_DEFECTO = {
   nombre: "EVK Logistic",
   contacto: "Importaciones desde China a Nicaragua",
@@ -1489,7 +1541,7 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
     if (!categoriaEscrita) { setError("Selecciona o escribe una categoría para el producto."); return; }
     const categoria = categorias.find(c => c.toLocaleLowerCase("es") === categoriaEscrita.toLocaleLowerCase("es")) || categoriaEscrita;
     const item = {
-      id: editId || uid(), codigo, nombre, categoria, descripcion: armarDescripcion(form),
+      id: editId || uid(), codigo, nombre, categoria, descripcion: armarDescripcion(form), fotos: form.fotos || [],
       en: Object.fromEntries([["nombre", form.nombreEn], ["categoria", form.categoriaEn], ["descripcion", form.descripcionEn]].map(([k, v]) => [k, String(v || "").trim()]).filter(([, v]) => v)),
       cbm: num(form.cbm), peso: num(form.peso), precioCbm: num(form.precioCbm),
       precioProducto: num(form.precioProducto), precioVenta: num(form.precioVenta), foto: form.foto,
@@ -1508,6 +1560,7 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
     setCreandoCategoria(false);
     setForm({
       ...leerDescripcion(p.descripcion).campos,
+      fotos: Array.isArray(p.fotos) ? p.fotos : [],
       nombreEn: p.en?.nombre || "", categoriaEn: p.en?.categoria || "", descripcionEn: p.en?.descripcion || "",
       codigo: p.codigo, nombre: p.nombre, categoria: p.categoria || "Sin categoría", cbm: String(p.cbm), peso: p.peso ? String(p.peso) : "",
       precioCbm: String(p.precioCbm), precioProducto: String(p.precioProducto),
@@ -1577,6 +1630,7 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
         <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ width: 160, flexShrink: 0 }}>
             <PhotoBox value={form.foto} onChange={(foto) => setForm((f) => ({ ...f, foto }))} />
+            <MasFotos fotos={form.fotos || []} cambiar={(fotos) => setForm((f) => ({ ...f, fotos }))} avisar={avisar} />
           </div>
           <div className="form-producto" style={{ flex: 1, minWidth: 280 }}>
             <div className="form-grid-cod">

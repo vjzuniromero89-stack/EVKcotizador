@@ -141,6 +141,30 @@ const ESTILOS = `${ESTILOS_VITRINA}
 .cat-foto { overflow:hidden; }
 .cat-foto img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; padding:14px; transition:transform .3s ease; }
 .cat-card:hover .cat-foto img { transform:scale(1.04); }
+.cat-ampliable { cursor:zoom-in; }
+.cat-zoom { position:fixed; inset:0; z-index:200; background:rgba(4,12,30,.94); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:16px; cursor:zoom-out; }
+.cat-zoom-foto { position:relative; display:flex; align-items:center; justify-content:center; cursor:default; }
+.cat-zoom img { max-width:min(96vw,1400px); max-height:82vh; width:auto; height:auto; min-width:min(86vw,560px); object-fit:contain; background:#fff; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+.cat-zoom p { margin:0; color:#fff; font-size:16px; text-align:center; max-width:90vw; cursor:default; }
+.cat-zoom .cat-cerrar { position:fixed; right:16px; top:16px; }
+.cat-flecha { position:absolute; right:10px; top:50%; transform:translateY(-50%); z-index:2; width:44px; height:44px; border-radius:50%; border:0; background:#fff; color:#0A1F44;
+  display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,.28); cursor:pointer; }
+.cat-flecha.izq { right:auto; left:10px; transform:translateY(-50%) rotate(180deg); }
+.cat-flecha:hover { background:#FF8A1F; }
+.cat-flecha:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
+.cat-galeria { display:grid !important; grid-template-columns:76px minmax(0,1fr); gap:12px; align-items:start !important; padding:16px !important; }
+.cat-minis { display:flex; flex-direction:column; gap:8px; max-height:460px; overflow-y:auto; scrollbar-width:thin; }
+.cat-minis button { width:70px; height:70px; flex:none; padding:3px; border:2px solid #D5DEE3; border-radius:10px; background:#fff; cursor:pointer; }
+.cat-minis button[aria-selected="true"] { border-color:#1556B8; box-shadow:0 0 0 2px #C9D8F0; }
+.cat-minis button:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
+.cat-minis img { width:100%; height:100%; max-height:none !important; object-fit:contain; display:block; border-radius:6px; }
+.cat-galeria-grande { position:relative; display:flex; align-items:center; justify-content:center; min-height:300px; background:#F6F8F9; border-radius:12px; padding:10px; }
+.cat-galeria-grande > img { max-width:100%; max-height:440px; object-fit:contain; border-radius:8px; }
+@media (max-width:760px) {
+  .cat-galeria { grid-template-columns:1fr; }
+  .cat-minis { flex-direction:row; order:2; max-height:none; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; }
+  .cat-minis button { width:60px; height:60px; }
+}
 .cat-insignia { position:absolute; right:12px; top:12px; z-index:1; background:#FF8A1F; color:#1B1000; border-radius:999px; padding:4px 11px; font-size:12px; font-weight:800;
   letter-spacing:.05em; text-transform:uppercase; box-shadow:0 4px 10px rgba(0,0,0,.18); }
 .cat-insignia.oferta { background:#E0242B; color:#fff; }
@@ -440,7 +464,7 @@ const normalizar = (p) => {
     id: p.id, codigo: p.codigo || "", nombre: en.nombre || p.nombre || "", categoria, categoriaVista: en.categoria || T(categoria),
     cbm, peso, porPeso, cobrable, por: MINIMO_CBM > real ? `mínimo de ${MINIMO_CBM} CBM` : porPeso > cbm ? "peso" : "volumen",
     producto, precioCbm, flete, comision, costo: producto + flete + comision, venta: Number(p.precio_venta ?? p.precioVenta) || 0,
-    foto: p.foto || "", ficha, grupo: fichaEs.grupo, opcion: ficha.opcion || fichaEs.opcion,
+    foto: p.foto || "", fotos: [p.foto, ...(Array.isArray(p.fotos) ? p.fotos : [])].filter(Boolean), ficha, grupo: fichaEs.grupo, opcion: ficha.opcion || fichaEs.opcion,
     destacado: fichaEs.destacado, antes: fichaEs.precioAntes > (Number(p.precio_venta ?? p.precioVenta) || 0) && (Number(p.precio_venta ?? p.precioVenta) || 0) > 0 ? fichaEs.precioAntes : 0,
   };
 };
@@ -512,6 +536,67 @@ function ConsultarPrecio({ p, whatsapp }) {
   );
 }
 
+/** Las fotos del producto en grande. Se cierra con la X, tocando fuera o con Escape; las flechas pasan de foto. */
+function FotoGrande({ p, inicio = 0, cerrar }) {
+  const fotos = p.fotos?.length ? p.fotos : [p.foto];
+  const [i, setI] = useState(Math.min(inicio, fotos.length - 1));
+  const mover = (paso) => setI((n) => (n + paso + fotos.length) % fotos.length);
+  useEffect(() => {
+    const tecla = (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); cerrar(); }
+      if (e.key === "ArrowLeft") mover(-1);
+      if (e.key === "ArrowRight") mover(1);
+    };
+    window.addEventListener("keydown", tecla, true);
+    return () => window.removeEventListener("keydown", tecla, true);
+  }, [cerrar, fotos.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const quieto = (e) => e.stopPropagation();
+  return (
+    <div className="cat-zoom" role="dialog" aria-modal="true" aria-label={`${p.codigo}, ${p.nombre}`} onClick={cerrar}>
+      <button type="button" className="cat-cerrar" onClick={cerrar} aria-label={T("Cerrar foto")} autoFocus><X size={22} /></button>
+      <div className="cat-zoom-foto" onClick={quieto}>
+        {fotos.length > 1 && <button type="button" className="cat-flecha izq" onClick={() => mover(-1)} aria-label={T("Foto anterior")}><ChevronRight size={26} /></button>}
+        <img src={fotos[i]} alt={`${p.codigo}, ${p.nombre}`} />
+        {fotos.length > 1 && <button type="button" className="cat-flecha" onClick={() => mover(1)} aria-label={T("Foto siguiente")}><ChevronRight size={26} /></button>}
+      </div>
+      <p onClick={quieto}><b className="cat-num">{p.codigo}</b> · {p.nombre}{fotos.length > 1 && <span className="cat-num"> · {i + 1} / {fotos.length}</span>}</p>
+    </div>
+  );
+}
+
+/** Fotos del producto en su ficha: una sola, o galería con miniaturas y flechas cuando hay varias. */
+function Galeria({ p, ampliar }) {
+  const fotos = p.fotos || [];
+  const [i, setI] = useState(0);
+  useEffect(() => { setI(0); }, [p.codigo]);
+  const actual = Math.min(i, Math.max(0, fotos.length - 1));
+  const mover = (paso) => setI((actual + paso + fotos.length) % fotos.length);
+  const grande = ampliar && fotos.length ? () => ampliar({ p, i: actual }) : undefined;
+  if (fotos.length < 2) {
+    return (
+      <div className={`cat-ficha-foto${grande ? " cat-ampliable" : ""}`} title={grande ? T("Ver la foto en grande") : undefined} onClick={grande}>
+        <Foto src={p.foto} alt={`${p.codigo}, ${p.nombre}`} />
+      </div>
+    );
+  }
+  return (
+    <div className="cat-ficha-foto cat-galeria">
+      <div className="cat-minis" role="tablist" aria-label={T("Fotos del producto")}>
+        {fotos.map((f, n) => (
+          <button type="button" key={n} role="tab" aria-selected={n === actual} aria-label={`${T("Foto")} ${n + 1}`} onClick={() => setI(n)}>
+            <img src={f} alt="" loading="lazy" />
+          </button>
+        ))}
+      </div>
+      <div className="cat-galeria-grande">
+        <button type="button" className="cat-flecha izq" onClick={() => mover(-1)} aria-label={T("Foto anterior")}><ChevronRight size={22} /></button>
+        <img className="cat-ampliable" src={fotos[actual]} alt={`${p.codigo}, ${p.nombre}`} title={T("Ver la foto en grande")} onClick={grande} />
+        <button type="button" className="cat-flecha" onClick={() => mover(1)} aria-label={T("Foto siguiente")}><ChevronRight size={22} /></button>
+      </div>
+    </div>
+  );
+}
+
 /** Las opciones de un mismo producto (por ejemplo, el tipo de cabezal), cada una con su precio. */
 function Opciones({ p, opciones, elegir, modo }) {
   if (!opciones) return null;
@@ -533,10 +618,11 @@ function Opciones({ p, opciones, elegir, modo }) {
   );
 }
 
-function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir }) {
+function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir, ampliar }) {
   const precio = modo === "cliente" ? p.venta : p.producto;
   const contenido = <>
-    <div className="cat-foto">
+    <div className={`cat-foto${ampliar && p.foto ? " cat-ampliable" : ""}`} title={ampliar && p.foto ? T("Ver la foto en grande") : undefined}
+      onClick={ampliar && p.foto ? (e) => { e.stopPropagation(); ampliar({ p, i: 0 }); } : undefined}>
       {p.ficha.marca && <span className="cat-etiqueta">{p.ficha.marca}</span>}
       {modo === "cliente" && (p.antes > 0 ? <span className="cat-insignia oferta">{T("Oferta")}</span> : p.destacado ? <span className="cat-insignia">{T("Destacado")}</span> : null)}
       <Foto src={p.foto} alt="" />
@@ -587,7 +673,7 @@ function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir }) {
   );
 }
 
-function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
+function Ficha({ p, modo, cerrar, pedir, opciones, elegir, ampliar }) {
   const [copiado, setCopiado] = useState(false);
   useEffect(() => {
     const tecla = (e) => { if (e.key === "Escape") cerrar(); };
@@ -613,7 +699,7 @@ function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
       <article className="cat-ficha" role="dialog" aria-modal="true" aria-label={`${p.codigo}, ${p.nombre}`}>
         <button type="button" className="cat-cerrar" onClick={cerrar} aria-label={T("Cerrar ficha")} autoFocus><X size={20} /></button>
         <div className="cat-ficha-arriba">
-          <div className="cat-ficha-foto"><Foto src={p.foto} alt={`${p.codigo}, ${p.nombre}`} /></div>
+          <Galeria p={p} ampliar={ampliar} />
           <div className="cat-ficha-info">
             <span className="cat-categoria">{[f.marca, p.categoriaVista].filter(Boolean).join(" · ")}</span>
             <h2 className="cat-num">{p.codigo}</h2>
@@ -1319,6 +1405,8 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
   const [q, setQ] = useState("");
   const [categoria, setCategoria] = useState("");
   const [abierto, setAbierto] = useState(() => decodeURIComponent(window.location.hash.slice(1)));
+  const [fotoGrande, setFotoGrande] = useState(null);
+  const cerrarFoto = useMemo(() => () => setFotoGrande(null), []);
 
   useEffect(() => {
     if (dentro) return;
@@ -1522,14 +1610,15 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
                 <button type="button" className="cat-btn" onClick={() => { setQ(""); setCategoria(""); }}>{T("Ver todos los productos")}</button>
               </div>
             ) : <div className="cat-grid">{filtrados.map((p) => <Tarjeta key={p.id} p={p} modo={modo} abrir={() => abrir(p.codigo)} guardar={guardarPrecio} pedir={pedir}
-              opciones={opcionesDe(p)} elegir={(codigo) => elegirOpcion(p, codigo)} />)}</div>}
+              opciones={opcionesDe(p)} elegir={(codigo) => elegirOpcion(p, codigo)} ampliar={setFotoGrande} />)}</div>}
         </>}
       </main>
 
       <footer className="cat-pie-pagina">EVK Logistic · {T("Precios en dólares.")}</footer>
 
       {seleccionado && <Ficha p={seleccionado} modo={modo} cerrar={cerrar} pedir={pedir}
-        opciones={opcionesDe(seleccionado)} elegir={(codigo) => elegirOpcion(seleccionado, codigo, true)} />}
+        opciones={opcionesDe(seleccionado)} elegir={(codigo) => elegirOpcion(seleccionado, codigo, true)} ampliar={setFotoGrande} />}
+      {fotoGrande && <FotoGrande p={fotoGrande.p} inicio={fotoGrande.i} cerrar={cerrarFoto} />}
 
       {pedir && unidades > 0 && !panel && !seleccionado && (
         <button type="button" className="cat-flotante" onClick={() => setPanel(true)}>

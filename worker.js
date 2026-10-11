@@ -89,8 +89,8 @@ function cotizacionPublica(fila) {
 }
 
 const CATALOGOS = {
-  "/api/catalogo": ["id", "codigo", "nombre", "descripcion", "categoria", "peso", "precio_venta", "foto", "en"],
-  "/api/catalogo-interno": ["id", "codigo", "nombre", "descripcion", "categoria", "cbm", "peso", "precio_cbm", "precio_producto", "precio_venta", "foto"],
+  "/api/catalogo": ["id", "codigo", "nombre", "descripcion", "categoria", "peso", "precio_venta", "foto", "fotos", "en"],
+  "/api/catalogo-interno": ["id", "codigo", "nombre", "descripcion", "categoria", "cbm", "peso", "precio_cbm", "precio_producto", "precio_venta", "foto", "fotos"],
 };
 
 export default {

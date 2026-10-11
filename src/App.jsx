@@ -57,6 +57,51 @@ const STYLES = `
 .enlaces-catalogo .cat-btn { border-radius:6px; padding:10px 16px; font-weight:600; font-size:15px; display:inline-flex; align-items:center; gap:6px; background:#1556B8; color:#fff; text-decoration:none; }
 .enlaces-catalogo .cat-btn.claro { background:#fff; color:#1556B8; border:1px solid #CAD4DA; }
 .chip-off { background:#EEF1F3; border-color:#C3CDD3; color:#5B6B75; text-decoration:line-through; }
+.cot-vista { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.cot-vista-cliente > :not(.en-cliente):not(.cot-tabs), .cot-vista-costos > :not(.en-costos):not(.cot-tabs),
+.cot-vista-pagos > :not(.en-pagos):not(.cot-tabs), .cot-vista-seguimiento > :not(.en-seguimiento):not(.cot-tabs) { display:none !important; }
+.cot-tabs { display:flex; flex-wrap:wrap; align-items:center; gap:4px; border-bottom:2px solid #E1E7EA; margin:-4px 0 0; }
+.cot-tabs button { border:0; background:none; padding:10px 14px; font-weight:700; font-size:15px; color:#5B6B75; border-bottom:3px solid transparent; margin-bottom:-2px; }
+.cot-tabs button:hover { color:#0A1F44; }
+.cot-tabs button[aria-selected="true"] { color:#1556B8; border-bottom-color:#FF8A1F; }
+.cot-tabs button:focus-visible { outline:3px solid #FF8A1F; outline-offset:-2px; }
+.cot-tabs-estado { margin-left:auto; padding:0 4px; }
+.cot-candado { font-size:13px; font-weight:700; color:#8A2A1A; background:#FBE9E5; border-radius:999px; padding:3px 10px; }
+.cot-tabla-caja { overflow-x:auto; border:1px solid #E1E7EA; border-radius:10px; }
+.cot-tabla { width:100%; border-collapse:collapse; font-size:14.5px; }
+.cot-tabla th { font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; color:#5B6B75; text-align:right; padding:9px 10px; border-bottom:2px solid #0A1F44; white-space:nowrap; background:#F6F8F9; }
+.cot-tabla td { padding:10px; border-bottom:1px solid #E6ECEF; text-align:right; vertical-align:middle; white-space:nowrap; }
+.cot-tabla tr:last-child td { border-bottom:0; }
+.cot-tabla th:first-child, .cot-tabla td:first-child { text-align:left; }
+.cot-tabla td.p { white-space:normal; min-width:200px; }
+.cot-prod { display:flex; gap:10px; align-items:center; }
+.cot-prod b { display:block; line-height:1.2; }
+.cot-prod small { color:#5B6B75; }
+.cot-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+.cot-kpis > div { border:1px solid #E1E7EA; border-radius:12px; padding:10px 12px; }
+.cot-kpis small { display:block; font-size:11.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#5B6B75; }
+.cot-kpis b { font-family:'Barlow Condensed',sans-serif; font-size:28px; line-height:1.1; }
+.cot-barra { height:14px; border-radius:999px; overflow:hidden; display:flex; background:#E6ECEF; }
+.cot-barra i { display:block; height:100%; }
+.cot-leyenda { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:13.5px; color:#5B6B75; margin-top:7px; }
+.cot-leyenda i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; }
+.tablero { overflow:hidden; }
+.tablero-cab { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px; padding:14px 16px 10px; }
+.tablero-cab h2 { margin:0; }
+.tablero-cols { display:grid; grid-template-columns:repeat(5,minmax(150px,1fr)); gap:10px; padding:0 14px 14px; overflow-x:auto; }
+.tablero-col { background:#F3F6F9; border-radius:12px; padding:10px; min-width:0; }
+.tablero-col h3 { margin:0 0 8px; font-size:12.5px; letter-spacing:.05em; text-transform:uppercase; display:flex; justify-content:space-between; color:#0A1F44; }
+.tablero-col > p { margin:0; font-size:13px; color:#8A97A0; }
+.tab-tarjeta { display:block; width:100%; text-align:left; background:#fff; border:1px solid #E1E7EA; border-left:4px solid #1556B8; border-radius:10px; padding:9px 10px; margin-bottom:8px; font-size:13.5px; color:#0A1F44; }
+.tab-tarjeta:hover { box-shadow:0 6px 14px rgba(10,31,68,.12); transform:translateY(-1px); }
+.tab-tarjeta:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
+.tab-tarjeta b { font-family:'Barlow Condensed',sans-serif; font-size:20px; display:block; line-height:1.05; }
+.tab-tarjeta > span { display:block; color:#5B6B75; overflow-wrap:anywhere; }
+.tab-tarjeta i { font-style:normal; font-weight:700; display:flex; justify-content:space-between; gap:8px; margin-top:5px; }
+.tab-tarjeta i em { font-style:normal; }
+.tablero-canceladas { border-top:1px solid #E1E7EA; padding:10px 16px 14px; }
+.tablero-canceladas summary { cursor:pointer; font-weight:700; color:#5B6B75; }
+.tablero-canceladas > div { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; margin-top:10px; }
 .estado-caja.off { border-color:#C3CDD3; background:#F3F6F7; }
 .estado-pasos { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .pagos-caja { border:1px solid #CAD4DA; border-radius:10px; padding:12px 14px; background:#fff; }
@@ -1954,11 +1999,128 @@ function LineaClienteCard({ l, onChange, onRemove }) {
   );
 }
 
+/** Productos de la cotización como tabla: una fila por producto, con lo que paga el cliente. */
+function TablaCliente({ cot }) {
+  return (
+    <div className="cot-tabla-caja">
+      <table className="cot-tabla">
+        <thead><tr><th>Producto</th><th>Cant.</th><th>CBM</th><th>Peso</th><th>Precio</th><th>Total</th></tr></thead>
+        <tbody>
+          {cot.lineas.map((l) => {
+            const c = calcCliente(l);
+            return (
+              <tr key={l.id}>
+                <td className="p"><div className="cot-prod"><Thumb src={l.foto} size={42} /><div><b>{l.nombre}</b><small className="num">{l.codigo}</small></div></div></td>
+                <td className="num">{l.cantidad}</td>
+                <td className="num">{m3(c.totalCbm)} m³</td>
+                <td className="num">{c.totalPeso > 0 ? kg(c.totalPeso) : "—"}</td>
+                <td className="num">{money(l.precioVenta)}</td>
+                <td className="num"><b>{money(c.totalVenta)}</b></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Pestaña "Costos y ganancia": lo que cuesta la cotización y lo que deja, en total y por producto. Nunca sale de la app. */
+function CostosCotizacion({ cot }) {
+  const t = desgloseDe(cot);
+  const filas = desglosePorLinea(cot);
+  const costo = t.producto + t.flete + t.comision;
+  const parte = (n) => `${t.venta > 0 ? Math.max(0, n / t.venta * 100) : 0}%`;
+  const partes = [["Producto", t.producto, "#1556B8"], ["Flete", t.flete, "#FF8A1F"], [`Comisión ${pct(COMISION)}`, t.comision, "#E0242B"], ["Ganancia", Math.max(0, t.ganancia), "#1D7A46"]];
+  return (
+    <div className="space-y-4">
+      <div className="cot-kpis">
+        <div><small>Venta</small><b className="num">{money(t.venta)}</b></div>
+        <div><small>Costo total</small><b className="num">{money(costo)}</b></div>
+        <div><small>Ganancia</small><b className="num" style={{ color: t.ganancia < 0 ? "#A3321F" : "#14653A" }}>{money(t.ganancia)}</b></div>
+        <div><small>Margen</small><b className="num">{pct(t.margen)}</b></div>
+      </div>
+      <div>
+        <div className="cot-barra" aria-hidden="true">{partes.map(([n, v, color]) => <i key={n} style={{ width: parte(v), background: color }} />)}</div>
+        <div className="cot-leyenda num">{partes.map(([n, v, color]) => <span key={n}><i style={{ background: color }} />{n} {money(v)}</span>)}</div>
+      </div>
+      <div className="cot-tabla-caja">
+        <table className="cot-tabla">
+          <thead><tr><th>Producto</th><th>Cant.</th><th>Costo</th><th>Flete</th><th>Comisión</th><th>Venta</th><th>Ganancia</th></tr></thead>
+          <tbody>
+            {filas.map((f) => (
+              <tr key={f.l.id}>
+                <td className="p"><div className="cot-prod"><Thumb src={f.l.foto} size={42} /><div><b>{f.l.nombre}</b><small className="num">{f.l.codigo}</small></div></div></td>
+                <td className="num">{f.cantidad}</td>
+                <td className="num">{money(f.producto)}</td>
+                <td className="num">{money(f.flete)}</td>
+                <td className="num">{money(f.comision)}</td>
+                <td className="num">{money(f.venta)}</td>
+                <td className="num" style={{ color: f.ganancia < 0 ? "#A3321F" : "#14653A" }}><b>{money(f.ganancia)}</b></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-sm muted">Información interna: no se imprime ni se comparte. La comisión es el {pct(COMISION)} del costo (producto más flete).</p>
+    </div>
+  );
+}
+
+/** Tablero de cotizaciones: una columna por estado y una tarjeta por cotización. */
+function TableroCotizaciones({ lista, onOpen }) {
+  const columnas = [["pendiente", "#FF8A1F"], ["confirmada", "#1D7A46"], ["produccion", "#1556B8"], ["camino", "#5B3FA8"], ["entregada", "#5B6B75"]];
+  const de = (estado) => lista.filter((c) => estadoDe(c) === estado).sort((x, y) => new Date(y.fecha) - new Date(x.fecha));
+  const canceladas = de("cancelada");
+  const abiertas = lista.filter((c) => !["entregada", "cancelada"].includes(estadoDe(c))).length;
+  const porCobrar = lista.filter(esVendida).reduce((s, c) => s + Math.max(0, totalDeCliente(c) - pagadoDe(c)), 0);
+  const tarjeta = (c, color) => {
+    const saldo = totalDeCliente(c) - pagadoDe(c);
+    return (
+      <button type="button" key={c.id} className="tab-tarjeta" style={{ borderLeftColor: color }} onClick={() => onOpen(c)}>
+        <b className="num">{c.numero}</b>
+        <span>{c.cliente || "Sin cliente"}</span>
+        <span>{esVendida(c) ? (saldo > 0 ? `Saldo ${money(saldo)}` : "Pagada") : soloFecha(c.fecha)}</span>
+        <i className="num"><span>{money(totalDeCliente(c))}</span>{!SOLO_VENTA && <em style={{ color: gananciaDeCliente(c) < 0 ? "#A3321F" : "#14653A" }}>{gananciaDeCliente(c) < 0 ? "−" : "+"}{money(Math.abs(gananciaDeCliente(c)))}</em>}</i>
+      </button>
+    );
+  };
+  return (
+    <section className="paper tablero">
+      <div className="tablero-cab">
+        <h2 className="cond text-2xl font-semibold">Cotizaciones</h2>
+        <span className="muted num">{abiertas} {abiertas === 1 ? "abierta" : "abiertas"} · por cobrar {money(porCobrar)}</span>
+      </div>
+      {lista.length === 0 ? <p className="muted" style={{ padding: "0 16px 16px" }}>Todavía no hay cotizaciones registradas.</p> : (
+        <div className="tablero-cols">
+          {columnas.map(([estado, color]) => {
+            const suyas = de(estado);
+            return (
+              <div key={estado} className="tablero-col">
+                <h3><span>{nombreEstado(estado)}</span><span className="num">{suyas.length}</span></h3>
+                {suyas.length === 0 ? <p>Nada aquí</p> : suyas.map((c) => tarjeta(c, color))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {canceladas.length > 0 && (
+        <details className="tablero-canceladas">
+          <summary>Canceladas · {canceladas.length}</summary>
+          <div>{canceladas.map((c) => tarjeta(c, "#C3CDD3"))}</div>
+        </details>
+      )}
+    </section>
+  );
+}
+
 function DetalleCliente({ cot, onClose, onDelete, onActualizar, onEditar, empresa, avisar }) {
   const estado = estadoDe(cot);
   const vendida = esVendida(cot);
   const [ocupado, setOcupado] = useState(false);
   const [pago, setPago] = useState({ monto: "", nota: "" });
+  const [pestana, setPestana] = useState("cliente");
+  const pestanas = [["cliente", "Cliente"], ...(SOLO_VENTA ? [] : [["costos", "Costos y ganancia"]]), ["pagos", "Pagos"], ["seguimiento", "Seguimiento"]];
   const pagos = cot.totales?.pagos || [];
   const pagado = pagadoDe(cot);
   const entrega = entregaEstimada(cot);
@@ -2065,7 +2227,17 @@ function DetalleCliente({ cot, onClose, onDelete, onActualizar, onEditar, empres
 
   return (
     <ModalShell titulo={cot.numero} subtitulo={`${cot.cliente || "Sin cliente"}, ${fecha(cot.fecha)}`} onClose={onClose}>
-      <div className={`estado-caja ${vendida ? "ok" : estado === "cancelada" ? "off" : ""}`}>
+      <div className={`cot-vista cot-vista-${pestana}`}>
+      <div className="cot-tabs" role="tablist" aria-label="Partes de la cotización">
+        {pestanas.map(([id, nombre]) => (
+          <button key={id} type="button" role="tab" aria-selected={pestana === id} onClick={() => setPestana(id)}>{nombre}</button>
+        ))}
+        <span className="cot-tabs-estado"><ChipEstado estado={estado} /></span>
+        {pestana === "costos" && <span className="cot-candado">Solo se ve aquí adentro</span>}
+      </div>
+      {!SOLO_VENTA && <div className="en-costos"><CostosCotizacion cot={cot} /></div>}
+      {estado === "cancelada" && <p className="en-pagos muted">Esta cotización está cancelada: no lleva pagos.</p>}
+      <div className={`en-seguimiento estado-caja ${vendida ? "ok" : estado === "cancelada" ? "off" : ""}`}>
         <div>
           <div className="font-semibold flex items-center gap-2">Estado: <ChipEstado estado={estado} /></div>
           <div className="text-sm muted mt-1">
@@ -2089,7 +2261,7 @@ function DetalleCliente({ cot, onClose, onDelete, onActualizar, onEditar, empres
         </div>
       </div>
 
-      <div className="pagos-caja">
+      <div className="pagos-caja en-seguimiento">
         <div className="font-semibold">Enlace de seguimiento para el cliente</div>
         <p className="text-sm muted mt-1">El cliente ve aquí el estado de su pedido. Se actualiza solo cada vez que cambias el estado o registras un pago.</p>
         <div className="flex gap-2 mt-2" style={{ flexWrap: "wrap" }}>
@@ -2103,11 +2275,11 @@ function DetalleCliente({ cot, onClose, onDelete, onActualizar, onEditar, empres
       </div>
 
       {estado === "pendiente" && onEditar && (
-        <button className="btn btn-ghost w-full" onClick={() => onEditar(cot)}><Pencil size={16} />Editar precios, cantidades o descuento</button>
+        <button className="btn btn-ghost w-full en-cliente" onClick={() => onEditar(cot)}><Pencil size={16} />Editar precios, cantidades o descuento</button>
       )}
 
       {estado !== "cancelada" && (
-        <div className="pagos-caja">
+        <div className="pagos-caja en-pagos">
           <div className="font-semibold">Anticipo y saldo</div>
           <div className="pagos-resumen">
             <div><span className="lbl">Total</span><b className="num">{money(totalFinal)}</b></div>
@@ -2142,17 +2314,17 @@ function DetalleCliente({ cot, onClose, onDelete, onActualizar, onEditar, empres
       )}
 
       {vendida && (
-        <a className="btn btn-primary w-full" style={{ textDecoration: "none", background: "#128C4A" }} target="_blank" rel="noopener noreferrer"
+        <a className="btn btn-primary w-full en-seguimiento" style={{ textDecoration: "none", background: "#128C4A" }} target="_blank" rel="noopener noreferrer"
           href={`https://wa.me/${numeroWhatsapp(telefonoCliente)}?text=${encodeURIComponent(avisoParaCliente())}`}>
           <Share2 size={16} />Avisar al cliente por WhatsApp: {nombreEstado(estado).toLowerCase()}
         </a>
       )}
       {vendida && !numeroWhatsapp(telefonoCliente) && (
-        <p className="text-sm muted" style={{ marginTop: -6 }}>Esta cotización no tiene teléfono del cliente: WhatsApp te pedirá elegir el contacto.</p>
+        <p className="text-sm muted en-seguimiento" style={{ marginTop: -6 }}>Esta cotización no tiene teléfono del cliente: WhatsApp te pedirá elegir el contacto.</p>
       )}
 
       {cot.totales?.contacto && (
-        <div className="paper p-3" style={{ background: "#F3F6F7", borderColor: "#CAD4DA" }}>
+        <div className="paper p-3 en-cliente" style={{ background: "#F3F6F7", borderColor: "#CAD4DA" }}>
           <div className="font-semibold">{cot.totales.contacto.origen === "catalogo" ? "Enviada por el cliente desde el catálogo" : "Datos del cliente"}</div>
           <div className="text-sm mt-1 num">Teléfono: {cot.totales.contacto.telefono || "sin teléfono"}</div>
           {cot.totales.contacto.direccion && <div className="text-sm mt-1" style={{ overflowWrap: "anywhere" }}>Dirección: {cot.totales.contacto.direccion}</div>}
@@ -2163,9 +2335,9 @@ function DetalleCliente({ cot, onClose, onDelete, onActualizar, onEditar, empres
           )}
         </div>
       )}
-      <LineasCotizacion lineas={cot.lineas} interna={false} mostrarVenta={true} />
+      <div className="en-cliente"><TablaCliente cot={cot} /></div>
 
-      <Etiqueta
+      <div className="en-cliente"><Etiqueta
         filas={[
           ...filasCliente(t),
           ["Subtotal", money(t.totalVenta)],
@@ -2173,10 +2345,11 @@ function DetalleCliente({ cot, onClose, onDelete, onActualizar, onEditar, empres
         ]}
         totalLabel={porcentaje > 0 ? "Total con descuento" : "Total venta"}
         total={money(totalFinal)}
-      />
+      /></div>
 
-      <AccionesHoja onImprimir={imprimir} onCompartir={compartir} datos={datos} />
-      <EliminarRegistro numero={cot.numero} onDelete={() => onDelete(cot.id)} />
+      <div className="en-cliente"><AccionesHoja onImprimir={imprimir} onCompartir={compartir} datos={datos} /></div>
+      <div className="en-cliente"><EliminarRegistro numero={cot.numero} onDelete={() => onDelete(cot.id)} /></div>
+      </div>
     </ModalShell>
   );
 }
@@ -2273,7 +2446,7 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
     const ok = await guardarCotizaciones({ contador: n, lista: [registro, ...cotiz.lista] });
     setGuardando(false);
     if (ok) {
-      avisar(SOLO_VENTA ? `${numero} registrada` : `${numero} registrada, también en las internas`);
+      avisar(`${numero} registrada`);
       limpiarFormulario();
     }
   }
@@ -2309,7 +2482,7 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
         <EncabezadoPagina icon={Contact} tono="azul" titulo={`Cotizaciones de ${clienteFijo.nombre}`}
           descripcion="Abre una cotización para cambiar su estado, registrar pagos o editarla. También puedes hacerle una nueva." />
       </> : (
-        <EncabezadoPagina icon={Users} tono="ambar" titulo="Cotizaciones clientes"
+        <EncabezadoPagina icon={Users} tono="ambar" titulo="Cotizaciones"
           descripcion="Prepara cotizaciones, aplica descuentos y comparte documentos profesionales con tus clientes." />
       )}
       <section className="paper p-4">
@@ -2385,13 +2558,7 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
         )}
       </section>
 
-      <ListaRegistradas
-        lista={visibles}
-        onOpen={setDetalle}
-        totalDe={(c) => c.totalFinal ?? c.totales.totalFinal ?? c.totales.totalVenta}
-        conEstado
-        notaDe={(c) => (esVendida(c) ? (totalDeCliente(c) - pagadoDe(c) > 0 ? `Saldo: ${money(totalDeCliente(c) - pagadoDe(c))}` : "Pagada") : null)}
-      />
+      <TableroCotizaciones lista={visibles} onOpen={setDetalle} />
 
       {detalle && (
         <DetalleCliente cot={detalle} onClose={() => setDetalle(null)} onDelete={eliminar} onActualizar={actualizar} onEditar={editar}
@@ -2773,8 +2940,7 @@ function InicioView({ productos, internas, clientes, empresa, irA, vendedor }) {
 
   const stats = [
     { label: "Productos", value: totalProductos, sub: "en catálogo", color: "#1556B8", bg: "#EAF1FC", icon: Package },
-    { label: "Cotizaciones internas", value: totalInternas, sub: "registradas", color: "#8A2B1B", bg: "#F9E1DC", icon: FileTextIcon },
-    { label: "Cotizaciones clientes", value: totalClientes, sub: "registradas", color: "#1F4E8C", bg: "#E3ECFA", icon: Users },
+    { label: "Cotizaciones", value: totalClientes, sub: "registradas", color: "#1F4E8C", bg: "#E3ECFA", icon: Users },
     { label: "Ganancia confirmada", value: money(gananciaTotal), sub: `por confirmar: ${money(gananciaPendiente)}`, color: gananciaTotal < 0 ? "#A3321F" : "#1D7A46", bg: "#D7EFE2", icon: TrendingUp },
     { label: "Por cobrar", value: money(porCobrar), sub: "saldo de cotizaciones confirmadas", color: "#7A5A00", bg: "#FFF4CC", icon: DollarSign },
   ].filter((s) => !vendedor || !["Cotizaciones internas", "Ganancia confirmada"].includes(s.label));
@@ -2876,8 +3042,7 @@ const VACIA = { contador: 0, lista: [] };
 const TABS = [
   { id: "inicio", label: "Inicio", icon: Home },
   { id: "directorio", label: "Clientes", icon: Contact },
-  { id: "clientes", label: "Cotizaciones clientes", corto: "Cot. clientes", icon: Users },
-  { id: "internas", label: "Cotizaciones internas", corto: "Cot. internas", icon: FileTextIcon },
+  { id: "clientes", label: "Cotizaciones", icon: Users },
   { id: "ganancias", label: "Ganancias", icon: TrendingUp },
   { id: "cupones", label: "Cupones", icon: Ticket },
   { id: "productos", label: "Producto", icon: Package },
@@ -3209,6 +3374,12 @@ export default function App() {
   if (ruta === "/catalogo-interno") return <Acceso supabase={supabase}>{() => <Catalogo modo="interno" cabeceras={cabecerasSesion} />}</Acceso>;
   if (ruta.startsWith("/cotizacion/")) return <VistaCotizacion id={ruta.slice("/cotizacion/".length)} />;
   if (ruta.startsWith("/cliente/")) return <VistaCliente token={ruta.slice("/cliente/".length)} />;
+  // Solo en "npm run dev" y sin base de datos: entra directo con datos guardados en el navegador, para probar pantallas.
+  // (?rol=vendedor prueba la vista del vendedor.) En la página publicada esto no existe.
+  if (import.meta.env.DEV && !supabase) {
+    const rol = new URLSearchParams(window.location.search).get("rol") || "admin";
+    return <AdminApp sesion={{ perfil: { id: "local", usuario: "local", nombre: "Prueba local", rol }, salir: () => {} }} />;
+  }
   return <Acceso supabase={supabase}>{(sesion) => <AdminApp sesion={sesion} />}</Acceso>;
 }
 

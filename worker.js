@@ -200,7 +200,7 @@ export default {
         t.totalVenta += l.precioVenta * l.cantidad;
       }
       t.totalCosto = t.totalProducto + t.totalFlete;
-      t.comision = Math.round(t.totalProducto * 0.03 * 100) / 100; // comisión del 3 % sobre el precio del producto
+      t.comision = Math.round(t.totalCosto * 0.03 * 100) / 100; // comisión del 3 % sobre el costo (producto más flete)
       t.ganancia = t.totalVenta - t.totalCosto - t.comision;
       t.margen = t.totalVenta > 0 ? t.ganancia / t.totalVenta : 0;
       // Cupón de descuento: si el cliente escribió uno que no sirve, se le avisa en vez de registrar sin descuento.

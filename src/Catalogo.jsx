@@ -7,7 +7,7 @@ import { T, EN, IDIOMA, cambiarIdioma, fijarIdioma } from "./idioma.js";
 import { CATALOGO_XPROMISE } from "./catalogoXpromise.js";
 
 const KG_POR_CBM = 350;
-const COMISION = 0.03; // comisión sobre el precio del producto
+const COMISION = 0.03; // comisión sobre el costo (producto más flete)
 const MINIMO_CBM = 1; // el transporte cobra como mínimo 1 CBM por cada máquina
 const dinero = (n) => "US$" + (n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const m3 = (n) => (n || 0).toLocaleString("en-US", { maximumFractionDigits: 3 }) + " m³";
@@ -430,7 +430,7 @@ const normalizar = (p) => {
   const producto = Number(p.precio_producto ?? p.precioProducto) || 0;
   const precioCbm = Number(p.precio_cbm ?? p.precioCbm) || 0;
   const flete = cobrable * precioCbm;
-  const comision = producto * COMISION; // se paga sobre el precio del producto
+  const comision = (producto + flete) * COMISION; // se paga sobre el costo: producto más flete
   const fichaEs = leerDescripcion(p.descripcion);
   // En inglés se usa la versión guardada en "en" (nombre, categoría y ficha); lo que falte sale en español.
   const en = EN && p.en && typeof p.en === "object" ? p.en : {};

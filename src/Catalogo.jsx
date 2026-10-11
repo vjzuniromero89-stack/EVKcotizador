@@ -7,6 +7,7 @@ import { T, EN, IDIOMA, cambiarIdioma, fijarIdioma } from "./idioma.js";
 import { CATALOGO_XPROMISE } from "./catalogoXpromise.js";
 
 const KG_POR_CBM = 350;
+const COMISION = 0.03; // comisión sobre el precio del producto
 const MINIMO_CBM = 1; // el transporte cobra como mínimo 1 CBM por cada máquina
 const dinero = (n) => "US$" + (n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const m3 = (n) => (n || 0).toLocaleString("en-US", { maximumFractionDigits: 3 }) + " m³";
@@ -429,6 +430,7 @@ const normalizar = (p) => {
   const producto = Number(p.precio_producto ?? p.precioProducto) || 0;
   const precioCbm = Number(p.precio_cbm ?? p.precioCbm) || 0;
   const flete = cobrable * precioCbm;
+  const comision = producto * COMISION; // se paga sobre el precio del producto
   const fichaEs = leerDescripcion(p.descripcion);
   // En inglés se usa la versión guardada en "en" (nombre, categoría y ficha); lo que falte sale en español.
   const en = EN && p.en && typeof p.en === "object" ? p.en : {};
@@ -437,7 +439,7 @@ const normalizar = (p) => {
   return {
     id: p.id, codigo: p.codigo || "", nombre: en.nombre || p.nombre || "", categoria, categoriaVista: en.categoria || T(categoria),
     cbm, peso, porPeso, cobrable, por: MINIMO_CBM > real ? `mínimo de ${MINIMO_CBM} CBM` : porPeso > cbm ? "peso" : "volumen",
-    producto, precioCbm, flete, costo: producto + flete, venta: Number(p.precio_venta ?? p.precioVenta) || 0,
+    producto, precioCbm, flete, comision, costo: producto + flete + comision, venta: Number(p.precio_venta ?? p.precioVenta) || 0,
     foto: p.foto || "", ficha, grupo: fichaEs.grupo, opcion: ficha.opcion || fichaEs.opcion,
     destacado: fichaEs.destacado, antes: fichaEs.precioAntes > (Number(p.precio_venta ?? p.precioVenta) || 0) && (Number(p.precio_venta ?? p.precioVenta) || 0) > 0 ? fichaEs.precioAntes : 0,
   };
@@ -629,7 +631,8 @@ function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
                 <div className="cat-datos">
                   <div className="cat-dato"><small><Ship size={13} />Flete</small><b className="cat-num">{p.flete > 0 ? dinero(p.flete) : "Por confirmar"}</b>
                     <small className="cat-num">{p.cobrable > 0 ? m3(p.cobrable) : "falta el CBM"} × {p.precioCbm > 0 ? dinero(p.precioCbm) : "falta el precio CBM"}</small></div>
-                  <div className="cat-dato"><small>Costo total</small><b className="cat-num">{dinero(p.costo)}</b></div>
+                  <div className="cat-dato"><small>Costo total</small><b className="cat-num">{dinero(p.costo)}</b>
+                    <small className="cat-num">incluye comisión 3%: {dinero(p.comision)}</small></div>
                   <div className="cat-dato"><small>Precio de venta</small><b className="cat-num">{p.venta > 0 ? dinero(p.venta) : "Sin definir"}</b></div>
                 </div>
                 <div className="cat-datos">

@@ -376,7 +376,7 @@ const m3 = (n) => (n || 0).toLocaleString("en-US", { minimumFractionDigits: 0, m
 const pct = (n) => (n * 100).toLocaleString("en-US", { maximumFractionDigits: 1 }) + "%";
 const kg = (n) => (n || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " kg";
 
-const COMISION = 0.03;
+const COMISION = 0.03; // comisión que se paga sobre el precio del producto (no sobre el flete)
 
 // El transporte cobra como mínimo 1 CBM por cada máquina, aunque mida o pese menos.
 const MINIMO_CBM = 1;
@@ -615,10 +615,10 @@ const esVendida = (c) => ["confirmada", "produccion", "camino", "entregada"].inc
 const ChipEstado = ({ estado }) => <span className={`chip ${ESTADOS.find((e) => e[0] === estado)[2]}`}>{nombreEstado(estado)}</span>;
 
 const totalDeCliente = (c) => c.totalFinal ?? totalConDescuento(c, calcTotalesCliente(c.lineas).totalVenta);
-// Ganancia de una cotización: venta con descuento, menos producto, flete y comisión sobre el costo.
+// Ganancia de una cotización: venta con descuento, menos producto, flete y comisión sobre el producto.
 const desgloseDe = (c) => {
   const t = calcTotalesCliente(c.lineas);
-  const venta = totalDeCliente(c), comision = t.totalCosto * COMISION;
+  const venta = totalDeCliente(c), comision = t.totalProducto * COMISION;
   const ganancia = venta - t.totalCosto - comision;
   return { venta, producto: t.totalProducto, flete: t.totalFlete, comision, ganancia, margen: venta > 0 ? ganancia / venta : 0 };
 };
@@ -629,7 +629,7 @@ const desglosePorLinea = (c) => {
   const factor = bruto > 0 ? totalDeCliente(c) / bruto : 1;
   return c.lineas.map((l) => {
     const k = calcCliente(l);
-    const venta = k.totalVenta * factor, comision = k.totalCosto * COMISION;
+    const venta = k.totalVenta * factor, comision = k.totalProducto * COMISION;
     const ganancia = venta - k.totalCosto - comision;
     return { l, cantidad: num(l.cantidad), venta, producto: k.totalProducto, flete: k.totalFlete, comision, ganancia, margen: venta > 0 ? ganancia / venta : 0 };
   });
@@ -692,9 +692,9 @@ const calcTotales = (lineas) => {
     return acc;
   }, { totalCantidad: 0, totalCbm: 0, totalPeso: 0, totalProducto: 0, totalPrecioCbm: 0, totalVenta: 0 });
   t.subtotal = t.totalProducto + t.totalPrecioCbm;
-  t.comision = t.subtotal * COMISION;
+  t.comision = t.totalProducto * COMISION;
   t.general = t.subtotal + t.comision;
-  t.ganancia = t.totalVenta - t.subtotal;
+  t.ganancia = t.totalVenta - t.general;
   t.margen = t.totalVenta > 0 ? t.ganancia / t.totalVenta : 0;
   return t;
 };
@@ -1085,7 +1085,7 @@ const filasInternas = (t) => [
   ["Total precio productos", money(t.totalProducto)],
   ["Total precio CBM", money(t.totalPrecioCbm)],
   ["Subtotal", money(t.subtotal)],
-  [`Cargo de la página (${pct(COMISION)})`, money(t.comision)],
+  [`Comisión (${pct(COMISION)} del producto)`, money(t.comision)],
 ];
 const filasCliente = (t) => [
   ["Peso total", kg(t.totalPeso)],
@@ -1627,7 +1627,9 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
             </div>
 
             {(() => {
-              const costo = num(form.precioProducto) + cbmCobro(num(form.cbm), num(form.peso)).cobrable * num(form.precioCbm);
+              const fleteForm = cbmCobro(num(form.cbm), num(form.peso)).cobrable * num(form.precioCbm);
+              const comisionForm = num(form.precioProducto) * COMISION;
+              const costo = num(form.precioProducto) + fleteForm + comisionForm;
               const venta = num(form.precioVenta);
               const ganancia = venta - costo;
               const porcentaje = costo > 0 && venta > 0 ? (ganancia / costo) * 100 : null;
@@ -1639,7 +1641,7 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
                   <div className="font-semibold">Precio de venta por porcentaje de ganancia</div>
                   <p className="text-sm muted num" style={{ margin: "2px 0 10px", lineHeight: 1.3 }}>
                     {costo > 0
-                      ? `Costo ${money(costo)} (producto ${money(num(form.precioProducto))} + flete ${money(costo - num(form.precioProducto))}). Toca un porcentaje o escribe el precio de venta arriba.`
+                      ? `Costo real ${money(costo)}: producto ${money(num(form.precioProducto))} + flete ${money(fleteForm)} + comisión ${pct(COMISION)} ${money(comisionForm)}. Toca un porcentaje o escribe el precio de venta arriba.`
                       : "Escribe primero el precio del producto, el CBM y el precio del CBM para poder calcular."}
                   </p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -2662,7 +2664,7 @@ function GananciasView({ clientes }) {
           <div><dt>Ventas (con descuento)</dt><dd>{money(tot.venta)}</dd></div>
           <div><dt>− Costo de los productos</dt><dd>{money(tot.producto)}</dd></div>
           <div><dt>− Flete (CBM)</dt><dd>{money(tot.flete)}</dd></div>
-          <div><dt>− Comisión ({pct(COMISION)} del costo)</dt><dd>{money(tot.comision)}</dd></div>
+          <div><dt>− Comisión ({pct(COMISION)} del producto)</dt><dd>{money(tot.comision)}</dd></div>
           <div className="total"><dt>= Ganancia</dt><dd className={tot.ganancia >= 0 ? "pos" : "neg"}>{money(tot.ganancia)}</dd></div>
         </dl>
       </section>

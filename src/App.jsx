@@ -403,6 +403,36 @@ const STYLES = `
   .form-grid-cod, .form-grid-3, .form-grid-2 { grid-template-columns:1fr; }
   .form-card { padding:20px 16px 24px; }
 }
+
+/* ---------- más color y contraste ---------- */
+.app { background:#DCE4EC; }
+.paper { border-color:#B9C6D3; box-shadow:0 2px 6px rgba(10,31,68,.06); }
+.muted { color:#44566A; }
+.lbl { color:#22364F; font-weight:600; font-size:13.5px; }
+.inp { background:#fff; border:1.5px solid #9DB0C6; }
+.inp::placeholder { color:#7C8CA0; }
+.inp:focus { border-color:#1556B8; box-shadow:0 0 0 3px rgba(21,86,184,.25); }
+.paper > h2.cond:first-child { border-left:5px solid #FF8A1F; padding-left:10px; }
+.page-head { background:linear-gradient(120deg,#0A1F44 0%,#14438F 70%,#1B5FCC 100%); border:0; color:#fff; box-shadow:0 8px 22px rgba(10,31,68,.22); }
+.page-head h2 { color:#fff; }
+.page-head p { color:#D3E1F7; }
+.page-head .page-head-icon { background:rgba(255,255,255,.14) !important; color:#FFB45C !important; }
+.page-head::after { height:6px; }
+.tablero { border:0; box-shadow:0 8px 22px rgba(10,31,68,.14); }
+.tablero-cab { background:#0A1F44; color:#fff; padding:14px 16px; align-items:center; }
+.tablero-cab h2 { color:#fff; border:0 !important; padding:0 !important; }
+.tablero-cab .muted { color:#fff; background:rgba(255,255,255,.16); border-radius:999px; padding:4px 12px; font-weight:600; }
+.tablero-cols { padding:14px; background:#EEF3F8; }
+.tablero-col { background:color-mix(in srgb, var(--c) 9%, #fff); border:1px solid color-mix(in srgb, var(--c) 38%, #fff); padding:0 0 8px; overflow:hidden; }
+.tablero-col h3 { background:var(--c); color:#fff; padding:9px 12px; margin:0 0 10px; font-size:13px; align-items:center; }
+.tablero-col h3 span:last-child { background:rgba(255,255,255,.26); border-radius:999px; min-width:24px; text-align:center; padding:1px 7px; }
+.tablero-col > p { padding:2px 12px 6px; color:#5B6B75; }
+.tab-tarjeta { margin:0 8px 8px; width:calc(100% - 16px); border:1px solid #C9D3DE; border-left-width:5px; box-shadow:0 3px 8px rgba(10,31,68,.10); padding:10px 12px; font-size:14px; }
+.tab-tarjeta b { font-size:23px; }
+.tab-tarjeta > span { color:#33465C; }
+.tab-tarjeta i { font-size:15px; border-top:1px dashed #D5DEE8; padding-top:6px; margin-top:7px; }
+.tablero-canceladas { background:#fff; }
+.stat-card { border-color:#B9C6D3; box-shadow:0 2px 6px rgba(10,31,68,.06); }
 `;
 
 /* ---------- utilidades ---------- */
@@ -2069,7 +2099,7 @@ function CostosCotizacion({ cot }) {
 
 /** Tablero de cotizaciones: una columna por estado y una tarjeta por cotización. */
 function TableroCotizaciones({ lista, onOpen }) {
-  const columnas = [["pendiente", "#FF8A1F"], ["confirmada", "#1D7A46"], ["produccion", "#1556B8"], ["camino", "#5B3FA8"], ["entregada", "#5B6B75"]];
+  const columnas = [["pendiente", "#D96B00"], ["confirmada", "#1D7A46"], ["produccion", "#1556B8"], ["camino", "#5B3FA8"], ["entregada", "#46586A"]];
   const de = (estado) => lista.filter((c) => estadoDe(c) === estado).sort((x, y) => new Date(y.fecha) - new Date(x.fecha));
   const canceladas = de("cancelada");
   const abiertas = lista.filter((c) => !["entregada", "cancelada"].includes(estadoDe(c))).length;
@@ -2096,7 +2126,7 @@ function TableroCotizaciones({ lista, onOpen }) {
           {columnas.map(([estado, color]) => {
             const suyas = de(estado);
             return (
-              <div key={estado} className="tablero-col">
+              <div key={estado} className="tablero-col" style={{ "--c": color }}>
                 <h3><span>{nombreEstado(estado)}</span><span className="num">{suyas.length}</span></h3>
                 {suyas.length === 0 ? <p>Nada aquí</p> : suyas.map((c) => tarjeta(c, color))}
               </div>

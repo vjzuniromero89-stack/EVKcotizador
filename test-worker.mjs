@@ -94,3 +94,25 @@ r=await worker.fetch(req('/api/catalogo-interno'),conClave);assert.equal(vistas.
 r=await worker.fetch(req('/api/catalogo'),conClave);assert.equal(r.status,200);
 assert.equal(vistas.at(-1)['x-evk-clave'],'clave-de-la-pagina');assert.equal(vistas.at(-1).authorization,'Bearer test-anon');
 console.log('Acceso: lo interno exige sesión; lo público usa la clave de la página.');
+
+// Cupones: se calculan con los precios de la base, se rechazan los vencidos y quedan en la cotización.
+const hoyIso=new Date().toISOString().slice(0,10);
+let cuponBase={codigo:'EVK10',tipo:'porcentaje',valor:10,minimo:0,usos_max:null,vence:null,activo:true};let filaCupon=null;
+globalThis.fetch=async(url,init={})=>{const u=new URL(url);
+  if(u.pathname.endsWith('/cupones'))return Response.json(u.searchParams.get('codigo')==='eq.EVK10'?[cuponBase]:[]);
+  if(u.pathname.endsWith('/configuracion'))return Response.json([]);
+  if(u.pathname.endsWith('/productos'))return Response.json([{id:'p1',codigo:'A-1',nombre:'Máquina',en:{nombre:'Machine'},cbm:1,peso:0,precio_cbm:1,precio_producto:1,precio_venta:2000,foto:''}]);
+  if(init.method==='POST'){filaCupon=JSON.parse(init.body);return new Response(null,{status:201});}
+  return Response.json([]);};
+const probar=(body)=>worker.fetch(new Request('https://example.test/api/cupon',{method:'POST',body:JSON.stringify(body)}),env);
+r=await probar({cupon:'evk10',lineas:[{codigo:'A-1',cantidad:2,precio:1}]});let cu=await r.json();assert.equal(cu.ok,true);assert.equal(cu.descuento,400);assert.equal(cu.codigo,'EVK10');
+r=await probar({cupon:'NOEXISTE',lineas:[{codigo:'A-1',cantidad:1}]});assert.equal((await r.json()).motivo,'no-existe');
+cuponBase={...cuponBase,vence:'2020-01-01'};r=await probar({cupon:'EVK10',lineas:[{codigo:'A-1',cantidad:1}]});assert.equal((await r.json()).motivo,'vencido');
+cuponBase={...cuponBase,vence:hoyIso,minimo:5000};r=await probar({cupon:'EVK10',lineas:[{codigo:'A-1',cantidad:1}]});cu=await r.json();assert.equal(cu.motivo,'minimo');assert.equal(cu.minimo,5000);
+cuponBase={...cuponBase,minimo:0,activo:false};r=await probar({cupon:'EVK10',lineas:[{codigo:'A-1',cantidad:1}]});assert.equal((await r.json()).motivo,'no-existe');
+cuponBase={codigo:'EVK10',tipo:'monto',valor:150,minimo:0,usos_max:null,vence:null,activo:true};
+r=await pedir({nombre:'Ana',telefono:'8888 7777',cupon:'EVK10',lineas:[{codigo:'A-1',cantidad:1}]});assert.equal(r.status,201);const conCupon=(await r.json()).cotizacion;
+assert.equal(conCupon.total,1850);assert.equal(conCupon.subtotal,2000);assert.equal(conCupon.descuento,150);assert.equal(conCupon.cupon,'EVK10');assert.equal(conCupon.lineas[0].nombreEn,'Machine');
+assert.equal(filaCupon.total_final,1850);assert.equal(filaCupon.descuento_monto,150);assert.equal(filaCupon.descuento,7.5);assert.equal(filaCupon.totales.cupon,'EVK10');assert.equal(filaCupon.totales.totalVenta,2000);
+r=await pedir({nombre:'Ana',telefono:'8888 7777',cupon:'MALO',lineas:[{codigo:'A-1',cantidad:1}]});assert.equal(r.status,400);assert.equal((await r.json()).motivo,'no-existe');
+console.log('Cupones: porcentaje, monto fijo, vencido, mínimo, desactivado y registro en la cotización.');

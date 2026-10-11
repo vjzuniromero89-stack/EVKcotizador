@@ -48,12 +48,36 @@ async function fichasDeClientes(env) {
   return Array.isArray(valor) ? valor : [];
 }
 
+/**
+ * Revisa un cupón contra el total de la cotización. Devuelve { ok, codigo, tipo, valor, descuento }
+ * o { ok: false, motivo } con motivo "no-existe", "vencido", "agotado" o "minimo".
+ */
+async function revisarCupon(env, escrito, total) {
+  const codigo = String(escrito || "").trim().toUpperCase();
+  if (!/^[A-Z0-9_-]{3,30}$/.test(codigo)) return { ok: false, motivo: "no-existe" };
+  const c = await sbRequest(env, `cupones?codigo=eq.${codigo}&select=*&limit=1`);
+  if (!c.ok) return { ok: false, motivo: "error" };
+  const cupon = Array.isArray(c.data) ? c.data[0] : null;
+  if (!cupon || !cupon.activo) return { ok: false, motivo: "no-existe" };
+  if (cupon.vence && cupon.vence < new Date().toISOString().slice(0, 10)) return { ok: false, motivo: "vencido" };
+  if (cupon.usos_max) {
+    const usos = await sbRequest(env, `cotizaciones_clientes?select=id&totales-%3E%3Ecupon=eq.${codigo}&or=(totales-%3E%3Eestado.is.null,totales-%3E%3Eestado.neq.cancelada)&limit=1000`);
+    if (!usos.ok) return { ok: false, motivo: "error" };
+    if ((usos.data || []).length >= cupon.usos_max) return { ok: false, motivo: "agotado" };
+  }
+  const minimo = Number(cupon.minimo) || 0, valor = Number(cupon.valor) || 0;
+  if (!(total > 0) || total < minimo) return { ok: false, motivo: "minimo", minimo };
+  const bruto = cupon.tipo === "monto" ? Math.min(valor, total) : total * valor / 100;
+  return { ok: true, codigo, tipo: cupon.tipo, valor, minimo, descuento: Math.round(bruto * 100) / 100 };
+}
+
 /** Lo que el cliente puede ver de su cotización: nunca costos ni flete. */
 function cotizacionPublica(fila) {
   const contacto = fila.totales?.contacto || {};
   return {
     id: fila.id, numero: fila.numero, fecha: fila.fecha, cliente: fila.cliente || "",
     telefono: contacto.telefono || "", direccion: contacto.direccion || "", nota: contacto.nota || "", total: Number(fila.total_final) || 0,
+    subtotal: Number(fila.totales?.totalVenta) || 0, descuento: Number(fila.descuento_monto) || 0, cupon: fila.totales?.cupon || "",
     token: contacto.token || "", estado: fila.totales?.estado || "pendiente",
     confirmadaEl: fila.totales?.confirmadaEl || null, entregadaEl: fila.totales?.entregadaEl || null,
     pagado: (Array.isArray(fila.totales?.pagos) ? fila.totales.pagos : []).reduce((s, p) => s + (Number(p.monto) || 0), 0),
@@ -99,6 +123,24 @@ export default {
         nombre: String(valor.nombre || ""), contacto: String(valor.contacto || ""), logo: String(valor.logo || ""),
         whatsapp: String(valor.whatsapp || "").replace(/\D/g, ""),
       });
+    }
+
+    // El cliente prueba un cupón antes de enviar su cotización: se calcula con los precios de la base, no con los que él mande.
+    if (url.pathname === "/api/cupon" && request.method === "POST") {
+      let cuerpo;
+      try { cuerpo = await request.json(); } catch { return json({ ok: false, motivo: "no-existe" }, 400); }
+      const pedidas = new Map();
+      for (const l of Array.isArray(cuerpo?.lineas) ? cuerpo.lineas.slice(0, 40) : []) {
+        const codigo = texto(l?.codigo, 60).replace(/["\\]/g, ""), cantidad = Math.floor(Number(l?.cantidad));
+        if (codigo && cantidad >= 1) pedidas.set(codigo, Math.min(99, cantidad));
+      }
+      if (!pedidas.size) return json({ ok: false, motivo: "minimo", minimo: 0 });
+      const codigos = [...pedidas.keys()].map((c) => `"${c}"`).join(",");
+      const prod = await sbRequest(env, `productos?select=codigo,precio_venta&codigo=in.(${encodeURIComponent(codigos)})`);
+      if (!prod.ok || !Array.isArray(prod.data)) return json({ ok: false, motivo: "error" }, 503);
+      const total = prod.data.reduce((s, p) => s + (Number(p.precio_venta) || 0) * (pedidas.get(p.codigo) || 0), 0);
+      const resultado = await revisarCupon(env, cuerpo?.cupon, total);
+      return json(resultado, resultado.motivo === "error" ? 503 : 200);
     }
 
     // El cliente envía su cotización desde el catálogo: se registra con precios tomados de la base de datos.
@@ -160,10 +202,22 @@ export default {
       t.totalCosto = t.totalProducto + t.totalFlete;
       t.ganancia = t.totalVenta - t.totalCosto;
       t.margen = t.totalVenta > 0 ? t.ganancia / t.totalVenta : 0;
+      // Cupón de descuento: si el cliente escribió uno que no sirve, se le avisa en vez de registrar sin descuento.
+      let cupon = null;
+      if (texto(cuerpo?.cupon, 30)) {
+        cupon = await revisarCupon(env, cuerpo.cupon, t.totalVenta);
+        if (!cupon.ok) return json({ ok: false, error: "El cupón no es válido.", motivo: cupon.motivo, minimo: cupon.minimo }, cupon.motivo === "error" ? 503 : 400);
+      }
+      const descuentoMonto = cupon ? cupon.descuento : 0;
+      const porcentaje = t.totalVenta > 0 ? Math.round(descuentoMonto / t.totalVenta * 10000) / 100 : 0;
+      const totalFinal = Math.round((t.totalVenta - descuentoMonto) * 100) / 100;
       const fila = {
         id: crypto.randomUUID(), numero: `WEB-${String(siguiente).padStart(4, "0")}`, fecha: new Date().toISOString(), cliente: nombre,
-        descuento: 0, descuento_monto: 0, total_final: t.totalVenta, lineas,
-        totales: { ...t, contacto: { telefono, tel, token, direccion, nota, origen: "catalogo" } },
+        descuento: porcentaje, descuento_monto: descuentoMonto, total_final: totalFinal, lineas,
+        totales: {
+          ...t, ...(cupon ? { cupon: cupon.codigo, descuento: porcentaje, descuentoMonto, totalFinal } : {}),
+          contacto: { telefono, tel, token, direccion, nota, origen: "catalogo" },
+        },
       };
       const guardada = await sbRequest(env, "cotizaciones_clientes", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(fila) });
       if (!guardada.ok) return json({ ok: false, error: "No se pudo registrar la cotización." }, 503);

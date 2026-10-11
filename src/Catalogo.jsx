@@ -309,6 +309,17 @@ const ESTILOS = `${ESTILOS_VITRINA}
 .cat-linea-info small { font-size:13px; color:#5B6B75; }
 .cat-linea-cant { display:flex; flex-direction:column; align-items:flex-end; gap:5px; flex:0 0 190px; }
 .cat-linea-cant .cat-cantidad { width:100%; }
+.cat-cupon { margin-top:14px; padding:12px 14px; border:1.5px dashed #FF8A1F; border-radius:12px; background:#FFF6EC; }
+.cat-cupon label { display:block; font-size:14px; font-weight:700; color:#7A3E00; }
+.cat-cupon label > span { display:flex; gap:8px; margin-top:6px; }
+.cat-cupon input { flex:1 1 auto; min-width:0; border:1px solid #E6C9A8; border-radius:8px; padding:10px 12px; font-size:16px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; background:#fff; color:#14222B; }
+.cat-cupon input:focus { outline:3px solid #FF8A1F; outline-offset:1px; }
+.cat-cupon-ok { display:flex; align-items:center; gap:8px; margin:0; font-weight:700; color:#14653A; }
+.cat-cupon-ok span { flex:1 1 auto; }
+.cat-cupon-ok button { border:0; background:none; color:#1556B8; font:inherit; font-size:14px; font-weight:700; text-decoration:underline; cursor:pointer; }
+.cat-subtotales { padding-top:12px; display:flex; flex-direction:column; gap:4px; font-size:15px; }
+.cat-subtotales div { display:flex; justify-content:space-between; gap:10px; }
+.cat-subtotales .menos { color:#14653A; font-weight:700; }
 .cat-total { display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:14px 0 6px; font-weight:600; }
 .cat-total b { font-family:'Barlow Condensed',sans-serif; font-size:32px; color:#0E3A8A; }
 .cat-campos { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px; }
@@ -817,6 +828,10 @@ function datosHojaCliente(cot, empresa) {
   }));
   const totales = [[T("Productos"), String(cot.lineas.reduce((s, l) => s + l.cantidad, 0))]];
   if (cot.lineas.some((l) => !(l.precio > 0))) totales.push([T("Productos por consultar"), T("No incluidos en el total")]);
+  if (cot.descuento > 0) {
+    totales.push([T("Subtotal"), dinero(cot.subtotal || cot.total + cot.descuento)]);
+    totales.push([`${T("Descuento")}${cot.cupon ? ` (${cot.cupon})` : ""}`, `−${dinero(cot.descuento)}`]);
+  }
   totales.push(...TIEMPOS_ENTREGA.map(([k, v]) => [T(k), v.replace("días", T("días"))]));
   return {
     empresa: { ...empresa, contacto: T(String(empresa.contacto || "").split("\n")[0]) }, columnas, filas, totales, total: dinero(cot.total), totalLabel: T("Total"),
@@ -903,6 +918,14 @@ function CotizacionLista({ cot, empresa, alTerminar }) {
   );
 }
 
+const mensajeCupon = (r) => (
+  r.motivo === "vencido" ? T("Ese cupón ya venció.")
+    : r.motivo === "agotado" ? T("Ese cupón ya se usó todas las veces permitidas.")
+      : r.motivo === "minimo" ? (r.minimo > 0 ? T("Ese cupón pide una compra mínima de {m}.", { m: dinero(r.minimo) }) : T("Ese cupón necesita productos con precio en tu cotización."))
+        : r.motivo === "error" ? T("No pudimos revisar el cupón. Inténtalo de nuevo.")
+          : T("Ese cupón no existe.")
+);
+
 function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nombre: nombreCuenta }) {
   // Solo dentro de la cuenta de un cliente se recuerdan sus datos; el catálogo general siempre abre en blanco.
   const recordar = Boolean(token);
@@ -924,6 +947,27 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
 
   const total = lineas.reduce((s, l) => s + l.venta * l.cantidad, 0);
   const hayConsultar = lineas.some((l) => l.venta <= 0);
+  // Cupón: el servidor lo revisa con los precios de la base; aquí solo se muestra el resultado.
+  const [codigoCupon, setCodigoCupon] = useState("");
+  const [cupon, setCupon] = useState(null);
+  const [errorCupon, setErrorCupon] = useState("");
+  const [revisando, setRevisando] = useState(false);
+  const pedidoActual = JSON.stringify(lineas.map((l) => [l.codigo, l.cantidad]));
+  const revisarCupon = async (codigo) => {
+    if (!codigo.trim()) return;
+    setErrorCupon(""); setRevisando(true);
+    try {
+      const res = await fetch("/api/cupon", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ cupon: codigo.trim(), lineas: lineas.map((l) => ({ codigo: l.codigo, cantidad: l.cantidad })) }),
+      });
+      const r = await res.json().catch(() => ({ motivo: "error" }));
+      if (r.ok) { setCupon(r); setCodigoCupon(r.codigo); } else { setCupon(null); setErrorCupon(mensajeCupon(r)); }
+    } catch { setCupon(null); setErrorCupon(mensajeCupon({ motivo: "error" })); } finally { setRevisando(false); }
+  };
+  // Si cambia lo que lleva la cotización, el descuento se vuelve a calcular.
+  useEffect(() => { if (cupon) revisarCupon(cupon.codigo); }, [pedidoActual]); // eslint-disable-line react-hooks/exhaustive-deps
+  const descuento = cupon ? Math.min(cupon.descuento, total) : 0;
   const set = (k) => (e) => setDatos((d) => ({ ...d, [k]: e.target.value }));
 
   const crear = async (e) => {
@@ -937,9 +981,10 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
     try {
       const res = await fetch("/api/solicitudes", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ nombre, telefono, direccion, token: token || "", nota: nota.trim(), lineas: lineas.map((l) => ({ codigo: l.codigo, cantidad: l.cantidad })) }),
+        body: JSON.stringify({ nombre, telefono, direccion, token: token || "", nota: nota.trim(), cupon: cupon ? cupon.codigo : "", lineas: lineas.map((l) => ({ codigo: l.codigo, cantidad: l.cantidad })) }),
       });
       const r = await res.json().catch(() => ({}));
+      if (r.motivo) { setCupon(null); setErrorCupon(mensajeCupon(r)); return; }
       if (!res.ok || !r.cotizacion) throw new Error(r.error || "sin respuesta");
       setCreada(r.cotizacion);
       if (r.cotizacion.token) guardarLocal(CLAVE_TOKEN, r.cotizacion.token);
@@ -977,9 +1022,37 @@ function PanelCotizacion({ lineas, cambiar, vaciar, empresa, cerrar, token, nomb
                 ))}
               </ul>
               {total > 0 && (
+                <div className="cat-cupon">
+                  {cupon ? (
+                    <p className="cat-cupon-ok" role="status">
+                      <Check size={17} /><span>{T("Cupón {c} aplicado", { c: cupon.codigo })}</span>
+                      <button type="button" onClick={() => { setCupon(null); setCodigoCupon(""); }}>{T("Quitar")}</button>
+                    </p>
+                  ) : (
+                    <label>{T("¿Tienes un cupón de descuento?")}
+                      <span>
+                        <input value={codigoCupon} onChange={(e) => { setCodigoCupon(e.target.value.toUpperCase()); setErrorCupon(""); }} maxLength={30}
+                          autoCapitalize="characters" autoComplete="off" placeholder={T("Código del cupón")}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); revisarCupon(codigoCupon); } }} />
+                        <button type="button" className="cat-btn claro" disabled={revisando || !codigoCupon.trim()} onClick={() => revisarCupon(codigoCupon)}>
+                          {T(revisando ? "Revisando…" : "Aplicar")}
+                        </button>
+                      </span>
+                    </label>
+                  )}
+                  {errorCupon && <p className="cat-error" role="alert" style={{ marginTop: 6 }}>{errorCupon}</p>}
+                </div>
+              )}
+              {total > 0 && descuento > 0 && (
+                <div className="cat-subtotales cat-num">
+                  <div><span>{T("Subtotal")}</span><b>{dinero(total)}</b></div>
+                  <div className="menos"><span>{T("Descuento")} ({cupon.codigo})</span><b>−{dinero(descuento)}</b></div>
+                </div>
+              )}
+              {total > 0 && (
                 <div className="cat-total">
                   <span>{T("Total")}{hayConsultar && T(" (sin los productos por consultar)")}</span>
-                  <b className="cat-num">{dinero(total)}</b>
+                  <b className="cat-num">{dinero(total - descuento)}</b>
                 </div>
               )}
               <div className="cat-campos">

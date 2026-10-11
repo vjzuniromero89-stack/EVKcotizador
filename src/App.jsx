@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Camera, Image as ImageIcon, Pencil, Trash2, X, Plus, Search, FileText,
   Printer, Share2, Eye, Home, Package, FileText as FileTextIcon, Users, Menu,
-  TrendingUp, DollarSign, Ship, Cloud, CloudOff, BookOpen, Tag, Contact, ChevronDown, ShieldCheck, LogOut,
+  TrendingUp, DollarSign, Ship, Cloud, CloudOff, BookOpen, Tag, Contact, ChevronDown, ShieldCheck, LogOut, Ticket,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { LOGO_POR_DEFECTO } from "./logo.js";
@@ -11,6 +11,7 @@ import Catalogo, { Categorias, ESTILOS_VITRINA, EnlaceCatalogo as EnlaceDeCatalo
 import { FICHA_VACIA, armarDescripcion, leerDescripcion, cbmDeMedidas } from "./descripcion.js";
 import { CATALOGO_XPROMISE } from "./catalogoXpromise.js";
 import Acceso, { UsuariosView } from "./Acceso.jsx";
+import CuponesView from "./Cupones.jsx";
 
 const runtimeEnv = globalThis.__APP_CONFIG__ || {};
 const SUPABASE_URL = runtimeEnv.SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || "";
@@ -2864,6 +2865,7 @@ const TABS = [
   { id: "clientes", label: "Cotizaciones clientes", corto: "Cot. clientes", icon: Users },
   { id: "internas", label: "Cotizaciones internas", corto: "Cot. internas", icon: FileTextIcon },
   { id: "ganancias", label: "Ganancias", icon: TrendingUp },
+  { id: "cupones", label: "Cupones", icon: Ticket },
   { id: "productos", label: "Producto", icon: Package },
   { id: "catalogo-cliente", label: "Catálogo cliente", corto: "Cat. cliente", icon: Tag },
   { id: "catalogo-interno", label: "Catálogo interno", corto: "Cat. interno", icon: BookOpen },
@@ -3028,7 +3030,7 @@ function AdminApp({ sesion }) {
 
   const cambiarTab = (t) => {
     // Al abrir las cotizaciones de clientes se traen las que hayan llegado del catálogo.
-    if ((t === "clientes" || t === "directorio" || t === "ganancias") && supabase) sbLoadCotizacionesClientes().then(async (cc) => {
+    if ((t === "clientes" || t === "directorio" || t === "ganancias" || t === "cupones") && supabase) sbLoadCotizacionesClientes().then(async (cc) => {
       if (!cc) return;
       const conEnlaces = conEnlacesDeCliente(cc);
       if (conEnlaces && !(await sbSaveCotizacionesClientes(conEnlaces))) { setClientes(cc); return; }
@@ -3113,6 +3115,7 @@ function AdminApp({ sesion }) {
                   <Catalogo modo="cliente" vistaPrevia avisar={avisar} whatsapp={empresa.whatsapp} />
                 )}
                 {tab === "ganancias" && <GananciasView clientes={clientes} />}
+                {tab === "cupones" && <CuponesView supabase={supabase} cotizaciones={clientes.lista} avisar={avisar} Encabezado={EncabezadoPagina} />}
                 {tab === "usuarios" && esAdmin && (
                   <UsuariosView supabase={supabase} perfil={sesion.perfil} avisar={avisar} Encabezado={EncabezadoPagina} />
                 )}

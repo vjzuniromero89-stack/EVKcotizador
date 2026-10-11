@@ -150,6 +150,8 @@ export default function Acceso({ supabase, children }) {
   return <Caja titulo="Cargando…" />;
 }
 
+const ROLES = { vendedor: "Vendedor", usuario: "Usuario", admin: "Administrador" };
+
 /** Pestaña "Usuarios": el administrador agrega, cambia y quita a quienes pueden entrar. */
 export function UsuariosView({ supabase, perfil, avisar, Encabezado }) {
   const NUEVO = { usuario: "", nombre: "", clave: "", rol: "usuario" };
@@ -209,6 +211,7 @@ export function UsuariosView({ supabase, perfil, avisar, Encabezado }) {
             <input id="u-clave" className="inp" type="password" autoComplete="new-password" required minLength={8} value={form.clave} onChange={set("clave")} /></div>
           <div><label className="lbl" htmlFor="u-rol">Tipo</label>
             <select id="u-rol" className="inp" value={form.rol} onChange={set("rol")}>
+              <option value="vendedor">Vendedor (cotiza; no ve costos ni ganancias)</option>
               <option value="usuario">Usuario (todo menos Usuarios)</option>
               <option value="admin">Administrador</option>
             </select></div>
@@ -226,7 +229,7 @@ export function UsuariosView({ supabase, perfil, avisar, Encabezado }) {
               <div key={u.id} className="paper p-3" style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", opacity: u.activo ? 1 : 0.6 }}>
                 <div style={{ flex: "1 1 200px", minWidth: 0 }}>
                   <div className="font-semibold" style={{ overflowWrap: "anywhere" }}>{u.nombre || u.usuario}{yo && " (tú)"}</div>
-                  <div className="muted text-sm num">{u.usuario} · {u.rol === "admin" ? "Administrador" : "Usuario"}{!u.activo && " · desactivado"}</div>
+                  <div className="muted text-sm num">{u.usuario} · {ROLES[u.rol] || u.rol}{!u.activo && " · desactivado"}</div>
                 </div>
                 {claveDe === u.id ? (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
@@ -245,8 +248,12 @@ export function UsuariosView({ supabase, perfil, avisar, Encabezado }) {
                 ) : (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <button type="button" className="btn btn-ghost" onClick={() => { setClaveDe(u.id); setNuevaClave(""); setBorrar(null); }}><KeyRound size={16} />Contraseña</button>
-                    {!yo && <button type="button" className="btn btn-ghost" disabled={ocupado}
-                      onClick={() => cambiar(u, { p_rol: u.rol === "admin" ? "usuario" : "admin" })}>{u.rol === "admin" ? "Quitar administrador" : "Hacer administrador"}</button>}
+                    {!yo && (
+                      <select className="inp" style={{ width: "auto" }} aria-label={`Tipo de usuario de ${u.usuario}`} disabled={ocupado}
+                        value={u.rol} onChange={(e) => cambiar(u, { p_rol: e.target.value })}>
+                        {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                      </select>
+                    )}
                     {!yo && <button type="button" className="btn btn-ghost" disabled={ocupado}
                       onClick={() => cambiar(u, { p_activo: !u.activo })}>{u.activo ? "Desactivar" : "Activar"}</button>}
                     {!yo && <button type="button" className="btn btn-danger" onClick={() => { setBorrar(u.id); setClaveDe(null); }}><Trash2 size={16} />Borrar</button>}

@@ -21,31 +21,31 @@ const supabase = SUPABASE_URL && SUPABASE_KEY
   : null;
 
 const STYLES = `
-.app { font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif; color:#14222B; background:#E9EEF1; min-height:100vh; }
+.app { font-family: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif; color:#0A1F44; background:#E9EEF1; min-height:100vh; }
 .cond { font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; }
 .num { font-variant-numeric: tabular-nums; }
 .paper { background:#fff; border:1px solid #CAD4DA; border-radius:10px; }
 .muted { color:#5B6B75; }
-.inp { width:100%; background:#F6F8F9; border:1px solid #CAD4DA; border-radius:6px; padding:9px 10px; font-size:16px; color:#14222B; }
-.inp:focus { outline:none; border-color:#1B5E6B; box-shadow:0 0 0 3px rgba(27,94,107,.22); background:#fff; }
+.inp { width:100%; background:#F6F8F9; border:1px solid #CAD4DA; border-radius:6px; padding:9px 10px; font-size:16px; color:#0A1F44; }
+.inp:focus { outline:none; border-color:#1556B8; box-shadow:0 0 0 3px rgba(27,94,107,.22); background:#fff; }
 .inp-venta { background:#FFF9E6; border-color:#E2C45C; font-weight:600; }
 .lbl { font-size:13px; font-weight:500; color:#5B6B75; display:block; margin-bottom:4px; line-height:1.2; }
 .btn { border-radius:6px; padding:10px 16px; font-weight:600; font-size:15px; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
-.btn:focus-visible, .tab:focus-visible, .icon-btn:focus-visible { outline:3px solid #F2B705; outline-offset:2px; }
-.btn-primary { background:#1B5E6B; color:#fff; }
-.btn-primary:hover { background:#134650; }
-.btn-primary:disabled { background:#9DB3B9; cursor:not-allowed; }
-.btn-ghost { background:#fff; color:#1B5E6B; border:1px solid #CAD4DA; }
+.btn:focus-visible, .tab:focus-visible, .icon-btn:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
+.btn-primary { background:#1556B8; color:#fff; }
+.btn-primary:hover { background:#0E3A8A; }
+.btn-primary:disabled { background:#9DB3D9; cursor:not-allowed; }
+.btn-ghost { background:#fff; color:#1556B8; border:1px solid #CAD4DA; }
 .btn-ghost:hover { background:#F0F4F5; }
-.btn-ghost:disabled { color:#9DB3B9; cursor:not-allowed; }
+.btn-ghost:disabled { color:#9DB3D9; cursor:not-allowed; }
 .btn-danger { background:#fff; color:#A3321F; border:1px solid #E3C3BC; }
 .btn-danger-solid { background:#A3321F; color:#fff; }
 .icon-btn { border-radius:6px; padding:6px; color:#5B6B75; }
-.icon-btn:hover { background:#EEF2F4; color:#14222B; }
+.icon-btn:hover { background:#EEF2F4; color:#0A1F44; }
 .photo { border:2px dashed #9FB0B9; border-radius:8px; background:#F6F8F9; }
-.label-block { background:#14222B; color:#fff; border-radius:10px; overflow:hidden; }
-.label-stripe { height:10px; background: repeating-linear-gradient(135deg, #F2B705 0 14px, #14222B 14px 28px); }
-.toast-ok { background:#1B5E6B; color:#fff; }
+.label-block { background:#0A1F44; color:#fff; border-radius:10px; overflow:hidden; }
+.label-stripe { height:10px; background: repeating-linear-gradient(135deg, #FF8A1F 0 14px, #0A1F44 14px 28px); }
+.toast-ok { background:#1556B8; color:#fff; }
 .toast-error { background:#A3321F; color:#fff; }
 .row-line { border-top:1px solid #E1E7EA; }
 .pos { color:#1D7A46; } .neg { color:#A3321F; }
@@ -53,16 +53,16 @@ const STYLES = `
 
 .enlaces-catalogo { display:grid; gap:14px; margin-top:12px; }
 .enlaces-catalogo .cat-enlace { display:flex; flex-wrap:wrap; gap:8px; }
-.enlaces-catalogo .cat-enlace input { flex:1 1 220px; min-width:0; background:#F6F8F9; border:1px solid #CAD4DA; border-radius:6px; padding:9px 10px; font-size:16px; color:#14222B; }
-.enlaces-catalogo .cat-btn { border-radius:6px; padding:10px 16px; font-weight:600; font-size:15px; display:inline-flex; align-items:center; gap:6px; background:#1B5E6B; color:#fff; text-decoration:none; }
-.enlaces-catalogo .cat-btn.claro { background:#fff; color:#1B5E6B; border:1px solid #CAD4DA; }
+.enlaces-catalogo .cat-enlace input { flex:1 1 220px; min-width:0; background:#F6F8F9; border:1px solid #CAD4DA; border-radius:6px; padding:9px 10px; font-size:16px; color:#0A1F44; }
+.enlaces-catalogo .cat-btn { border-radius:6px; padding:10px 16px; font-weight:600; font-size:15px; display:inline-flex; align-items:center; gap:6px; background:#1556B8; color:#fff; text-decoration:none; }
+.enlaces-catalogo .cat-btn.claro { background:#fff; color:#1556B8; border:1px solid #CAD4DA; }
 .chip-off { background:#EEF1F3; border-color:#C3CDD3; color:#5B6B75; text-decoration:line-through; }
 .estado-caja.off { border-color:#C3CDD3; background:#F3F6F7; }
 .estado-pasos { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .pagos-caja { border:1px solid #CAD4DA; border-radius:10px; padding:12px 14px; background:#fff; }
 .pagos-resumen { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:8px; }
 .pagos-resumen > div { background:#F3F6F7; border-radius:8px; padding:8px 10px; min-width:0; overflow-wrap:anywhere; }
-.pagos-resumen .saldo { background:#FFF4CC; box-shadow:inset 0 0 0 2px #F2B705; }
+.pagos-resumen .saldo { background:#FFF4CC; box-shadow:inset 0 0 0 2px #FF8A1F; }
 .pagos-resumen .saldo.cero { background:#DDF3E6; box-shadow:inset 0 0 0 2px #8FCFAA; }
 .pagos-form { display:grid; grid-template-columns:140px 1fr auto; gap:8px; margin-top:10px; align-items:end; }
 @media (max-width:640px) { .pagos-form { grid-template-columns:1fr; } .pagos-resumen { grid-template-columns:1fr; } }
@@ -70,8 +70,8 @@ const STYLES = `
 .cuenta-ganancia > div { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid #E1E7EA; }
 .cuenta-ganancia > div:first-child { border-top:0; }
 .cuenta-ganancia dt { color:#5B6B75; } .cuenta-ganancia dd { margin:0; font-weight:600; }
-.cuenta-ganancia .total { border-top:2px solid #14222B; font-size:19px; }
-.cuenta-ganancia .total dt { color:#14222B; font-weight:700; } .cuenta-ganancia .total dd { font-weight:800; }
+.cuenta-ganancia .total { border-top:2px solid #0A1F44; font-size:19px; }
+.cuenta-ganancia .total dt { color:#0A1F44; font-weight:700; } .cuenta-ganancia .total dd { font-weight:800; }
 .tabla-ganancias { overflow-x:auto; }
 .tabla-ganancias table { width:100%; border-collapse:collapse; font-size:14.5px; min-width:640px; }
 .tabla-ganancias th, .tabla-ganancias td { padding:10px 12px; text-align:right; white-space:nowrap; border-top:1px solid #E1E7EA; }
@@ -83,8 +83,8 @@ const STYLES = `
 .fila-cot { cursor:pointer; }
 .fila-cot:hover, .fila-cot.abierta { background:#F3F6F7; }
 .fila-cot th, .fila-maquina th { display:flex; align-items:center; gap:8px; }
-.ver-maquinas { flex-shrink:0; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#1B5E6B; background:#E4EFF1; transition:transform .15s; }
-.ver-maquinas:focus-visible { outline:3px solid #F2B705; outline-offset:2px; }
+.ver-maquinas { flex-shrink:0; width:30px; height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#1556B8; background:#EAF1FC; transition:transform .15s; }
+.ver-maquinas:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
 .fila-cot.abierta .ver-maquinas { transform:rotate(180deg); }
 .fila-maquina { background:#FBFCFC; font-size:13.5px; }
 .fila-maquina th { padding-left:50px !important; }
@@ -92,41 +92,41 @@ const STYLES = `
 .fila-maquina td:not(.pos):not(.neg), .fila-maquina th { color:#314551; }
 .tabla-ganancias td.pos { background:#EEF9F2; }
 .tabla-ganancias td.neg { background:#FBEEEB; }
-.app ::selection { background:#F2B705; color:#14222B; }
-.app { accent-color:#1B5E6B; scrollbar-color:#9FB0B9 transparent; }
+.app ::selection { background:#FF8A1F; color:#0A1F44; }
+.app { accent-color:#1556B8; scrollbar-color:#9FB0B9 transparent; }
 .page-head.tono-verde .page-head-icon { color:#14603A; background:#DDF3E6; }
 .page-head.tono-ambar .page-head-icon { color:#7A5A00; background:#FFF4CC; }
 .page-head.tono-azul .page-head-icon { color:#1F4E8C; background:#E3ECFA; }
 .page-head.tono-rojo .page-head-icon { color:#8A2B1B; background:#F9E1DC; }
-.page-head.tono-oscuro .page-head-icon { color:#F2B705; background:#14222B; }
+.page-head.tono-oscuro .page-head-icon { color:#FF8A1F; background:#0A1F44; }
 .page-head { position:relative; overflow:hidden; }
-.page-head::after { content:""; position:absolute; left:0; right:0; bottom:0; height:4px; background:#1B5E6B; }
+.page-head::after { content:""; position:absolute; left:0; right:0; bottom:0; height:4px; background:#1556B8; }
 .page-head.tono-verde::after { background:#1D7A46; }
-.page-head.tono-ambar::after { background:#F2B705; }
+.page-head.tono-ambar::after { background:#FF8A1F; }
 .page-head.tono-azul::after { background:#2F6FC4; }
 .page-head.tono-rojo::after { background:#A3321F; }
-.page-head.tono-oscuro::after { background:repeating-linear-gradient(135deg,#F2B705 0 12px,#14222B 12px 24px); }
+.page-head.tono-oscuro::after { background:repeating-linear-gradient(135deg,#FF8A1F 0 12px,#0A1F44 12px 24px); }
 .resumen-ganancia > .t-venta { background:#E9F2F4; border-color:#B4CDD3; }
 .resumen-ganancia > .t-ganancia { background:#E6F6EC; border-color:#A9D9BC; }
 .resumen-ganancia > .t-cobrado { background:#E8EFFA; border-color:#B5C8E6; }
 .resumen-ganancia > .t-pendiente { background:#FFF7DB; border-color:#EBD27F; }
-.resumen-ganancia > .t-venta b { color:#134650; }
+.resumen-ganancia > .t-venta b { color:#0E3A8A; }
 .resumen-ganancia > .t-cobrado b { color:#1F4E8C; }
 .stat-card { position:relative; overflow:hidden; }
 .stat-card::after { content:""; position:absolute; left:0; right:0; top:0; height:4px; background:var(--tono,#CAD4DA); }
 .quote-list button:hover { background:#F3F8F9; }
 .fila-maquina td:nth-child(2) { font-size:12.5px; color:#5B6B75; }
-.enlace { color:#1B5E6B; font-weight:600; text-decoration:underline; padding:0; }
+.enlace { color:#1556B8; font-weight:600; text-decoration:underline; padding:0; }
 .resumen-ganancia { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
 .resumen-ganancia > div { background:#fff; border:1px solid #CAD4DA; border-radius:12px; padding:14px 16px; }
 .resumen-ganancia b { display:block; font-family:'Barlow Condensed',sans-serif; font-size:30px; line-height:1.1; }
 .chip-ok { background:#DDF3E6; border-color:#8FCFAA; color:#14603A; }
-.chip-info { background:#E4EFF1; border-color:#91B4BC; color:#134650; }
+.chip-info { background:#EAF1FC; border-color:#9DB3D9; color:#0E3A8A; }
 .filtro-estado { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
 .filtro-estado button { border:1px solid #CAD4DA; background:#fff; color:#314551; border-radius:999px; padding:6px 13px; font-size:14px; font-weight:600; }
-.filtro-estado button[aria-pressed="true"] { background:#1B5E6B; border-color:#1B5E6B; color:#fff; }
-.filtro-estado button:focus-visible { outline:3px solid #F2B705; outline-offset:2px; }
-.nav-badge { margin-left:auto; background:#F2B705; color:#14222B; border-radius:999px; min-width:22px; padding:1px 7px; font-size:12px; font-weight:700; text-align:center; font-family:'Barlow',sans-serif; }
+.filtro-estado button[aria-pressed="true"] { background:#1556B8; border-color:#1556B8; color:#fff; }
+.filtro-estado button:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
+.nav-badge { margin-left:auto; background:#FF8A1F; color:#0A1F44; border-radius:999px; min-width:22px; padding:1px 7px; font-size:12px; font-weight:700; text-align:center; font-family:'Barlow',sans-serif; }
 .estado-caja { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:12px 14px; border-radius:10px; border:1px solid #E2C45C; background:#FFFBEA; }
 .estado-caja.ok { border-color:#8FCFAA; background:#EEF9F2; }
 .chip { display:inline-flex; align-items:center; background:#FFF4CC; border:1px solid #E2C45C; color:#7A5A00;
@@ -134,15 +134,15 @@ const STYLES = `
 
 .logo-empresa { height:clamp(64px,18vw,96px); max-width:46%; object-fit:contain; flex-shrink:0; }
 .nombre-empresa { font-size:clamp(26px,7vw,38px); line-height:1.05; font-weight:700; letter-spacing:.01em;
-  background:linear-gradient(90deg,#14222B 0%,#1B5E6B 45%,#F2B705 100%);
-  -webkit-background-clip:text; background-clip:text; color:#1B5E6B; -webkit-text-fill-color:transparent; }
+  background:linear-gradient(90deg,#0A1F44 0%,#1556B8 45%,#FF8A1F 100%);
+  -webkit-background-clip:text; background-clip:text; color:#1556B8; -webkit-text-fill-color:transparent; }
 @supports not ((-webkit-background-clip:text) or (background-clip:text)) {
-  .nombre-empresa { color:#1B5E6B; -webkit-text-fill-color:currentColor; }
+  .nombre-empresa { color:#1556B8; -webkit-text-fill-color:currentColor; }
 }
 
 .dollar-rain { position:fixed; left:0; top:132px; width:min(22vw,150px); height:calc(100vh - 132px);
   overflow:hidden; pointer-events:none; z-index:20; opacity:.72; }
-.dollar-rain span { position:absolute; top:-48px; color:#F2B705; font-family:"Barlow Condensed", sans-serif;
+.dollar-rain span { position:absolute; top:-48px; color:#FF8A1F; font-family:"Barlow Condensed", sans-serif;
   font-size:clamp(18px,3vw,30px); font-weight:700; text-shadow:0 2px 5px rgba(20,39,49,.24);
   animation:dollar-fall linear infinite; will-change:transform, opacity; }
 @keyframes dollar-fall {
@@ -157,7 +157,7 @@ const STYLES = `
 .product-info-line { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(130px,100%),1fr)); gap:0; width:100%;
   border:1px solid #E1E7EA; border-radius:8px; }
 .product-info-line > div { min-width:0; padding:10px 12px; border:1px solid #E1E7EA; background:#fff; overflow-wrap:anywhere; }
-.product-info-line > div:nth-child(4) { background:#FFF4CC; border:2px solid #F2B705; }
+.product-info-line > div:nth-child(4) { background:#FFF4CC; border:2px solid #FF8A1F; }
 .product-info-line > div:nth-child(4) .lbl,
 .product-info-line > div:nth-child(4) .num { color:#7A5900; font-weight:700; }
 .quote-dialog { font-size:13px; }
@@ -181,11 +181,11 @@ const STYLES = `
   .quote-dialog .label-block dl > div { display:block; }
   .quote-dialog .label-block .cond.num { font-size:23px !important; }
 }
- .product-info-line > .product-price { background:#E4EFF1; border:1px solid #91B4BC; box-shadow:inset 0 3px 0 #1B5E6B; }
+ .product-info-line > .product-price { background:#EAF1FC; border:1px solid #9DB3D9; box-shadow:inset 0 3px 0 #1556B8; }
 .product-price .lbl { color:#245763; font-weight:600; }
-.product-price .num { color:#134650; font-size:22px; line-height:1.25; font-weight:800; }
+.product-price .num { color:#0E3A8A; font-size:22px; line-height:1.25; font-weight:800; }
 .product-model-label { display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#5B6B75; }
-.product-model { font-family:"Barlow Condensed",system-ui,sans-serif; font-size:clamp(28px,5vw,36px); line-height:1.15; font-weight:800; color:#14222B; overflow-wrap:anywhere; margin:2px 0 8px; }
+.product-model { font-family:"Barlow Condensed",system-ui,sans-serif; font-size:clamp(28px,5vw,36px); line-height:1.15; font-weight:800; color:#0A1F44; overflow-wrap:anywhere; margin:2px 0 8px; }
 .product-description-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px 18px; margin-top:12px; }
 .product-description-item { min-width:0; overflow-wrap:anywhere; white-space:pre-wrap; line-height:1.4; color:#5B6B75; font-size:14px; }
 .product-description { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.5; margin-top:10px; color:#5B6B75; }
@@ -195,11 +195,11 @@ const STYLES = `
 }
 
 .layout { display:flex; min-height:100vh; }
-.sidebar { background:#14222B; color:#AFC0C8; width:230px; flex-shrink:0;
+.sidebar { background:#0A1F44; color:#AFC0C8; width:230px; flex-shrink:0;
   display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto;
   transition:transform .25s ease; z-index:50; }
 .sidebar-logo { padding:20px 16px 12px; display:flex; align-items:center; gap:10px;
-  border-bottom:1px solid #2E4150; }
+  border-bottom:1px solid #24407A; }
 .sidebar-logo img { height:36px; max-width:60px; object-fit:contain; background:#fff;
   border-radius:6px; padding:3px 5px; flex-shrink:0; }
 .sidebar-logo .nombre { font-family:'Barlow Condensed', sans-serif; font-weight:700;
@@ -210,11 +210,11 @@ const STYLES = `
   border-radius:8px; color:#AFC0C8; font-weight:600; font-size:15px;
   font-family:'Barlow Condensed', sans-serif; letter-spacing:.02em;
   transition:background .15s, color .15s; cursor:pointer; text-align:left; width:100%; }
-.nav-item:hover { background:#1E2F3A; color:#fff; }
-.nav-item[aria-selected="true"] { background:#1B5E6B; color:#fff; box-shadow:inset 4px 0 0 #F2B705; }
-.nav-item[aria-selected="true"] .nav-icon { color:#F2B705; }
+.nav-item:hover { background:#132C5C; color:#fff; }
+.nav-item[aria-selected="true"] { background:#1556B8; color:#fff; box-shadow:inset 4px 0 0 #FF8A1F; }
+.nav-item[aria-selected="true"] .nav-icon { color:#FF8A1F; }
 .nav-icon { flex-shrink:0; color:currentColor; }
-.sidebar-footer { padding:12px 16px; border-top:1px solid #2E4150;
+.sidebar-footer { padding:12px 16px; border-top:1px solid #24407A;
   font-size:11px; color:#5B6B75; text-align:center; }
 .sidebar-footer .sesion { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; color:#fff; font-size:14px; font-weight:600; }
 .sidebar-footer .sesion button { display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,.12); color:#fff; border:0; border-radius:6px; padding:5px 9px; font-size:13px; font-weight:600; }
@@ -224,9 +224,9 @@ const STYLES = `
 .sidebar-footer .estado.ok { color:#86D9A8; }
 .sidebar-footer .estado.off { color:#F4A08C; }
 
-.hamburger { position:fixed; top:12px; left:12px; z-index:60; background:#14222B;
+.hamburger { position:fixed; top:12px; left:12px; z-index:60; background:#0A1F44;
   color:#fff; border-radius:8px; padding:10px; display:none; box-shadow:0 2px 8px rgba(0,0,0,.25); }
-.hamburger:hover { background:#1E2F3A; }
+.hamburger:hover { background:#132C5C; }
 
 .backdrop { position:fixed; inset:0; background:rgba(20,34,43,.6); z-index:45;
   opacity:0; pointer-events:none; transition:opacity .25s; }
@@ -238,9 +238,9 @@ const STYLES = `
 .page-head { background:#fff; border:1px solid #CAD4DA; border-radius:14px; padding:18px 20px;
   display:flex; align-items:center; gap:14px; box-shadow:0 3px 14px rgba(20,34,43,.06); }
 .page-head-icon { width:46px; height:46px; border-radius:12px; display:flex; align-items:center;
-  justify-content:center; color:#1B5E6B; background:#E4EFF1; flex-shrink:0; }
+  justify-content:center; color:#1556B8; background:#EAF1FC; flex-shrink:0; }
 .page-head h2 { margin:0; font-family:'Barlow Condensed',sans-serif; font-size:28px; line-height:1;
-  font-weight:700; color:#14222B; }
+  font-weight:700; color:#0A1F44; }
 .page-head p { margin:5px 0 0; color:#5B6B75; font-size:14px; line-height:1.35; }
 .section-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .section-toolbar h2 { margin:0; }
@@ -289,15 +289,15 @@ const STYLES = `
   align-items:center; justify-content:center; margin-bottom:4px; }
 .stat-label { font-size:13px; color:#5B6B75; font-weight:500; }
 .stat-value { font-family:'Barlow Condensed', sans-serif; font-weight:700;
-  font-size:32px; line-height:1; color:#14222B; }
+  font-size:32px; line-height:1; color:#0A1F44; }
 .stat-sub { font-size:12px; color:#5B6B75; margin-top:2px; }
 
 .quick-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
   gap:12px; margin-top:20px; }
 .quick-btn { background:#fff; border:1px solid #CAD4DA; border-radius:10px;
   padding:16px; display:flex; align-items:center; gap:12px; font-weight:600;
-  font-size:15px; color:#14222B; cursor:pointer; transition:all .15s; text-align:left; }
-.quick-btn:hover { border-color:#1B5E6B; background:#F6F8F9; transform:translateY(-1px); }
+  font-size:15px; color:#0A1F44; cursor:pointer; transition:all .15s; text-align:left; }
+.quick-btn:hover { border-color:#1556B8; background:#F6F8F9; transform:translateY(-1px); }
 .quick-btn .qa-icon { width:38px; height:38px; border-radius:8px;
   display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 
@@ -330,7 +330,7 @@ const STYLES = `
 
 @media (max-width: 860px) {
   .mobile-topbar { position:fixed; display:flex; align-items:center; gap:12px; top:0; left:0; right:0;
-    height:60px; padding:8px 14px; z-index:44; background:#14222B; color:#fff;
+    height:60px; padding:8px 14px; z-index:44; background:#0A1F44; color:#fff;
     box-shadow:0 2px 10px rgba(20,34,43,.24); }
   .mobile-topbar .hamburger { position:static; display:flex; box-shadow:none; padding:8px; }
   .mobile-topbar-title { min-width:0; flex:1; font-family:'Barlow Condensed',sans-serif;
@@ -346,8 +346,8 @@ const STYLES = `
   .mobile-nav-item { min-width:0; padding:7px 1px 5px; overflow-wrap:anywhere; text-align:center; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:3px; color:#5B6B75; font-size:10px;
     line-height:1.05; font-weight:600; border-radius:8px; }
-  .mobile-nav-item[aria-selected="true"] { color:#1B5E6B; background:#E4EFF1; }
-  .mobile-nav-item[aria-selected="true"] svg { color:#F2B705; }
+  .mobile-nav-item[aria-selected="true"] { color:#1556B8; background:#EAF1FC; }
+  .mobile-nav-item[aria-selected="true"] svg { color:#FF8A1F; }
   .page-head { padding:15px; align-items:flex-start; }
   .page-head-icon { width:40px; height:40px; border-radius:10px; }
   .page-head h2 { font-size:24px; }
@@ -736,9 +736,9 @@ const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const HOJA_CSS = `
   @page { size: A4; margin: 14mm; }
   * { box-sizing: border-box; }
-  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #14222B; margin: 0; font-size: 12px; }
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0A1F44; margin: 0; font-size: 12px; }
   .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px;
-         border-bottom: 3px solid #14222B; padding-bottom: 12px; }
+         border-bottom: 3px solid #0A1F44; padding-bottom: 12px; }
   .logo { max-height: 70px; max-width: 230px; display: block; margin-bottom: 6px; }
   .empresa { font-size: 20px; font-weight: 700; letter-spacing: .02em; }
   .contacto { color: #5B6B75; font-size: 11px; margin-top: 3px; white-space: pre-line; }
@@ -752,7 +752,7 @@ const HOJA_CSS = `
   .para .lb { color: #5B6B75; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
   .para .v { font-size: 14px; font-weight: 600; }
   table { width: 100%; border-collapse: collapse; }
-  thead th { background: #14222B; color: #fff; font-size: 10px; letter-spacing: .05em;
+  thead th { background: #0A1F44; color: #fff; font-size: 10px; letter-spacing: .05em;
              text-transform: uppercase; padding: 7px 6px; text-align: left; }
   tbody td { padding: 7px 6px; border-bottom: 1px solid #E1E7EA; vertical-align: middle; }
   tbody tr:nth-child(even) td { background: #F6F8F9; }
@@ -764,7 +764,7 @@ const HOJA_CSS = `
   .caja { width: 290px; }
   .caja .fila { display: flex; justify-content: space-between; padding: 5px 10px; font-size: 12px; }
   .caja .fila + .fila { border-top: 1px solid #E1E7EA; }
-  .caja .total { background: #14222B; color: #fff; padding: 10px; display: flex;
+  .caja .total { background: #0A1F44; color: #fff; padding: 10px; display: flex;
                  justify-content: space-between; align-items: center; margin-top: 6px; }
   .caja .total span { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
   .caja .total b { font-size: 20px; }
@@ -973,7 +973,7 @@ function PhotoBox({ value, onChange }) {
                 boxShadow: "0 2px 6px rgba(20,34,43,.08)",
               }}
             >
-              <Camera size={30} strokeWidth={1.8} color="#1B5E6B" />
+              <Camera size={30} strokeWidth={1.8} color="#1556B8" />
             </div>
             <span style={{ fontSize: 13, fontWeight: 500, textAlign: "center", padding: "0 8px" }}>
               Toca para agregar foto
@@ -992,7 +992,7 @@ function PhotoBox({ value, onChange }) {
               justifyContent: "center",
               fontSize: 14,
               fontWeight: 500,
-              color: "#14222B",
+              color: "#0A1F44",
             }}
           >
             Procesando…
@@ -1061,15 +1061,15 @@ function Etiqueta({ titulo, filas, totalLabel, total, resaltarLabel = false }) {
             </div>
           ))}
         </dl>
-        <div className="flex justify-between items-end gap-3 mt-3 pt-3" style={{ borderTop: "1px solid #2E4150" }}>
+        <div className="flex justify-between items-end gap-3 mt-3 pt-3" style={{ borderTop: "1px solid #24407A" }}>
           <span className={resaltarLabel ? "cond num" : "text-sm"}
             style={resaltarLabel
-              ? { fontSize: "clamp(24px,6vw,38px)", lineHeight: 1, color: "#F2B705", fontWeight: 700 }
+              ? { fontSize: "clamp(24px,6vw,38px)", lineHeight: 1, color: "#FF8A1F", fontWeight: 700 }
               : { color: "#AFC0C8" }}>
             {totalLabel}
           </span>
           <span className="cond num"
-            style={{ fontSize: resaltarLabel ? "clamp(24px,6vw,38px)" : 38, lineHeight: 1, color: "#F2B705", fontWeight: 700 }}>
+            style={{ fontSize: resaltarLabel ? "clamp(24px,6vw,38px)" : 38, lineHeight: 1, color: "#FF8A1F", fontWeight: 700 }}>
             {total}
           </span>
         </div>
@@ -1236,7 +1236,7 @@ function ListaRegistradas({
             <button key={c.id} onClick={() => onOpen(c)}
               className="w-full text-left p-4 flex items-center gap-3 hover:bg-gray-50"
               style={i > 0 ? { borderTop: "1px solid #E1E7EA" } : undefined}>
-              <FileText size={22} color="#1B5E6B" className="flex-shrink-0" />
+              <FileText size={22} color="#1556B8" className="flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between gap-2">
                   <span className="flex items-center gap-2 min-w-0">
@@ -1527,6 +1527,19 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
               {creandoCategoria && <p className="muted text-sm mt-1">La categoría se guardará junto con el producto.</p>}
             </div>
 
+            <div className="form-grid-cod">
+              <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600 }}>
+                <input type="checkbox" style={{ width: 20, height: 20 }} checked={form.destacado === "si"}
+                  onChange={(e) => setForm((f) => ({ ...f, destacado: e.target.checked ? "si" : "" }))} />
+                Destacado: sale de primero en el catálogo
+              </label>
+              <div>
+                <label className="lbl" htmlFor="p-antes">Precio anterior, si está en oferta (opcional)</label>
+                <input id="p-antes" className="inp num" inputMode="decimal" placeholder="0.00" value={form.precioAntes} onChange={set("precioAntes")} />
+                <p className="muted text-sm mt-1">Si es mayor que el precio de venta, sale tachado con la etiqueta «Oferta».</p>
+              </div>
+            </div>
+
             <details className="paper p-3">
               <summary className="font-semibold" style={{ cursor: "pointer" }}>Versión en inglés (opcional){form.nombreEn || form.descripcionEn ? " · con datos" : ""}</summary>
               <p className="muted text-sm mt-2">Es lo que ve el cliente cuando pone el catálogo en inglés. Lo que dejes vacío se muestra en español.</p>
@@ -1814,9 +1827,8 @@ function DetalleInterna({ cot, onClose, empresa, avisar }) {
         />
       )}
 
-      <AccionesHoja onImprimir={imprimir} onCompartir={compartir} datos={datos} />
       <p className="text-sm muted text-center">
-        Este registro se borra al eliminar la cotización {cot.numero} en Cotizaciones clientes.
+        Información interna: no se imprime ni se comparte. Este registro se borra al eliminar la cotización {cot.numero} en Cotizaciones clientes.
       </p>
     </ModalShell>
   );
@@ -1921,10 +1933,10 @@ function LineaClienteCard({ l, onChange, onRemove }) {
           <label className="lbl">Cantidad</label>
           <input className="inp num" inputMode="decimal" value={l.cantidad} onChange={set("cantidad")} />
         </div>
-        <div>
+        {!SOLO_VENTA && <div>
           <label className="lbl">Precio CBM</label>
           <input className="inp num" inputMode="decimal" placeholder="0.00" value={l.precioCbm} onChange={set("precioCbm")} />
-        </div>
+        </div>}
         <div>
           <label className="lbl">Precio de venta</label>
           <input className="inp inp-venta num" inputMode="decimal" placeholder="0.00" value={l.precioVenta} onChange={set("precioVenta")} />
@@ -2259,7 +2271,7 @@ function CotizacionClienteView({ productos, cotiz, guardarCotizaciones, internas
     const ok = await guardarCotizaciones({ contador: n, lista: [registro, ...cotiz.lista] });
     setGuardando(false);
     if (ok) {
-      avisar(`${numero} registrada, también en las internas`);
+      avisar(SOLO_VENTA ? `${numero} registrada` : `${numero} registrada, también en las internas`);
       limpiarFormulario();
     }
   }
@@ -2735,7 +2747,7 @@ function GananciasView({ clientes }) {
 
 const PUERTO_IMG = "https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?w=1600&q=80&auto=format&fit=crop";
 
-function InicioView({ productos, internas, clientes, empresa, irA }) {
+function InicioView({ productos, internas, clientes, empresa, irA, vendedor }) {
   const totalProductos = productos.length;
   const totalInternas = internas.lista.length;
   const totalClientes = clientes.lista.length;
@@ -2758,12 +2770,12 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
   }, [clientes.lista]);
 
   const stats = [
-    { label: "Productos", value: totalProductos, sub: "en catálogo", color: "#1B5E6B", bg: "#E4EFF1", icon: Package },
+    { label: "Productos", value: totalProductos, sub: "en catálogo", color: "#1556B8", bg: "#EAF1FC", icon: Package },
     { label: "Cotizaciones internas", value: totalInternas, sub: "registradas", color: "#8A2B1B", bg: "#F9E1DC", icon: FileTextIcon },
     { label: "Cotizaciones clientes", value: totalClientes, sub: "registradas", color: "#1F4E8C", bg: "#E3ECFA", icon: Users },
     { label: "Ganancia confirmada", value: money(gananciaTotal), sub: `por confirmar: ${money(gananciaPendiente)}`, color: gananciaTotal < 0 ? "#A3321F" : "#1D7A46", bg: "#D7EFE2", icon: TrendingUp },
     { label: "Por cobrar", value: money(porCobrar), sub: "saldo de cotizaciones confirmadas", color: "#7A5A00", bg: "#FFF4CC", icon: DollarSign },
-  ];
+  ].filter((s) => !vendedor || !["Cotizaciones internas", "Ganancia confirmada"].includes(s.label));
 
   return (
     <div className="space-y-6">
@@ -2776,11 +2788,11 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
           <dl className="portada-datos">
             <div><dt>Pendientes</dt><dd className="num">{pendientesInicio}</dd></div>
             <div><dt>Por cobrar</dt><dd className="num">{money(porCobrar)}</dd></div>
-            <div><dt>Ganancia del mes</dt><dd className="num">{money(gananciaDelMes)}</dd></div>
+            {!vendedor && <div><dt>Ganancia del mes</dt><dd className="num">{money(gananciaDelMes)}</dd></div>}
           </dl>
           <div className="portada-botones">
             <button className="btn" onClick={() => irA("clientes")}><Plus size={17} />Nueva cotización</button>
-            <button className="btn claro" onClick={() => irA("ganancias")}><TrendingUp size={17} />Ver ganancias</button>
+            {!vendedor && <button className="btn claro" onClick={() => irA("ganancias")}><TrendingUp size={17} />Ver ganancias</button>}
           </div>
         </div>
         <Categorias productos={productos} elegir={() => irA("catalogo-cliente")} />
@@ -2804,26 +2816,26 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
 
       <div className="quick-actions">
         <button className="quick-btn" onClick={() => irA("clientes")}>
-          <div className="qa-icon" style={{ background: "#E4EFF1", color: "#1B5E6B" }}><FileTextIcon size={20} /></div>
+          <div className="qa-icon" style={{ background: "#EAF1FC", color: "#1556B8" }}><FileTextIcon size={20} /></div>
           <div>
             <div>Nueva cotización</div>
             <div className="text-sm muted" style={{ fontWeight: 400 }}>Para un cliente</div>
           </div>
         </button>
-        <button className="quick-btn" onClick={() => irA("productos")}>
+        {!vendedor && <button className="quick-btn" onClick={() => irA("productos")}>
           <div className="qa-icon" style={{ background: "#FFF4CC", color: "#7A5A00" }}><Package size={20} /></div>
           <div>
             <div>Agregar producto</div>
             <div className="text-sm muted" style={{ fontWeight: 400 }}>Al catálogo</div>
           </div>
-        </button>
-        <button className="quick-btn" onClick={() => irA("ganancias")}>
+        </button>}
+        {!vendedor && <button className="quick-btn" onClick={() => irA("ganancias")}>
           <div className="qa-icon" style={{ background: "#F6DDD6", color: "#7A2D1B" }}><DollarSign size={20} /></div>
           <div>
             <div>Ver ganancias</div>
             <div className="text-sm muted" style={{ fontWeight: 400 }}>Por mes y por cotización</div>
           </div>
-        </button>
+        </button>}
       </div>
 
       <div className="recientes">
@@ -2837,7 +2849,7 @@ function InicioView({ productos, internas, clientes, empresa, irA }) {
               const venta = c.totalFinal ?? totalConDescuento(c, t.totalVenta);
               return (
                 <button key={c.id} className="reciente-item" onClick={() => irA("clientes")}>
-                  <FileText size={20} color="#1B5E6B" style={{ flexShrink: 0 }} />
+                  <FileText size={20} color="#1556B8" style={{ flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                       <span className="reciente-num">{c.numero}</span>
@@ -2871,9 +2883,17 @@ const TABS = [
   { id: "catalogo-interno", label: "Catálogo interno", corto: "Cat. interno", icon: BookOpen },
 ];
 
+const PESTANAS_VENDEDOR = ["inicio", "directorio", "clientes", "catalogo-cliente"];
+// Con un vendedor en sesión se ocultan los campos de costo de los formularios compartidos.
+let SOLO_VENTA = false;
+
 function AdminApp({ sesion }) {
   const esAdmin = sesion?.perfil?.rol === "admin";
-  const pestanas = esAdmin ? [...TABS, { id: "usuarios", label: "Usuarios", icon: ShieldCheck }] : TABS;
+  // El vendedor cotiza y ve el catálogo del cliente; no ve costos, ganancias ni cotizaciones internas.
+  const esVendedor = sesion?.perfil?.rol === "vendedor";
+  SOLO_VENTA = esVendedor;
+  const pestanas = esVendedor ? TABS.filter((t) => PESTANAS_VENDEDOR.includes(t.id))
+    : esAdmin ? [...TABS, { id: "usuarios", label: "Usuarios", icon: ShieldCheck }] : TABS;
   const [tab, setTab] = useState("inicio");
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [productos, setProductos] = useState([]);
@@ -3029,6 +3049,7 @@ function AdminApp({ sesion }) {
   };
 
   const cambiarTab = (t) => {
+    if (!pestanas.some((p) => p.id === t)) return;
     // Al abrir las cotizaciones de clientes se traen las que hayan llegado del catálogo.
     if ((t === "clientes" || t === "directorio" || t === "ganancias" || t === "cupones") && supabase) sbLoadCotizacionesClientes().then(async (cc) => {
       if (!cc) return;
@@ -3103,7 +3124,7 @@ function AdminApp({ sesion }) {
             ) : (
               <>
                 {tab === "inicio" && (
-                  <InicioView productos={productos} internas={internas} clientes={clientes}
+                  <InicioView vendedor={esVendedor} productos={productos} internas={internas} clientes={clientes}
                     empresa={empresa} irA={cambiarTab} />
                 )}
                 {tab === "productos" && (

@@ -140,6 +140,14 @@ const ESTILOS = `${ESTILOS_VITRINA}
 .cat-foto { overflow:hidden; }
 .cat-foto img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; padding:14px; transition:transform .3s ease; }
 .cat-card:hover .cat-foto img { transform:scale(1.04); }
+.cat-insignia { position:absolute; right:12px; top:12px; z-index:1; background:#FF8A1F; color:#1B1000; border-radius:999px; padding:4px 11px; font-size:12px; font-weight:800;
+  letter-spacing:.05em; text-transform:uppercase; box-shadow:0 4px 10px rgba(0,0,0,.18); }
+.cat-insignia.oferta { background:#E0242B; color:#fff; }
+.cat-antes { display:inline-block; margin-left:8px; color:#8A97A0; font-size:15px; font-weight:600; }
+.cat-barra { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 16px; }
+.cat-ordenar { display:inline-flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:#5B6B75; }
+.cat-ordenar select { border:1px solid #CAD4DA; border-radius:8px; padding:8px 10px; background:#fff; color:#14222B; font:inherit; font-size:14.5px; font-weight:600; }
+.cat-ordenar select:focus { outline:3px solid #FF8A1F; outline-offset:1px; }
 .cat-card { border-top:4px solid #1556B8; }
 .cat-card:nth-child(3n+2) { border-top-color:#FF8A1F; }
 .cat-card:nth-child(3n) { border-top-color:#E0242B; }
@@ -431,6 +439,7 @@ const normalizar = (p) => {
     cbm, peso, porPeso, cobrable, por: MINIMO_CBM > real ? `mínimo de ${MINIMO_CBM} CBM` : porPeso > cbm ? "peso" : "volumen",
     producto, precioCbm, flete, costo: producto + flete, venta: Number(p.precio_venta ?? p.precioVenta) || 0,
     foto: p.foto || "", ficha, grupo: fichaEs.grupo, opcion: ficha.opcion || fichaEs.opcion,
+    destacado: fichaEs.destacado, antes: fichaEs.precioAntes > (Number(p.precio_venta ?? p.precioVenta) || 0) && (Number(p.precio_venta ?? p.precioVenta) || 0) > 0 ? fichaEs.precioAntes : 0,
   };
 };
 
@@ -527,6 +536,7 @@ function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir }) {
   const contenido = <>
     <div className="cat-foto">
       {p.ficha.marca && <span className="cat-etiqueta">{p.ficha.marca}</span>}
+      {modo === "cliente" && (p.antes > 0 ? <span className="cat-insignia oferta">{T("Oferta")}</span> : p.destacado ? <span className="cat-insignia">{T("Destacado")}</span> : null)}
       <Foto src={p.foto} alt="" />
     </div>
     <div className="cat-cuerpo">
@@ -544,6 +554,7 @@ function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir }) {
           <div className="cat-precio">
             <small>{modo === "cliente" ? T("Precio") : "Precio de costo"}</small>
             <b className="cat-num">{precio > 0 ? dinero(precio) : T("Consultar")}</b>
+            {modo === "cliente" && p.antes > 0 && <s className="cat-antes cat-num">{dinero(p.antes)}</s>}
           </div>
           <span className="cat-ver">{T("Ver ficha")}<ChevronRight size={15} /></span>
         </div>
@@ -610,6 +621,7 @@ function Ficha({ p, modo, cerrar, pedir, opciones, elegir }) {
             <div className="cat-precio-grande">
               <small>{interno ? "Precio de costo del producto" : T("Precio")}</small>
               <b className="cat-num">{precio > 0 ? dinero(precio) : T("Consultar")}</b>
+              {!interno && p.antes > 0 && <s className="cat-antes cat-num" style={{ marginLeft: 10, fontSize: 20 }}>{dinero(p.antes)}</s>}
             </div>
             {pedir && !(precio > 0) && <ConsultarPrecio p={p} whatsapp={pedir.whatsapp} />}
             {interno ? (
@@ -1367,11 +1379,17 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
     return [...cuenta.entries()].sort((a, b) => a[0].localeCompare(b[0], "es"));
   }, [unicos]);
 
+  const [orden, setOrden] = useState("destacados");
   const filtrados = useMemo(() => {
     const s = sinAcentos(q.trim());
-    return unaPorGrupo(productos.filter((p) => (!categoria || p.categoria === categoria) &&
+    const lista = unaPorGrupo(productos.filter((p) => (!categoria || p.categoria === categoria) &&
       (!s || sinAcentos(`${p.codigo} ${p.nombre} ${p.categoria} ${p.categoriaVista} ${p.ficha.marca} ${p.opcion}`).includes(s))));
-  }, [productos, q, categoria, grupos, elegidas]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Ofertas y destacados van de primero; por precio, los que no tienen precio quedan al final. El orden original desempata.
+    const valor = modo === "cliente" ? (p) => p.venta : (p) => p.producto;
+    const peso = orden === "destacados" ? (p) => (p.antes > 0 ? 0 : p.destacado ? 1 : 2)
+      : orden === "menor" ? (p) => (valor(p) > 0 ? valor(p) : Infinity) : (p) => (valor(p) > 0 ? -valor(p) : Infinity);
+    return lista.map((p, n) => [p, n]).sort((a, b) => (peso(a[0]) - peso(b[0])) || (a[1] - b[1])).map(([p]) => p);
+  }, [productos, q, categoria, grupos, elegidas, orden, modo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const seleccionado = abierto ? productos.find((p) => p.codigo.toLowerCase() === abierto.toLowerCase()) : null;
   const sinPrecio = productos.filter((p) => p.venta <= 0).length;
@@ -1480,10 +1498,20 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
         {enCotizaciones ? <div style={{ paddingBottom: 56 }}>{cuenta.contenido}</div> : estado === "cargando" ? <p className="cat-cuenta" role="status">{T("Cargando productos…")}</p> : <>
           {aplicarGanancia && productos.length > 0 && <GananciaGeneral cuantos={productos.length} aplicar={aplicarGanancia} />}
           {cambiarPrecioCbm && productos.length > 0 && <PrecioCbmGeneral productos={productos} cambiar={cambiarPrecioCbm} />}
-          <p className="cat-cuenta" role="status">
-            {filtrados.length === unicos.length ? T("{n} productos", { n: unicos.length }) : T("{a} de {b} productos", { a: filtrados.length, b: unicos.length })}
-            
-          </p>
+          <div className="cat-barra">
+            <p className="cat-cuenta" role="status">
+              {filtrados.length === unicos.length ? T("{n} productos", { n: unicos.length }) : T("{a} de {b} productos", { a: filtrados.length, b: unicos.length })}
+            </p>
+            {productos.length > 1 && (
+              <label className="cat-ordenar">{T("Ordenar")}
+                <select value={orden} onChange={(e) => setOrden(e.target.value)}>
+                  <option value="destacados">{T("Destacados primero")}</option>
+                  <option value="menor">{T("Precio: menor a mayor")}</option>
+                  <option value="mayor">{T("Precio: mayor a menor")}</option>
+                </select>
+              </label>
+            )}
+          </div>
           {!productos.length ? <div className="cat-vacio">{T("Próximamente encontrarás nuestros productos aquí.")}</div> :
             !filtrados.length ? (
               <div className="cat-vacio">

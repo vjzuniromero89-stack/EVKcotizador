@@ -59,7 +59,7 @@ begin
   if length(coalesce(p_clave, '')) < 8 then
     raise exception 'La contraseña debe tener al menos 8 caracteres.';
   end if;
-  if p_rol not in ('admin', 'usuario') then
+  if p_rol not in ('admin', 'usuario', 'vendedor') then
     raise exception 'Tipo de usuario no válido.';
   end if;
   if exists (select 1 from public.usuarios u where u.usuario = v_usuario) then
@@ -105,7 +105,7 @@ create or replace function public.actualizar_usuario(p_id uuid, p_nombre text, p
 language plpgsql security definer set search_path = '' as $$
 begin
   if not public.es_admin() then raise exception 'Solo un administrador puede cambiar usuarios.'; end if;
-  if p_rol not in ('admin', 'usuario') then raise exception 'Tipo de usuario no válido.'; end if;
+  if p_rol not in ('admin', 'usuario', 'vendedor') then raise exception 'Tipo de usuario no válido.'; end if;
   if (p_rol <> 'admin' or not p_activo)
      and not exists (select 1 from public.usuarios u where u.id <> p_id and u.rol = 'admin' and u.activo) then
     raise exception 'Tiene que quedar al menos un administrador activo.';

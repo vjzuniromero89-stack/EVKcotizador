@@ -61,6 +61,12 @@ const INGLES = {
   "Ver y enviar": "View and send",
 
   "Ver ficha": "View details",
+  "Oferta": "Sale",
+  "Destacado": "Featured",
+  "Ordenar": "Sort",
+  "Destacados primero": "Featured first",
+  "Precio: menor a mayor": "Price: low to high",
+  "Precio: mayor a menor": "Price: high to low",
   "Precio": "Price",
   "Consultar": "Ask us",
   "Elige una opción": "Choose an option",

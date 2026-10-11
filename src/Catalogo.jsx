@@ -618,11 +618,10 @@ function Opciones({ p, opciones, elegir, modo }) {
   );
 }
 
-function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir, ampliar }) {
+function Tarjeta({ p, modo, abrir, guardar, pedir, opciones, elegir }) {
   const precio = modo === "cliente" ? p.venta : p.producto;
   const contenido = <>
-    <div className={`cat-foto${ampliar && p.foto ? " cat-ampliable" : ""}`} title={ampliar && p.foto ? T("Ver la foto en grande") : undefined}
-      onClick={ampliar && p.foto ? (e) => { e.stopPropagation(); ampliar({ p, i: 0 }); } : undefined}>
+    <div className="cat-foto">
       {p.ficha.marca && <span className="cat-etiqueta">{p.ficha.marca}</span>}
       {modo === "cliente" && (p.antes > 0 ? <span className="cat-insignia oferta">{T("Oferta")}</span> : p.destacado ? <span className="cat-insignia">{T("Destacado")}</span> : null)}
       <Foto src={p.foto} alt="" />
@@ -1610,7 +1609,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
                 <button type="button" className="cat-btn" onClick={() => { setQ(""); setCategoria(""); }}>{T("Ver todos los productos")}</button>
               </div>
             ) : <div className="cat-grid">{filtrados.map((p) => <Tarjeta key={p.id} p={p} modo={modo} abrir={() => abrir(p.codigo)} guardar={guardarPrecio} pedir={pedir}
-              opciones={opcionesDe(p)} elegir={(codigo) => elegirOpcion(p, codigo)} ampliar={setFotoGrande} />)}</div>}
+              opciones={opcionesDe(p)} elegir={(codigo) => elegirOpcion(p, codigo)} />)}</div>}
         </>}
       </main>
 

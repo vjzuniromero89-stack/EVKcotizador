@@ -102,6 +102,8 @@ const STYLES = `
 .tablero-canceladas { border-top:1px solid #E1E7EA; padding:10px 16px 14px; }
 .tablero-canceladas summary { cursor:pointer; font-weight:700; color:#5B6B75; }
 .tablero-canceladas > div { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; margin-top:10px; }
+.pagos-porc { margin-top:12px; padding:10px 12px; border-radius:10px; background:#EAF1FC; border:1px solid #C9D8F0; }
+.pagos-porc > div { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; }
 .estado-caja.off { border-color:#C3CDD3; background:#F3F6F7; }
 .estado-pasos { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .pagos-caja { border:1px solid #CAD4DA; border-radius:10px; padding:12px 14px; background:#fff; }
@@ -2150,6 +2152,7 @@ function DetalleCliente({ cot, onClose, onDelete, onActualizar, onEditar, empres
   const [ocupado, setOcupado] = useState(false);
   const [pago, setPago] = useState({ monto: "", nota: "" });
   const [pestana, setPestana] = useState("cliente");
+  const [otroPorc, setOtroPorc] = useState("");
   const pestanas = [["cliente", "Cliente"], ...(SOLO_VENTA ? [] : [["costos", "Costos y ganancia"]]), ["pagos", "Pagos"], ["seguimiento", "Seguimiento"]];
   const pagos = cot.totales?.pagos || [];
   const pagado = pagadoDe(cot);
@@ -2327,6 +2330,28 @@ function DetalleCliente({ cot, onClose, onDelete, onActualizar, onEditar, empres
               ))}
             </ul>
           )}
+          <div className="pagos-porc">
+            <span className="lbl" style={{ margin: 0 }}>Calcular el pago por porcentaje del total</span>
+            <div>
+              {[30, 50, 70].map((p) => (
+                <button type="button" key={p} className={`btn ${num(pago.monto) > 0 && num(pago.monto) === Math.round(totalFinal * p) / 100 ? "btn-primary" : "btn-ghost"}`}
+                  onClick={() => { setOtroPorc(""); setPago((v) => ({ ...v, monto: String(Math.round(totalFinal * p) / 100), nota: `Pago del ${p}%` })); }}>{p}%</button>
+              ))}
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <input className="inp num" style={{ width: 84 }} inputMode="decimal" placeholder="Otro" aria-label="Otro porcentaje del total" value={otroPorc}
+                  onChange={(e) => {
+                    const p = parseFloat(e.target.value.replace(",", "."));
+                    setOtroPorc(e.target.value);
+                    setPago((v) => ({ ...v, monto: p > 0 ? String(Math.round(totalFinal * Math.min(100, p)) / 100) : "", nota: p > 0 ? `Pago del ${Math.min(100, p)}%` : v.nota }));
+                  }} />
+                <span>%</span>
+              </label>
+              {totalFinal - pagado > 0 && (
+                <button type="button" className="btn btn-ghost"
+                  onClick={() => { setOtroPorc(""); setPago((v) => ({ ...v, monto: String(Math.round((totalFinal - pagado) * 100) / 100), nota: "Saldo" })); }}>Todo el saldo</button>
+              )}
+            </div>
+          </div>
           <div className="pagos-form">
             <div>
               <label className="lbl" htmlFor="pago-monto">Monto recibido</label>

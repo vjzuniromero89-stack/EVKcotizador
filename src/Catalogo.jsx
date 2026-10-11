@@ -3,7 +3,7 @@ import { Search, X, Camera, Share2, Check, Box, Scale, Ship, ChevronRight, Plus,
 import { LOGO_POR_DEFECTO } from "./logo.js";
 import { hojaImagen, TIEMPOS_ENTREGA, DIAS_PRODUCCION, DIAS_ENVIO } from "./hoja.js";
 import { leerDescripcion } from "./descripcion.js";
-import { T, EN, IDIOMA, cambiarIdioma } from "./idioma.js";
+import { T, EN, IDIOMA, cambiarIdioma, fijarIdioma } from "./idioma.js";
 import { CATALOGO_XPROMISE } from "./catalogoXpromise.js";
 
 const KG_POR_CBM = 350;
@@ -40,11 +40,11 @@ export const ESTILOS_VITRINA = `
 `;
 
 /** Botón ES / EN de las páginas del cliente. */
-function SelectorIdioma() {
+function SelectorIdioma({ cambiar = cambiarIdioma }) {
   return (
     <div className="cat-idioma" role="group" aria-label="Idioma / Language">
-      <button type="button" aria-pressed={!EN} onClick={() => EN && cambiarIdioma("es")}>Español</button>
-      <button type="button" aria-pressed={EN} onClick={() => !EN && cambiarIdioma("en")}>English</button>
+      <button type="button" aria-pressed={!EN} onClick={() => EN && cambiar("es")}>Español</button>
+      <button type="button" aria-pressed={EN} onClick={() => !EN && cambiar("en")}>English</button>
     </div>
   );
 }
@@ -1222,7 +1222,11 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
   const dentro = Array.isArray(propios);
   const [descargados, setProductos] = useState([]);
   const [descarga, setEstado] = useState("cargando");
-  const productos = useMemo(() => (dentro ? propios.map(normalizar) : descargados), [dentro, propios, descargados]);
+  // En la vista previa de la app el botón de idioma cambia el catálogo ahí mismo, sin recargar.
+  const [idiomaVista, setIdiomaVista] = useState("es");
+  if (vistaPrevia) fijarIdioma(idiomaVista);
+  useEffect(() => (vistaPrevia ? () => fijarIdioma("es") : undefined), [vistaPrevia]);
+  const productos = useMemo(() => (dentro ? propios : descargados).map(normalizar), [dentro, propios, descargados, idiomaVista]); // eslint-disable-line react-hooks/exhaustive-deps
   const estado = dentro ? "listo" : descarga;
   const [q, setQ] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -1239,7 +1243,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
         if (res.ok && Array.isArray(data)) lista = data;
       } catch (error) { if (error.name === "AbortError") return; }
       // Sin conexión con la base de datos se muestra el catálogo XPROMISE que viene con la página.
-      setProductos((lista ?? CATALOGO_XPROMISE).map(normalizar));
+      setProductos(lista ?? CATALOGO_XPROMISE);
       setEstado("listo");
     })();
     return () => controller.abort();
@@ -1346,7 +1350,7 @@ export default function Catalogo({ modo = "cliente", productos: propios, guardar
       )}
       <header className="cat-top">
         <div className="cat-wrap cat-top-in">
-          {amarilla && !dentro && !vistaPrevia && <SelectorIdioma />}
+          {amarilla && !dentro && <SelectorIdioma cambiar={vistaPrevia ? setIdiomaVista : undefined} />}
           <div className="cat-top-texto">
           <div className="cat-marca">
             <img src={LOGO_POR_DEFECTO} alt="" />

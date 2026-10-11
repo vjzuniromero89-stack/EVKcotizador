@@ -17,8 +17,14 @@ function leer() {
   return pedido === "en" ? "en" : "es";
 }
 
-export const IDIOMA = leer();
-export const EN = IDIOMA === "en";
+export let IDIOMA = leer();
+export let EN = IDIOMA === "en";
+
+/** Solo para la vista previa dentro de la app: cambia el idioma sin recargar. Al salir de ella vuelve a español. */
+export function fijarIdioma(nuevo) {
+  IDIOMA = nuevo === "en" ? "en" : "es";
+  EN = IDIOMA === "en";
+}
 if (typeof document !== "undefined") document.documentElement.lang = IDIOMA;
 
 /** Cambia el idioma y vuelve a cargar la página en ese idioma (la cotización en curso se conserva). */

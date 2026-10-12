@@ -39,7 +39,7 @@ const apiDePrueba = {
         const pedido = JSON.parse(texto || "{}");
         const lineas = (pedido.lineas || []).map((l) => {
           const p = CATALOGO_XPROMISE.find((x) => x.codigo === l.codigo);
-          return p && { codigo: p.codigo, nombre: p.nombre, cantidad: l.cantidad, precio: Math.round(p.precioProducto * 1.3), foto: p.foto };
+          return p && { codigo: p.codigo, nombre: p.nombre, cantidad: l.cantidad, precio: Math.round(p.precioProducto * 1.3), foto: p.foto, cbm: p.cbm || 0, peso: p.peso || 0, descripcion: p.descripcion || "" };
         }).filter(Boolean);
         ultima = {
           id: "00000000-0000-4000-8000-000000000001", numero: "WEB-0001", fecha: new Date().toISOString(),

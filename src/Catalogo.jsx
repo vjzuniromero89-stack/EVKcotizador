@@ -423,51 +423,76 @@ const ESTILOS = `${ESTILOS_VITRINA}
 .cat-tiempos { background:#EAF1FC; border-radius:8px; padding:10px 12px; font-size:14.5px; color:#0E3A8A; margin:12px 0 0; line-height:1.4; }
 .cat-guardada { display:flex; align-items:center; gap:8px; color:#1D7A46; font-weight:600; font-size:16px; margin:0 0 12px; }
 .hoja { background:#fff; border:1px solid #C9D3DE; border-radius:16px; overflow:hidden; box-shadow:0 8px 24px rgba(10,31,68,.10); color:#0A1F44; }
-.hoja-cab { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px 20px; padding:20px 22px; color:#fff;
-  background:linear-gradient(120deg,#0A1F44 0%,#14438F 75%,#1B5FCC 100%); }
+.hoja-cab { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px 20px; padding:22px 24px; color:#fff;
+  background:linear-gradient(120deg,#0A1F44 0%,#14438F 75%,#1B5FCC 100%); border-bottom:5px solid #FF8A1F; }
 .hoja-empresa { display:flex; align-items:center; gap:14px; min-width:0; }
-.hoja-empresa img { width:64px; height:64px; border-radius:50%; object-fit:cover; background:#fff; flex:none; }
-.hoja-empresa b { display:block; font-family:'Barlow Condensed',sans-serif; font-size:28px; font-weight:800; line-height:1; }
+.hoja-empresa img { width:68px; height:68px; border-radius:50%; object-fit:cover; background:#fff; flex:none; }
+.hoja-empresa b { display:block; font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:800; line-height:1; }
 .hoja-empresa span { display:block; font-size:15px; color:#D3E1F7; margin-top:4px; }
 .hoja-numero { text-align:right; margin-left:auto; }
-.hoja-numero small { display:block; font-size:13px; font-weight:700; letter-spacing:.12em; color:#FFB45C; }
-.hoja-numero b { display:block; font-family:'Barlow Condensed',sans-serif; font-size:36px; font-weight:800; line-height:1; }
-.hoja-numero span { display:block; font-size:15px; color:#D3E1F7; margin-top:3px; }
-.hoja-cliente { padding:16px 22px; border-bottom:1px solid #E1E7EA; background:#F3F7FE; }
-.hoja-cliente small { display:block; font-size:12.5px; font-weight:700; letter-spacing:.1em; color:#1556B8; }
-.hoja-cliente b { display:block; font-size:24px; font-weight:700; line-height:1.15; overflow-wrap:anywhere; }
-.hoja-cliente span { font-size:16px; color:#44566A; }
-.hoja-lineas { list-style:none; margin:0; padding:6px 22px; }
-.hoja-lineas li { display:flex; align-items:center; gap:16px; padding:16px 0; border-bottom:1px solid #E6ECEF; }
-.hoja-lineas li:last-child { border-bottom:0; }
-.hoja-foto { width:112px; height:112px; flex:none; padding:6px; border:1px solid #D5DEE3; border-radius:12px; background:#fff; cursor:zoom-in; }
+.hoja-numero small { display:block; font-size:13px; font-weight:700; letter-spacing:.14em; color:#FFB45C; }
+.hoja-numero b { display:block; font-family:'Barlow Condensed',sans-serif; font-size:40px; font-weight:800; line-height:1; }
+.hoja-cliente { margin:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px 22px; padding:16px 24px; border-bottom:1px solid #D5DEE8; background:#F3F7FE; }
+.hoja-cliente .ancho { grid-column:1 / -1; }
+.hoja-cliente dt { font-size:12.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#1556B8; }
+.hoja-cliente dd { margin:2px 0 0; font-size:17px; font-weight:600; overflow-wrap:anywhere; }
+.hoja-cliente dd.grande { font-size:26px; font-weight:700; line-height:1.15; }
+.hoja-titulo { margin:0; padding:18px 24px 0; font-size:14px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#1556B8; }
+.hoja-lineas { list-style:none; margin:0; padding:0 24px 8px; }
+.hoja-lineas > li { padding:18px 0; border-bottom:1px solid #D5DEE8; }
+.hoja-lineas > li:last-child { border-bottom:0; }
+.hoja-linea { display:grid; grid-template-columns:150px minmax(0,1fr) auto; gap:18px; align-items:start; }
+.hoja-foto { width:150px; height:150px; padding:8px; border:1px solid #C9D3DE; border-radius:12px; background:#fff; cursor:zoom-in; }
 .hoja-foto:disabled { cursor:default; }
 .hoja-foto img { width:100%; height:100%; object-fit:contain; display:block; }
 .hoja-foto:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
-.hoja-prod { flex:1 1 auto; min-width:0; }
-.hoja-prod b { display:block; font-size:20px; font-weight:700; line-height:1.2; overflow-wrap:anywhere; }
-.hoja-prod span { display:block; font-size:15px; color:#5B6B75; margin-top:2px; }
-.hoja-prod small { display:inline-block; margin-top:8px; font-size:17px; font-weight:600; color:#0A1F44; background:#EAF1FC; border-radius:8px; padding:4px 10px; }
-.hoja-importe { flex:none; font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:800; white-space:nowrap; }
-.hoja-pie { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:18px; padding:18px 22px; border-top:2px solid #0A1F44; align-items:end; }
-.hoja-datos { margin:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-.hoja-datos div { background:#F6F8F9; border-radius:10px; padding:10px 12px; }
+.hoja-prod { min-width:0; }
+.hoja-codigo { display:block; font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#1556B8; }
+.hoja-prod > b { display:block; font-size:22px; font-weight:700; line-height:1.2; margin-top:2px; overflow-wrap:anywhere; }
+.hoja-prod > p { margin:8px 0 0; font-size:16px; line-height:1.45; color:#33465C; }
+.hoja-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.hoja-chips span { display:inline-flex; align-items:center; gap:6px; font-size:15px; font-weight:600; background:#EAF1FC; border:1px solid #C9D8F0; border-radius:8px; padding:5px 10px; }
+.hoja-precio { display:grid; grid-template-columns:auto auto; align-items:baseline; gap:4px 14px; text-align:right; padding:12px 14px; border-radius:12px; background:#F6F8F9; min-width:230px; }
+.hoja-precio small { font-size:13.5px; font-weight:600; color:#5B6B75; text-align:left; }
+.hoja-precio b { font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:800; line-height:1.05; white-space:nowrap; }
+.hoja-precio b.chico { font-family:inherit; font-size:18px; font-weight:700; }
+.hoja-ficha { margin-top:14px; border:1px solid #D5DEE8; border-radius:12px; background:#FBFCFE; }
+.hoja-ficha summary { cursor:pointer; padding:11px 14px; font-size:16px; font-weight:700; color:#1556B8; }
+.hoja-ficha summary:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; border-radius:10px; }
+.hoja-ficha > div { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px 26px; padding:4px 16px 16px; }
+.hoja-ficha h4 { margin:0 0 8px; font-family:'Barlow Condensed',sans-serif; font-size:21px; font-weight:700; border-left:4px solid #FF8A1F; padding-left:8px; }
+.hoja-ficha ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
+.hoja-ficha li { display:flex; gap:8px; font-size:15.5px; line-height:1.35; }
+.hoja-ficha li svg { flex:none; margin-top:3px; color:#1D7A46; }
+.hoja-ficha table { width:100%; border-collapse:collapse; font-size:15.5px; }
+.hoja-ficha th { text-align:left; font-weight:500; color:#44566A; padding:7px 10px; width:46%; vertical-align:top; }
+.hoja-ficha td { font-weight:700; padding:7px 10px; overflow-wrap:anywhere; }
+.hoja-ficha tr:nth-child(odd) { background:#F0F4F8; }
+.hoja-pie { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:18px; padding:18px 24px; border-top:3px solid #0A1F44; align-items:end; background:#F9FBFD; }
+.hoja-datos { margin:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.hoja-datos div { background:#fff; border:1px solid #D5DEE8; border-radius:10px; padding:10px 12px; }
 .hoja-datos dt { font-size:13px; font-weight:600; color:#5B6B75; }
-.hoja-datos dd { margin:2px 0 0; font-size:20px; font-weight:700; }
+.hoja-datos dd { margin:2px 0 0; font-size:19px; font-weight:700; }
 .hoja-total > div { display:flex; justify-content:space-between; gap:12px; font-size:17px; padding:4px 2px; }
 .hoja-total .menos { color:#14653A; font-weight:700; }
-.hoja-total p { margin:8px 0 0; display:flex; align-items:baseline; justify-content:space-between; gap:12px; background:#0A1F44; color:#fff; border-radius:12px; padding:14px 18px; }
+.hoja-total p { margin:8px 0 0; display:flex; align-items:baseline; justify-content:space-between; gap:12px; background:#0A1F44; color:#fff; border-radius:12px; padding:16px 18px; }
 .hoja-total p span { font-size:16px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
-.hoja-total p b { font-family:'Barlow Condensed',sans-serif; font-size:44px; font-weight:800; line-height:1; color:#FF8A1F; }
-.hoja-nota { margin:0; padding:0 22px 18px; font-size:14px; color:#5B6B75; }
-@media (max-width:640px) {
-  .hoja-cab { padding:16px; } .hoja-numero { text-align:left; margin-left:0; }
-  .hoja-cliente, .hoja-pie { padding:14px 16px; } .hoja-lineas { padding:4px 16px; } .hoja-nota { padding:0 16px 16px; }
-  .hoja-lineas li { flex-wrap:wrap; gap:12px; }
-  .hoja-foto { width:88px; height:88px; }
-  .hoja-prod { flex:1 1 calc(100% - 100px); } .hoja-prod b { font-size:18px; }
-  .hoja-importe { flex:1 1 100%; text-align:right; font-size:28px; }
+.hoja-total p b { font-family:'Barlow Condensed',sans-serif; font-size:46px; font-weight:800; line-height:1; color:#FF8A1F; }
+.hoja-nota { margin:0; padding:14px 24px 20px; font-size:15px; line-height:1.45; color:#33465C; background:#F9FBFD; }
+.hoja-nota b { color:#0A1F44; }
+@media (max-width:820px) {
+  .hoja-linea { grid-template-columns:110px minmax(0,1fr); }
+  .hoja-foto { width:110px; height:110px; }
+  .hoja-precio { grid-column:1 / -1; min-width:0; }
   .hoja-pie { grid-template-columns:1fr; }
+}
+@media (max-width:560px) {
+  .hoja-cab { padding:16px; } .hoja-numero { text-align:left; margin-left:0; }
+  .hoja-cliente, .hoja-pie { padding:14px 16px; } .hoja-lineas { padding:4px 16px; } .hoja-nota { padding:10px 16px 16px; }
+  .hoja-linea { grid-template-columns:88px minmax(0,1fr); gap:12px; }
+  .hoja-foto { width:88px; height:88px; }
+  .hoja-prod > b { font-size:19px; }
+  .hoja-datos { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .hoja-total p b { font-size:38px; }
 }
 .cat-hoja-img { display:block; width:100%; height:auto; border:1px solid #D5DEE3; border-radius:10px; box-shadow:0 6px 22px rgba(20,34,43,.12); background:#fff; }
@@ -1032,11 +1057,13 @@ const enlaceWhatsapp = (cot, whatsapp) => `https://wa.me/${whatsapp}?text=${enco
   enlaceCotizacion(cot),
 ].join("\n"))}`;
 
-/** La cotización tal como la lee el cliente en pantalla: letra grande, fotos grandes y el total bien visible. */
+/** La cotización tal como la lee el cliente en pantalla: datos del pedido, cada producto con su ficha, volumen y peso, y el total. */
 function HojaCliente({ cot, empresa }) {
   const [foto, setFoto] = useState(null);
   const unidades = cot.lineas.reduce((s, l) => s + l.cantidad, 0);
   const hayConsultar = cot.lineas.some((l) => !(l.precio > 0));
+  const volumen = cot.lineas.reduce((s, l) => s + (l.cbm || 0) * l.cantidad, 0);
+  const peso = cot.lineas.reduce((s, l) => s + (l.peso || 0) * l.cantidad, 0);
   return (
     <article className="hoja">
       <header className="hoja-cab">
@@ -1047,32 +1074,69 @@ function HojaCliente({ cot, empresa }) {
         <div className="hoja-numero">
           <small>{T("COTIZACIÓN")}</small>
           <b className="cat-num">{cot.numero}</b>
-          <span className="cat-num">{fechaCorta(cot.fecha)}</span>
         </div>
       </header>
-      <div className="hoja-cliente">
-        <small>{T("CLIENTE")}</small>
-        <b>{cot.cliente || T("Sin cliente")}</b>
-        {cot.telefono && <span className="cat-num">Tel. {cot.telefono}</span>}
-      </div>
-      <ul className="hoja-lineas">
-        {cot.lineas.map((l, n) => (
-          <li key={l.codigo + n}>
-            <button type="button" className="hoja-foto" onClick={() => l.foto && setFoto(l)} disabled={!l.foto} aria-label={T("Ver la foto en grande")}>
-              <Foto src={l.foto} alt="" />
-            </button>
-            <div className="hoja-prod">
-              <b>{(EN && l.nombreEn) || l.nombre}</b>
-              <span className="cat-num">{l.codigo}</span>
-              <small className="cat-num">{l.cantidad} × {l.precio > 0 ? dinero(l.precio) : T("Por consultar")}</small>
-            </div>
-            <b className="hoja-importe cat-num">{l.precio > 0 ? dinero(l.precio * l.cantidad) : T("Por consultar")}</b>
-          </li>
-        ))}
-      </ul>
+      <dl className="hoja-cliente">
+        <div className="ancho"><dt>{T("CLIENTE")}</dt><dd className="grande">{cot.cliente || T("Sin cliente")}</dd></div>
+        <div><dt>{T("Fecha")}</dt><dd className="cat-num">{fechaCorta(cot.fecha)}</dd></div>
+        {cot.telefono && <div><dt>{T("Teléfono")}</dt><dd className="cat-num">{cot.telefono}</dd></div>}
+        {cot.direccion && <div><dt>{T("Entrega en")}</dt><dd>{cot.direccion}</dd></div>}
+      </dl>
+      <h3 className="hoja-titulo">{T("Productos cotizados")}</h3>
+      <ol className="hoja-lineas">
+        {cot.lineas.map((l, n) => {
+          const f = leerDescripcion((EN && l.descripcionEn) || l.descripcion || "");
+          const tieneFicha = f.caracteristicas.length > 0 || f.ficha.length > 0;
+          return (
+            <li key={l.codigo + n}>
+              <div className="hoja-linea">
+                <button type="button" className="hoja-foto" onClick={() => l.foto && setFoto(l)} disabled={!l.foto} aria-label={T("Ver la foto en grande")}>
+                  <Foto src={l.foto} alt="" />
+                </button>
+                <div className="hoja-prod">
+                  <span className="hoja-codigo cat-num">{[f.marca, l.codigo].filter(Boolean).join(" · ")}</span>
+                  <b>{(EN && l.nombreEn) || l.nombre}</b>
+                  {f.resumen && <p>{f.resumen}</p>}
+                  <div className="hoja-chips cat-num">
+                    {l.cbm > 0 && <span><Box size={14} />{T("Volumen")}: {m3(l.cbm)}</span>}
+                    {l.peso > 0 && <span><Scale size={14} />{T("Peso")}: {kilos(l.peso)}</span>}
+                    {f.empaque && <span><Ship size={14} />{T("Empaque")}: {f.empaque}</span>}
+                  </div>
+                </div>
+                <div className="hoja-precio cat-num">
+                  <small>{T("Cantidad")}</small><b className="chico">{l.cantidad}</b>
+                  <small>{T("Precio por unidad")}</small><b className="chico">{l.precio > 0 ? dinero(l.precio) : T("Por consultar")}</b>
+                  <small>{T("Total")}</small><b>{l.precio > 0 ? dinero(l.precio * l.cantidad) : T("Por consultar")}</b>
+                </div>
+              </div>
+              {tieneFicha && (
+                <details className="hoja-ficha" open>
+                  <summary>{T("Características y ficha técnica")}</summary>
+                  <div>
+                    {f.caracteristicas.length > 0 && (
+                      <section>
+                        <h4>{T("Características")}</h4>
+                        <ul>{f.caracteristicas.map((x, k) => <li key={k}><Check size={15} /><span>{x}</span></li>)}</ul>
+                      </section>
+                    )}
+                    {f.ficha.length > 0 && (
+                      <section>
+                        <h4>{T("Ficha técnica")}</h4>
+                        <table><tbody>{f.ficha.map(([k, v], j) => <tr key={j}><th scope="row">{k}</th><td className="cat-num">{v}</td></tr>)}</tbody></table>
+                      </section>
+                    )}
+                  </div>
+                </details>
+              )}
+            </li>
+          );
+        })}
+      </ol>
       <div className="hoja-pie">
         <dl className="hoja-datos">
           <div><dt>{T("Productos")}</dt><dd className="cat-num">{unidades}</dd></div>
+          {volumen > 0 && <div><dt>{T("Volumen total")}</dt><dd className="cat-num">{m3(volumen)}</dd></div>}
+          {peso > 0 && <div><dt>{T("Peso total")}</dt><dd className="cat-num">{kilos(peso)}</dd></div>}
           <div><dt>{T("Tiempo de producción")}</dt><dd className="cat-num">{DIAS_PRODUCCION} {T("días")}</dd></div>
           <div><dt>{T("Tiempo de envío")}</dt><dd className="cat-num">{DIAS_ENVIO} {T("días")}</dd></div>
           <div><dt>{T("Entrega aproximada")}</dt><dd className="cat-num">{DIAS_PRODUCCION + DIAS_ENVIO} {T("días")}</dd></div>
@@ -1083,10 +1147,10 @@ function HojaCliente({ cot, empresa }) {
             <div className="menos"><span>{T("Descuento")}{cot.cupon ? ` (${cot.cupon})` : ""}</span><span className="cat-num">−{dinero(cot.descuento)}</span></div>
           </>}
           {hayConsultar && <div><span>{T("Productos por consultar")}</span><span>{T("No incluidos en el total")}</span></div>}
-          <p><span>{T("Total")}</span><b className="cat-num">{dinero(cot.total)}</b></p>
+          <p><span>{T("Total con envío")}</span><b className="cat-num">{dinero(cot.total)}</b></p>
         </div>
       </div>
-      <p className="hoja-nota">{T("Precios en dólares estadounidenses.")}</p>
+      <p className="hoja-nota"><b>{T("Servicio incluido:")}</b> {T("compra, gestión logística y envío de los productos hasta Nicaragua. Precios en dólares estadounidenses. Cotización válida por 15 días, sujeta a confirmación de disponibilidad.")}</p>
       {foto && <FotoGrande p={{ codigo: foto.codigo, nombre: (EN && foto.nombreEn) || foto.nombre, foto: foto.foto, fotos: [foto.foto] }} cerrar={() => setFoto(null)} />}
     </article>
   );

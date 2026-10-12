@@ -83,8 +83,20 @@ function cotizacionPublica(fila) {
     pagado: (Array.isArray(fila.totales?.pagos) ? fila.totales.pagos : []).reduce((s, p) => s + (Number(p.monto) || 0), 0),
     pagos: (Array.isArray(fila.totales?.pagos) ? fila.totales.pagos : []).map((p) => ({ fecha: p.fecha || null, monto: Number(p.monto) || 0, nota: String(p.nota || "") })),
     lineas: (Array.isArray(fila.lineas) ? fila.lineas : []).map((l) => ({
-      codigo: l.codigo, nombre: l.nombre, nombreEn: l.nombreEn || "", cantidad: Number(l.cantidad) || 0, precio: Number(l.precioVenta) || 0, foto: l.foto || "",
+      codigo: l.codigo, nombre: l.nombre, nombreEn: l.nombreEn || "", cbm: Number(l.cbm) || 0, peso: Number(l.peso) || 0, cantidad: Number(l.cantidad) || 0, precio: Number(l.precioVenta) || 0, foto: l.foto || "",
     })),
+  };
+}
+
+/** Agrega a cada línea la ficha del producto (texto público del catálogo), para que el cliente la lea en su cotización. */
+function conFichas(cotizacion, productos) {
+  const porCodigo = new Map((Array.isArray(productos) ? productos : []).map((p) => [p.codigo, p]));
+  return {
+    ...cotizacion,
+    lineas: cotizacion.lineas.map((l) => {
+      const p = porCodigo.get(l.codigo);
+      return p ? { ...l, descripcion: String(p.descripcion || ""), descripcionEn: String(p.en?.descripcion || "") } : l;
+    }),
   };
 }
 
@@ -158,7 +170,7 @@ export default {
         return json({ ok: false, error: "Faltan el nombre, el teléfono o los productos." }, 400);
       }
       const codigos = [...pedidas.keys()].map((c) => `"${c}"`).join(",");
-      const prod = await sbRequest(env, `productos?select=id,codigo,nombre,en,cbm,peso,precio_cbm,precio_producto,precio_venta,foto&codigo=in.(${encodeURIComponent(codigos)})`);
+      const prod = await sbRequest(env, `productos?select=id,codigo,nombre,en,descripcion,cbm,peso,precio_cbm,precio_producto,precio_venta,foto&codigo=in.(${encodeURIComponent(codigos)})`);
       if (!prod.ok || !Array.isArray(prod.data)) return json({ ok: false, error: "No se pudo registrar la cotización." }, 503);
       const lineas = [];
       for (const [codigo, cantidad] of pedidas) {
@@ -222,7 +234,7 @@ export default {
       };
       const guardada = await sbRequest(env, "cotizaciones_clientes", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(fila) });
       if (!guardada.ok) return json({ ok: false, error: "No se pudo registrar la cotización." }, 503);
-      return json({ ok: true, cotizacion: cotizacionPublica(fila) }, 201);
+      return json({ ok: true, cotizacion: conFichas(cotizacionPublica(fila), prod.data) }, 201);
     }
 
     // Una cotización enviada desde el catálogo, sin costos, para verla con su enlace.
@@ -232,7 +244,10 @@ export default {
       if (!r.ok) return json({ ok: false, error: "No se pudo cargar la cotización." }, 503);
       const fila = Array.isArray(r.data) ? r.data[0] : null;
       if (!fila) return json({ ok: false, error: "No existe." }, 404);
-      return json({ ok: true, cotizacion: cotizacionPublica(fila) });
+      const publica = cotizacionPublica(fila);
+      const codigos = [...new Set(publica.lineas.map((l) => String(l.codigo || "").replace(/["\\]/g, "")).filter(Boolean))].map((c) => `"${c}"`).join(",");
+      const fichas = codigos ? await sbRequest(env, `productos?select=codigo,descripcion,en&codigo=in.(${encodeURIComponent(codigos)})`) : { ok: false };
+      return json({ ok: true, cotizacion: fichas.ok ? conFichas(publica, fichas.data) : publica });
     }
 
     // Todas las cotizaciones de un cliente, con su estado, para su enlace propio.

@@ -167,6 +167,8 @@ const INGLES = {
   "Ver características y ficha técnica": "View features and specifications",
   "Productos cotizados": "Quoted products",
   "Resumen del pedido": "Order summary",
+  "En proceso": "In progress",
+  "Saldo pendiente": "Balance due",
   "Válida hasta": "Valid until",
   "unidad": "unit",
   "unidades": "units",

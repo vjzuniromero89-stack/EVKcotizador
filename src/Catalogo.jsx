@@ -422,6 +422,51 @@ const ESTILOS = `${ESTILOS_VITRINA}
 @media (max-width:560px) { .cat-pasos li { font-size:11px; } .cat-paso-punto { width:28px; height:28px; } .cat-pasos li::before { top:12px; } .cat-seg-arriba b { font-size:28px; } }
 .cat-tiempos { background:#EAF1FC; border-radius:8px; padding:10px 12px; font-size:14.5px; color:#0E3A8A; margin:12px 0 0; line-height:1.4; }
 .cat-guardada { display:flex; align-items:center; gap:8px; color:#1D7A46; font-weight:600; font-size:16px; margin:0 0 12px; }
+.mc-resumen { margin:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.mc-resumen > div { background:#fff; border:1px solid #C9D3DE; border-top:4px solid #1556B8; border-radius:12px; padding:12px 16px; box-shadow:0 2px 8px rgba(10,31,68,.06); }
+.mc-resumen > div:nth-child(2) { border-top-color:#FF8A1F; }
+.mc-resumen > div:nth-child(3) { border-top-color:#1D7A46; }
+.mc-resumen > div.saldo:nth-child(3) { border-top-color:#E0242B; }
+.mc-resumen dt { font-size:12.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#5B6B75; }
+.mc-resumen dd { margin:2px 0 0; font-family:'Barlow Condensed',sans-serif; font-size:34px; font-weight:800; line-height:1.05; color:#0A1F44; }
+.mc-nota { margin:10px 2px 14px; font-size:14px; color:#5B6B75; }
+.mc-lista { display:flex; flex-direction:column; gap:14px; }
+.mc-tarjeta { display:block; background:#fff; border:1px solid #C9D3DE; border-left:6px solid #D96B00; border-radius:14px; padding:16px 18px; color:#0A1F44; text-decoration:none;
+  box-shadow:0 3px 10px rgba(10,31,68,.07); transition:transform .15s, box-shadow .15s; }
+.mc-tarjeta:hover { transform:translateY(-2px); box-shadow:0 10px 24px rgba(10,31,68,.14); }
+.mc-tarjeta:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
+.mc-confirmada { border-left-color:#1D7A46; } .mc-produccion { border-left-color:#1556B8; } .mc-camino { border-left-color:#5B3FA8; }
+.mc-entregada { border-left-color:#46586A; } .mc-cancelada { border-left-color:#C3CDD3; opacity:.8; }
+.mc-arriba { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.mc-arriba b { display:block; font-size:32px; font-weight:800; line-height:1; }
+.mc-arriba span { font-size:15px; color:#44566A; }
+.mc-productos { list-style:none; margin:14px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:10px; }
+.mc-productos li { display:flex; align-items:center; gap:10px; flex:1 1 260px; min-width:0; background:#F3F7FE; border:1px solid #D5DEE8; border-radius:10px; padding:6px 10px 6px 6px; }
+.mc-foto { width:58px; height:58px; flex:none; background:#fff; border-radius:8px; border:1px solid #E1E7EA; padding:3px; }
+.mc-foto img { width:100%; height:100%; object-fit:contain; display:block; }
+.mc-nombre { min-width:0; }
+.mc-nombre b { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:15.5px; font-weight:700; line-height:1.2; }
+.mc-nombre small { font-size:13.5px; color:#5B6B75; }
+.mc-productos .mc-mas { flex:0 0 auto; justify-content:center; font-weight:800; font-size:17px; color:#1556B8; padding:6px 16px; }
+.mc-pasos { list-style:none; margin:16px 0 0; padding:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); }
+.mc-pasos li { position:relative; padding-top:22px; text-align:center; font-size:12.5px; font-weight:600; color:#8A97A0; line-height:1.15; }
+.mc-pasos li::before { content:""; position:absolute; left:-50%; right:50%; top:7px; height:4px; background:#D5DEE8; }
+.mc-pasos li:first-child::before { display:none; }
+.mc-pasos i { position:absolute; left:50%; top:0; width:18px; height:18px; margin-left:-9px; border-radius:50%; background:#D5DEE8; border:3px solid #fff; box-shadow:0 0 0 1px #D5DEE8; z-index:1; }
+.mc-pasos .hecho { color:#14653A; } .mc-pasos .hecho i { background:#1D7A46; box-shadow:0 0 0 1px #1D7A46; } .mc-pasos .hecho::before, .mc-pasos .actual::before { background:#1D7A46; }
+.mc-pasos .actual { color:#0A1F44; font-weight:800; } .mc-pasos .actual i { background:#FF8A1F; box-shadow:0 0 0 3px #FFD9B0; }
+.mc-abajo { display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px 26px; margin-top:16px; padding-top:14px; border-top:1px solid #E1E7EA; }
+.mc-abajo small { display:block; font-size:12px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#5B6B75; }
+.mc-abajo b { font-size:18px; font-weight:700; }
+.mc-abajo b.grande { font-family:'Barlow Condensed',sans-serif; font-size:32px; font-weight:800; line-height:1; }
+.mc-ver { margin-left:auto; display:inline-flex; align-items:center; gap:4px; background:#FF8A1F; color:#1B1000; font-weight:700; font-size:15.5px; border-radius:10px; padding:10px 16px; }
+@media (max-width:560px) {
+  .mc-resumen { grid-template-columns:repeat(2,minmax(0,1fr)); } .mc-resumen > div:nth-child(3) { grid-column:1 / -1; }
+  .mc-resumen dd { font-size:28px; }
+  .mc-arriba b { font-size:27px; }
+  .mc-pasos li { font-size:11px; }
+  .mc-ver { margin-left:0; flex:1 1 100%; justify-content:center; }
+}
 .hoja { background:#fff; border:1px solid #C9D3DE; border-radius:16px; overflow:hidden; box-shadow:0 8px 24px rgba(10,31,68,.10); color:#0A1F44; }
 .hoja-cab { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 20px; padding:18px 28px; color:#fff;
   background:linear-gradient(120deg,#0A1F44 0%,#14438F 75%,#1B5FCC 100%); border-bottom:5px solid #FF8A1F; }
@@ -1557,32 +1602,58 @@ export function VistaCliente({ token }) {
   const lista = datos?.cotizaciones || [];
   // El catálogo recuerda a este cliente para ofrecerle el botón T("Mis cotizaciones").
   useEffect(() => { if (datos) guardarLocal(CLAVE_TOKEN, token); }, [datos, token]);
+  const abiertas = lista.filter((x) => !["entregada", "cancelada"].includes(estadoPublico(x)));
+  const saldo = lista.filter((x) => !["pendiente", "cancelada"].includes(estadoPublico(x))).reduce((s, x) => s + Math.max(0, x.total - x.pagado), 0);
   const arriba = (
     <section className="cat-cuenta-mis" aria-label={T("Mis cotizaciones")}>
-      <h2 className="cat-cond">{T("Mis cotizaciones")}</h2>
       {!datos ? <div className="cat-vacio" style={{ marginBottom: 0 }} role="status">
         {estado === "no-existe" ? T("Todavía no hay cotizaciones en este enlace.") : AVISOS[estado] || AVISOS.cargando}
-      </div> : <>
-        <p className="cat-cuenta" style={{ marginTop: 0 }}>
-          {lista.length === 0 ? T("Todavía no tienes cotizaciones. Abre la pestaña Catálogo, agrega los productos que te interesan y envía tu cotización.")
-            : `${T(lista.length === 1 ? "Tienes 1 cotización." : "Tienes {n} cotizaciones.", { n: lista.length })} ${T("Esta página se actualiza sola.")}`}
-        </p>
-        <div className="cat-mis">
+      </div> : lista.length === 0 ? (
+        <div className="cat-vacio" style={{ marginBottom: 0 }}>{T("Todavía no tienes cotizaciones. Abre la pestaña Catálogo, agrega los productos que te interesan y envía tu cotización.")}</div>
+      ) : <>
+        <dl className="mc-resumen">
+          <div><dt>{T("Mis cotizaciones")}</dt><dd className="cat-num">{lista.length}</dd></div>
+          <div><dt>{T("En proceso")}</dt><dd className="cat-num">{abiertas.length}</dd></div>
+          <div className={saldo > 0 ? "saldo" : ""}><dt>{T("Saldo pendiente")}</dt><dd className="cat-num">{dinero(saldo)}</dd></div>
+        </dl>
+        <p className="mc-nota">{T("Esta página se actualiza sola.")}</p>
+        <div className="mc-lista">
           {lista.map((cot) => {
             const entrega = entregaDe(cot), e = estadoPublico(cot);
+            const paso = PASOS.findIndex((p) => p[0] === e);
+            const unidades = cot.lineas.reduce((s, l) => s + l.cantidad, 0);
+            const saldoCot = Math.max(0, cot.total - cot.pagado);
             return (
-              <a key={cot.id} className="cat-mi" href={`/cotizacion/${cot.id}`}>
-                <div className="cat-mi-arriba">
-                  <b className="cat-cond cat-num">{cot.numero}</b>
+              <a key={cot.id} className={`mc-tarjeta mc-${e}`} href={`/cotizacion/${cot.id}`}>
+                <div className="mc-arriba">
+                  <div>
+                    <b className="cat-cond cat-num">{cot.numero}</b>
+                    <span className="cat-num">{fechaCorta(cot.fecha)} · {unidades} {T(unidades === 1 ? "producto" : "productos")}</span>
+                  </div>
                   <EtiquetaEstado cot={cot} />
                 </div>
-                <span className="cat-mi-fecha">{fechaCorta(cot.fecha)} · {cot.lineas.reduce((s, l) => s + l.cantidad, 0)} {T("productos")}</span>
-                <span className="cat-mi-equipos">{cot.lineas.map((l) => `${l.cantidad} × ${l.codigo}`).join(", ")}</span>
-                <div className="cat-mi-abajo">
-                  <span><small>{T("Total")}</small><b className="cat-num">{cot.total > 0 ? dinero(cot.total) : T("Por consultar")}</b></span>
-                  {cot.pagado > 0 && <span><small>{T("Saldo")}</small><b className="cat-num">{dinero(Math.max(0, cot.total - cot.pagado))}</b></span>}
+                <ul className="mc-productos">
+                  {cot.lineas.slice(0, 3).map((l, n) => (
+                    <li key={l.codigo + n}>
+                      <span className="mc-foto"><Foto src={l.foto} alt="" /></span>
+                      <span className="mc-nombre"><b>{(EN && l.nombreEn) || l.nombre}</b><small className="cat-num">{l.cantidad} × {l.codigo}</small></span>
+                    </li>
+                  ))}
+                  {cot.lineas.length > 3 && <li className="mc-mas">+{cot.lineas.length - 3}</li>}
+                </ul>
+                {e !== "cancelada" && (
+                  <ol className="mc-pasos" aria-label={T("Estado de tu pedido")}>
+                    {PASOS.map(([clave, nombre], i) => (
+                      <li key={clave} className={i < paso ? "hecho" : i === paso ? "actual" : ""}><i />{nombre}</li>
+                    ))}
+                  </ol>
+                )}
+                <div className="mc-abajo">
+                  <span><small>{T("Total")}</small><b className="cat-num grande">{cot.total > 0 ? dinero(cot.total) : T("Por consultar")}</b></span>
+                  {cot.pagado > 0 && <span><small>{T("Pagado")}</small><b className="cat-num">{dinero(cot.pagado)}</b></span>}
+                  {cot.pagado > 0 && <span><small>{T("Saldo")}</small><b className="cat-num">{dinero(saldoCot)}</b></span>}
                   {entrega && e !== "entregada" && e !== "cancelada" && <span><small>{T("Entrega estimada")}</small><b className="cat-num">{fechaCorta(entrega)}</b></span>}
-                  <span className="cat-ver" style={{ display: "inline-flex", marginLeft: "auto" }}>{T("Ver pedido")}<ChevronRight size={15} /></span>
+                  <span className="mc-ver">{T("Ver pedido")}<ChevronRight size={17} /></span>
                 </div>
               </a>
             );

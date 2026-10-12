@@ -26,6 +26,7 @@ function cargarImg(src) {
   return new Promise((resolve) => {
     if (!src) return resolve(null);
     const img = new Image();
+    if (/^https?:/i.test(src)) img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = src;

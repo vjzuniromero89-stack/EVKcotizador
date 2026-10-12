@@ -657,6 +657,7 @@ async function localSave(key, value) {
 function resizeSrc(src, max, quality) {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    if (/^https?:/i.test(src)) img.crossOrigin = "anonymous";
     img.onload = () => {
       const s = Math.min(1, max / Math.max(img.width, img.height));
       const w = Math.round(img.width * s), h = Math.round(img.height * s);
@@ -1040,7 +1041,19 @@ function PhotoBox({ value, onChange }) {
     setBusy(true); setError("");
     try {
       const src = await fileToDataUrl(f);
-      try { onChange(await resizeSrc(src, 400, 0.72)); }
+      try {
+        // La foto se guarda grande en el almacén para que no salga borrosa; sin conexión queda una copia pequeña.
+        let valor = await resizeSrc(src, 400, 0.72);
+        if (supabase) {
+          try {
+            const blob = await (await fetch(await resizeSrc(src, 1400, 0.86))).blob();
+            const ruta = `${uid()}.jpg`;
+            const { error: fallo } = await supabase.storage.from("productos").upload(ruta, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
+            if (!fallo) valor = supabase.storage.from("productos").getPublicUrl(ruta).data.publicUrl;
+          } catch (err) { console.error(err); }
+        }
+        onChange(valor);
+      }
       catch (err) { setError("No se pudo leer esa foto. Prueba con otra en JPG o PNG."); }
     } catch (err) {
       setError("No se pudo abrir el archivo. Prueba con otra foto.");

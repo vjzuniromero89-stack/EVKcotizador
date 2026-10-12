@@ -95,7 +95,8 @@ function conFichas(cotizacion, productos) {
     ...cotizacion,
     lineas: cotizacion.lineas.map((l) => {
       const p = porCodigo.get(l.codigo);
-      return p ? { ...l, descripcion: String(p.descripcion || ""), descripcionEn: String(p.en?.descripcion || "") } : l;
+      // La línea guarda una miniatura; para el cliente se usa la foto completa del producto.
+      return p ? { ...l, foto: p.foto || l.foto, descripcion: String(p.descripcion || ""), descripcionEn: String(p.en?.descripcion || "") } : l;
     }),
   };
 }
@@ -246,7 +247,7 @@ export default {
       if (!fila) return json({ ok: false, error: "No existe." }, 404);
       const publica = cotizacionPublica(fila);
       const codigos = [...new Set(publica.lineas.map((l) => String(l.codigo || "").replace(/["\\]/g, "")).filter(Boolean))].map((c) => `"${c}"`).join(",");
-      const fichas = codigos ? await sbRequest(env, `productos?select=codigo,descripcion,en&codigo=in.(${encodeURIComponent(codigos)})`) : { ok: false };
+      const fichas = codigos ? await sbRequest(env, `productos?select=codigo,descripcion,en,foto&codigo=in.(${encodeURIComponent(codigos)})`) : { ok: false };
       return json({ ok: true, cotizacion: fichas.ok ? conFichas(publica, fichas.data) : publica });
     }
 

@@ -422,6 +422,54 @@ const ESTILOS = `${ESTILOS_VITRINA}
 @media (max-width:560px) { .cat-pasos li { font-size:11px; } .cat-paso-punto { width:28px; height:28px; } .cat-pasos li::before { top:12px; } .cat-seg-arriba b { font-size:28px; } }
 .cat-tiempos { background:#EAF1FC; border-radius:8px; padding:10px 12px; font-size:14.5px; color:#0E3A8A; margin:12px 0 0; line-height:1.4; }
 .cat-guardada { display:flex; align-items:center; gap:8px; color:#1D7A46; font-weight:600; font-size:16px; margin:0 0 12px; }
+.hoja { background:#fff; border:1px solid #C9D3DE; border-radius:16px; overflow:hidden; box-shadow:0 8px 24px rgba(10,31,68,.10); color:#0A1F44; }
+.hoja-cab { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px 20px; padding:20px 22px; color:#fff;
+  background:linear-gradient(120deg,#0A1F44 0%,#14438F 75%,#1B5FCC 100%); }
+.hoja-empresa { display:flex; align-items:center; gap:14px; min-width:0; }
+.hoja-empresa img { width:64px; height:64px; border-radius:50%; object-fit:cover; background:#fff; flex:none; }
+.hoja-empresa b { display:block; font-family:'Barlow Condensed',sans-serif; font-size:28px; font-weight:800; line-height:1; }
+.hoja-empresa span { display:block; font-size:15px; color:#D3E1F7; margin-top:4px; }
+.hoja-numero { text-align:right; margin-left:auto; }
+.hoja-numero small { display:block; font-size:13px; font-weight:700; letter-spacing:.12em; color:#FFB45C; }
+.hoja-numero b { display:block; font-family:'Barlow Condensed',sans-serif; font-size:36px; font-weight:800; line-height:1; }
+.hoja-numero span { display:block; font-size:15px; color:#D3E1F7; margin-top:3px; }
+.hoja-cliente { padding:16px 22px; border-bottom:1px solid #E1E7EA; background:#F3F7FE; }
+.hoja-cliente small { display:block; font-size:12.5px; font-weight:700; letter-spacing:.1em; color:#1556B8; }
+.hoja-cliente b { display:block; font-size:24px; font-weight:700; line-height:1.15; overflow-wrap:anywhere; }
+.hoja-cliente span { font-size:16px; color:#44566A; }
+.hoja-lineas { list-style:none; margin:0; padding:6px 22px; }
+.hoja-lineas li { display:flex; align-items:center; gap:16px; padding:16px 0; border-bottom:1px solid #E6ECEF; }
+.hoja-lineas li:last-child { border-bottom:0; }
+.hoja-foto { width:112px; height:112px; flex:none; padding:6px; border:1px solid #D5DEE3; border-radius:12px; background:#fff; cursor:zoom-in; }
+.hoja-foto:disabled { cursor:default; }
+.hoja-foto img { width:100%; height:100%; object-fit:contain; display:block; }
+.hoja-foto:focus-visible { outline:3px solid #FF8A1F; outline-offset:2px; }
+.hoja-prod { flex:1 1 auto; min-width:0; }
+.hoja-prod b { display:block; font-size:20px; font-weight:700; line-height:1.2; overflow-wrap:anywhere; }
+.hoja-prod span { display:block; font-size:15px; color:#5B6B75; margin-top:2px; }
+.hoja-prod small { display:inline-block; margin-top:8px; font-size:17px; font-weight:600; color:#0A1F44; background:#EAF1FC; border-radius:8px; padding:4px 10px; }
+.hoja-importe { flex:none; font-family:'Barlow Condensed',sans-serif; font-size:30px; font-weight:800; white-space:nowrap; }
+.hoja-pie { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:18px; padding:18px 22px; border-top:2px solid #0A1F44; align-items:end; }
+.hoja-datos { margin:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.hoja-datos div { background:#F6F8F9; border-radius:10px; padding:10px 12px; }
+.hoja-datos dt { font-size:13px; font-weight:600; color:#5B6B75; }
+.hoja-datos dd { margin:2px 0 0; font-size:20px; font-weight:700; }
+.hoja-total > div { display:flex; justify-content:space-between; gap:12px; font-size:17px; padding:4px 2px; }
+.hoja-total .menos { color:#14653A; font-weight:700; }
+.hoja-total p { margin:8px 0 0; display:flex; align-items:baseline; justify-content:space-between; gap:12px; background:#0A1F44; color:#fff; border-radius:12px; padding:14px 18px; }
+.hoja-total p span { font-size:16px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.hoja-total p b { font-family:'Barlow Condensed',sans-serif; font-size:44px; font-weight:800; line-height:1; color:#FF8A1F; }
+.hoja-nota { margin:0; padding:0 22px 18px; font-size:14px; color:#5B6B75; }
+@media (max-width:640px) {
+  .hoja-cab { padding:16px; } .hoja-numero { text-align:left; margin-left:0; }
+  .hoja-cliente, .hoja-pie { padding:14px 16px; } .hoja-lineas { padding:4px 16px; } .hoja-nota { padding:0 16px 16px; }
+  .hoja-lineas li { flex-wrap:wrap; gap:12px; }
+  .hoja-foto { width:88px; height:88px; }
+  .hoja-prod { flex:1 1 calc(100% - 100px); } .hoja-prod b { font-size:18px; }
+  .hoja-importe { flex:1 1 100%; text-align:right; font-size:28px; }
+  .hoja-pie { grid-template-columns:1fr; }
+  .hoja-total p b { font-size:38px; }
+}
 .cat-hoja-img { display:block; width:100%; height:auto; border:1px solid #D5DEE3; border-radius:10px; box-shadow:0 6px 22px rgba(20,34,43,.12); background:#fff; }
 .cat-vista { background:#fff; border:1px solid #D5DEE3; border-radius:16px; padding:18px; }
 a.cat-btn { text-decoration:none; }
@@ -984,15 +1032,73 @@ const enlaceWhatsapp = (cot, whatsapp) => `https://wa.me/${whatsapp}?text=${enco
   enlaceCotizacion(cot),
 ].join("\n"))}`;
 
+/** La cotización tal como la lee el cliente en pantalla: letra grande, fotos grandes y el total bien visible. */
+function HojaCliente({ cot, empresa }) {
+  const [foto, setFoto] = useState(null);
+  const unidades = cot.lineas.reduce((s, l) => s + l.cantidad, 0);
+  const hayConsultar = cot.lineas.some((l) => !(l.precio > 0));
+  return (
+    <article className="hoja">
+      <header className="hoja-cab">
+        <div className="hoja-empresa">
+          {empresa.logo && <img src={empresa.logo} alt="" />}
+          <div><b>{empresa.nombre}</b><span>{T(String(empresa.contacto || "").split("\n")[0])}</span></div>
+        </div>
+        <div className="hoja-numero">
+          <small>{T("COTIZACIÓN")}</small>
+          <b className="cat-num">{cot.numero}</b>
+          <span className="cat-num">{fechaCorta(cot.fecha)}</span>
+        </div>
+      </header>
+      <div className="hoja-cliente">
+        <small>{T("CLIENTE")}</small>
+        <b>{cot.cliente || T("Sin cliente")}</b>
+        {cot.telefono && <span className="cat-num">Tel. {cot.telefono}</span>}
+      </div>
+      <ul className="hoja-lineas">
+        {cot.lineas.map((l, n) => (
+          <li key={l.codigo + n}>
+            <button type="button" className="hoja-foto" onClick={() => l.foto && setFoto(l)} disabled={!l.foto} aria-label={T("Ver la foto en grande")}>
+              <Foto src={l.foto} alt="" />
+            </button>
+            <div className="hoja-prod">
+              <b>{(EN && l.nombreEn) || l.nombre}</b>
+              <span className="cat-num">{l.codigo}</span>
+              <small className="cat-num">{l.cantidad} × {l.precio > 0 ? dinero(l.precio) : T("Por consultar")}</small>
+            </div>
+            <b className="hoja-importe cat-num">{l.precio > 0 ? dinero(l.precio * l.cantidad) : T("Por consultar")}</b>
+          </li>
+        ))}
+      </ul>
+      <div className="hoja-pie">
+        <dl className="hoja-datos">
+          <div><dt>{T("Productos")}</dt><dd className="cat-num">{unidades}</dd></div>
+          <div><dt>{T("Tiempo de producción")}</dt><dd className="cat-num">{DIAS_PRODUCCION} {T("días")}</dd></div>
+          <div><dt>{T("Tiempo de envío")}</dt><dd className="cat-num">{DIAS_ENVIO} {T("días")}</dd></div>
+          <div><dt>{T("Entrega aproximada")}</dt><dd className="cat-num">{DIAS_PRODUCCION + DIAS_ENVIO} {T("días")}</dd></div>
+        </dl>
+        <div className="hoja-total">
+          {cot.descuento > 0 && <>
+            <div><span>{T("Subtotal")}</span><span className="cat-num">{dinero(cot.subtotal || cot.total + cot.descuento)}</span></div>
+            <div className="menos"><span>{T("Descuento")}{cot.cupon ? ` (${cot.cupon})` : ""}</span><span className="cat-num">−{dinero(cot.descuento)}</span></div>
+          </>}
+          {hayConsultar && <div><span>{T("Productos por consultar")}</span><span>{T("No incluidos en el total")}</span></div>}
+          <p><span>{T("Total")}</span><b className="cat-num">{dinero(cot.total)}</b></p>
+        </div>
+      </div>
+      <p className="hoja-nota">{T("Precios en dólares estadounidenses.")}</p>
+      {foto && <FotoGrande p={{ codigo: foto.codigo, nombre: (EN && foto.nombreEn) || foto.nombre, foto: foto.foto, fotos: [foto.foto] }} cerrar={() => setFoto(null)} />}
+    </article>
+  );
+}
+
 /** La cotización ya guardada: su imagen y los botones para enviarla. */
 function CotizacionLista({ cot, empresa, alTerminar }) {
   const imagen = useImagenCotizacion(cot, empresa);
   return (
     <div className="cat-lista-ok">
       {alTerminar && <p className="cat-guardada" role="status"><Check size={18} />{T("Tu cotización")} <b>{cot.numero}</b> {T("quedó registrada.")}</p>}
-      {!imagen ? <p className="cat-resumen">{T("Preparando la imagen…")}</p> :
-        imagen.error ? <p className="cat-error">{T("No se pudo dibujar la imagen, pero tu cotización sí quedó registrada.")}</p> :
-          <img className="cat-hoja-img" src={imagen.url} alt={`Cotización ${cot.numero} de ${cot.cliente}`} />}
+      <HojaCliente cot={cot} empresa={empresa} />
       <div className="cat-panel-botones">
         {imagen?.blob && (
           <button type="button" className="cat-btn claro" onClick={() => compartirImagen(imagen, cot.numero)}>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, X, Camera, Share2, Check, Box, Scale, Ship, ChevronRight, Plus, Minus, Trash2, Send, ClipboardList } from "lucide-react";
+import { Search, X, Camera, Share2, Check, Box, Scale, Ship, ChevronRight, Plus, Minus, Trash2, Send, ClipboardList, ClipboardCheck, Handshake, Factory, PackageCheck } from "lucide-react";
 import { LOGO_POR_DEFECTO } from "./logo.js";
 import { hojaImagen, TIEMPOS_ENTREGA, DIAS_PRODUCCION, DIAS_ENVIO } from "./hoja.js";
 import { leerDescripcion } from "./descripcion.js";
@@ -376,6 +376,32 @@ const ESTILOS = `${ESTILOS_VITRINA}
 .cat-seg-entrega { background:#FFF4CC; box-shadow:inset 0 0 0 2px #FF8A1F; border-radius:12px; padding:10px 14px; }
 .cat-seg-entrega b { font-size:26px; color:#5F4600; }
 .cat-seg-entrega span { font-size:13px; color:#7A5900; }
+.cat-ruta { position:relative; margin-top:10px; padding:58px 9% 0; }
+.cat-ruta-mar { position:relative; height:16px; border-radius:999px; background:#D5DEE8; }
+.cat-ruta-lleno { position:absolute; left:0; top:0; bottom:0; border-radius:999px; background:repeating-linear-gradient(90deg,#1556B8 0 20px,#2F6FC4 20px 40px);
+  transition:width .9s cubic-bezier(.2,.8,.2,1); }
+.cat-ruta-barco { position:absolute; top:-50px; margin-left:-26px; width:52px; height:52px; border-radius:15px; background:#FF8A1F; color:#1B1000;
+  display:flex; align-items:center; justify-content:center; box-shadow:0 8px 16px rgba(255,138,31,.4); transition:left .9s cubic-bezier(.2,.8,.2,1); }
+.cat-ruta-barco::after { content:""; position:absolute; bottom:-7px; left:50%; margin-left:-7px; border:7px solid transparent; border-top-color:#FF8A1F; border-bottom:0; }
+.cat-ruta.llego .cat-ruta-barco { background:#1D7A46; color:#fff; box-shadow:0 8px 16px rgba(29,122,70,.4); }
+.cat-ruta.llego .cat-ruta-barco::after { border-top-color:#1D7A46; }
+.cat-ruta-paradas { list-style:none; margin:0 -12.5%; padding:12px 0 0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); }
+.cat-ruta-paradas li { display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; font-size:14px; font-weight:600; color:#8A97A0; line-height:1.2; }
+.cat-ruta-paradas li span { overflow-wrap:anywhere; }
+.cat-ruta-paradas .hecho { color:#14653A; }
+.cat-ruta-paradas .actual { color:#0A1F44; font-weight:800; }
+.cat-ruta-extremos { display:flex; justify-content:space-between; margin:10px -4% 0; font-size:12.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#1556B8; }
+@media (prefers-reduced-motion:no-preference) {
+  .cat-ruta-lleno { animation:cat-olas 1.2s linear infinite; }
+  .cat-ruta-barco svg { animation:cat-flota 2s ease-in-out infinite; }
+  .cat-ruta.llego .cat-ruta-lleno, .cat-ruta.llego .cat-ruta-barco svg { animation:none; }
+  @keyframes cat-olas { to { background-position:-40px 0; } }
+  @keyframes cat-flota { 0%,100% { transform:translateY(0) rotate(-3deg); } 50% { transform:translateY(-4px) rotate(3deg); } }
+}
+@media (max-width:560px) {
+  .cat-ruta { padding:54px 10% 0; }
+  .cat-ruta-paradas li { font-size:11.5px; } .cat-ruta-paradas li svg { width:20px; height:20px; }
+}
 .cat-pasos { list-style:none; margin:18px 0 0; padding:0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); }
 .cat-pasos li { position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; font-size:13px; font-weight:600; color:#8A99A3; }
 .cat-pasos li::before { content:""; position:absolute; top:15px; right:50%; width:100%; height:4px; background:#DCE4E8; }
@@ -1454,6 +1480,8 @@ const TEXTO_ESTADO = {
   entregada: [T("Entregada"), T("Tu pedido fue entregado. Gracias por tu compra.")],
   cancelada: [T("Cancelada"), T("Esta cotización fue cancelada.")],
 };
+// Dibujo de cada paso del pedido: recibida, trato cerrado, fábrica, barco y entrega.
+const ICONOS_PASO = [ClipboardCheck, Handshake, Factory, Ship, PackageCheck];
 const estadoPublico = (cot) => (TEXTO_ESTADO[cot.estado] ? cot.estado : "pendiente");
 const fechaCorta = (d) => new Date(d).toLocaleDateString(IDIOMA, { day: "2-digit", month: "short", year: "numeric" });
 const entregaDe = (cot) => (cot.confirmadaEl ? new Date(new Date(cot.confirmadaEl).getTime() + (DIAS_PRODUCCION + DIAS_ENVIO) * 86400000) : null);
@@ -1510,14 +1538,24 @@ function Seguimiento({ cot }) {
         )}
       </div>
       {estado !== "cancelada" && (
-        <ol className="cat-pasos">
-          {PASOS.map(([clave, nombre], i) => (
-            <li key={clave} className={i < paso ? "hecho" : i === paso ? "actual" : ""} aria-current={i === paso ? "step" : undefined}>
-              <span className="cat-paso-punto">{i < paso || (i === paso && estado === "entregada") ? <Check size={15} /> : i + 1}</span>
-              <span className="cat-paso-nombre">{nombre}</span>
-            </li>
-          ))}
-        </ol>
+        <div className={`cat-ruta${estado === "entregada" ? " llego" : ""}`}>
+          {/* Ruta de China a Nicaragua: el barco avanza hasta el paso en que va el pedido. */}
+          <div className="cat-ruta-mar" aria-hidden="true">
+            <div className="cat-ruta-lleno" style={{ width: `${paso * 25}%` }} />
+            <div className="cat-ruta-barco" style={{ left: `${paso * 25}%` }}>{estado === "entregada" ? <PackageCheck size={26} /> : <Ship size={26} />}</div>
+          </div>
+          <ol className="cat-ruta-paradas">
+            {PASOS.map(([clave, nombre], i) => {
+              const Icono = ICONOS_PASO[i];
+              return (
+                <li key={clave} className={i < paso ? "hecho" : i === paso ? "actual" : ""} aria-current={i === paso ? "step" : undefined}>
+                  <Icono size={24} /><span>{nombre}</span>
+                </li>
+              );
+            })}
+          </ol>
+          <div className="cat-ruta-extremos" aria-hidden="true"><span>China</span><span>Nicaragua</span></div>
+        </div>
       )}
       {cot.pagado > 0 && (
         <div className="cat-datos" style={{ marginTop: 14 }}>

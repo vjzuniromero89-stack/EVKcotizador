@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Camera, Image as ImageIcon, Pencil, Trash2, X, Plus, Search, FileText,
   Printer, Share2, Eye, Home, Package, FileText as FileTextIcon, Users, Menu,
-  TrendingUp, DollarSign, Ship, Cloud, CloudOff, BookOpen, Tag, Contact, ChevronDown, ShieldCheck, LogOut, Ticket,
+  TrendingUp, DollarSign, Ship, Cloud, CloudOff, BookOpen, Tag, Contact, ChevronDown, ShieldCheck, LogOut, Ticket, Percent,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { LOGO_POR_DEFECTO } from "./logo.js";
@@ -3153,11 +3153,103 @@ const TABS = [
   { id: "directorio", label: "Clientes", icon: Contact },
   { id: "clientes", label: "Cotizaciones", icon: Users },
   { id: "ganancias", label: "Ganancias", icon: TrendingUp },
+  { id: "margenes", label: "Ganancia por producto", corto: "Por producto", icon: Percent },
   { id: "cupones", label: "Cupones", icon: Ticket },
   { id: "productos", label: "Producto", icon: Package },
   { id: "catalogo-cliente", label: "Catálogo cliente", corto: "Cat. cliente", icon: Tag },
   { id: "catalogo-interno", label: "Catálogo interno", corto: "Cat. interno", icon: BookOpen },
 ];
+
+/** Pestaña "Ganancia por producto": lo que cuesta cada producto puesto en Nicaragua, a cuánto se vende y cuánto deja. */
+function MargenesView({ productos, irA }) {
+  const [q, setQ] = useState("");
+  const [orden, setOrden] = useState("menos");
+  const filas = useMemo(() => productos.map((p) => {
+    const producto = num(p.precioProducto);
+    const flete = cbmCobro(p.cbm, p.peso).cobrable * num(p.precioCbm);
+    const comision = producto * COMISION;
+    const costo = producto + comision + flete;
+    const venta = num(p.precioVenta);
+    const listo = costo > 0 && venta > 0;
+    const ganancia = venta - costo;
+    return { p, producto, comision, flete, costo, venta, listo, ganancia, sobreCosto: listo ? ganancia / costo : null, margen: listo ? ganancia / venta : null };
+  }), [productos]);
+  const visibles = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    const lista = filas.filter((f) => !s || `${f.p.codigo} ${f.p.nombre} ${f.p.categoria}`.toLowerCase().includes(s));
+    // Los que no tienen precio de venta o de costo van al final en cualquier orden.
+    const clave = { menos: (f) => f.sobreCosto, mas: (f) => -f.sobreCosto, ganancia: (f) => -f.ganancia, nombre: () => 0 }[orden];
+    return [...lista].sort((x, y) => (x.listo === y.listo ? (x.listo ? clave(x) - clave(y) : 0) || x.p.nombre.localeCompare(y.p.nombre, "es") : x.listo ? -1 : 1));
+  }, [filas, q, orden]);
+  const listos = filas.filter((f) => f.listo);
+  const sinPrecio = filas.filter((f) => !(f.venta > 0)).length;
+  const sinCosto = filas.filter((f) => !(f.producto > 0)).length;
+  const perdiendo = listos.filter((f) => f.ganancia < 0).length;
+  const promedio = listos.length ? listos.reduce((s, f) => s + f.sobreCosto, 0) / listos.length : 0;
+  const color = (f) => (f.ganancia < 0 ? "#A3321F" : f.sobreCosto < 0.15 ? "#8A4B00" : "#14653A");
+
+  return (
+    <div className="space-y-6">
+      <EncabezadoPagina icon={Percent} tono="verde" titulo="Ganancia por producto"
+        descripcion="Lo que te cuesta cada producto (producto + comisión + flete), a cuánto lo vendes y cuánto le ganas." />
+
+      <div className="cot-kpis">
+        <div><small>Productos con precio</small><b className="num">{listos.length} <span className="muted" style={{ fontSize: 16 }}>de {filas.length}</span></b></div>
+        <div><small>Ganancia promedio sobre el costo</small><b className="num" style={{ color: promedio < 0 ? "#A3321F" : "#14653A" }}>{pct(promedio)}</b></div>
+        <div><small>Sin precio de venta</small><b className="num" style={{ color: sinPrecio ? "#8A4B00" : undefined }}>{sinPrecio}</b></div>
+        <div><small>Vendiendo con pérdida</small><b className="num" style={{ color: perdiendo ? "#A3321F" : undefined }}>{perdiendo}</b></div>
+      </div>
+
+      <section className="paper p-4">
+        <div className="flex gap-3 mb-3" style={{ flexWrap: "wrap", alignItems: "end" }}>
+          <div style={{ flex: "1 1 240px" }}>
+            <label className="lbl" htmlFor="m-buscar">Buscar</label>
+            <input id="m-buscar" className="inp" placeholder="Código, nombre o categoría" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          <div>
+            <label className="lbl" htmlFor="m-orden">Ordenar</label>
+            <select id="m-orden" className="inp" value={orden} onChange={(e) => setOrden(e.target.value)}>
+              <option value="menos">Los que menos dejan primero</option>
+              <option value="mas">Los que más dejan primero</option>
+              <option value="ganancia">Mayor ganancia en dólares</option>
+              <option value="nombre">Por nombre</option>
+            </select>
+          </div>
+        </div>
+        <div className="cot-tabla-caja">
+          <table className="cot-tabla">
+            <thead><tr>
+              <th>Producto</th><th>Producto</th><th>Comisión {pct(COMISION)}</th><th>Flete</th><th>Costo total</th>
+              <th>Precio de venta</th><th>Ganancia</th><th>% sobre costo</th><th>% de la venta</th>
+            </tr></thead>
+            <tbody>
+              {visibles.map((f) => (
+                <tr key={f.p.id}>
+                  <td className="p"><div className="cot-prod"><Thumb src={f.p.foto} size={42} /><div><b>{f.p.nombre}</b><small className="num">{f.p.codigo} · {f.p.categoria}</small></div></div></td>
+                  <td className="num">{f.producto > 0 ? money(f.producto) : <span style={{ color: "#8A4B00" }}>Falta</span>}</td>
+                  <td className="num">{money(f.comision)}</td>
+                  <td className="num">{money(f.flete)}</td>
+                  <td className="num"><b>{money(f.costo)}</b></td>
+                  <td className="num">{f.venta > 0 ? <b>{money(f.venta)}</b> : <span style={{ color: "#8A4B00" }}>Sin precio</span>}</td>
+                  <td className="num" style={{ color: f.listo ? color(f) : undefined }}>{f.listo ? <b>{money(f.ganancia)}</b> : "—"}</td>
+                  <td className="num" style={{ color: f.listo ? color(f) : undefined }}>{f.listo ? <b>{pct(f.sobreCosto)}</b> : "—"}</td>
+                  <td className="num">{f.listo ? pct(f.margen) : "—"}</td>
+                </tr>
+              ))}
+              {visibles.length === 0 && <tr><td className="p muted" colSpan={9}>Ningún producto coincide con la búsqueda.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-sm muted mt-3" style={{ lineHeight: 1.4 }}>
+          Costo total = precio del producto + comisión del {pct(COMISION)} sobre el producto + flete (CBM a cobrar × precio del CBM).
+          «% sobre costo» es cuánto le ganas a lo que te cuesta; «% de la venta» es qué parte del precio de venta es ganancia.
+          {sinCosto > 0 && ` ${sinCosto} ${sinCosto === 1 ? "producto no tiene" : "productos no tienen"} precio de costo.`}
+        </p>
+        <button className="btn btn-ghost mt-3" onClick={() => irA("productos")}><Package size={16} />Cambiar precios en Producto</button>
+      </section>
+    </div>
+  );
+}
 
 const PESTANAS_VENDEDOR = ["inicio", "directorio", "clientes", "catalogo-cliente"];
 // Con un vendedor en sesión se ocultan los campos de costo de los formularios compartidos.
@@ -3412,6 +3504,7 @@ function AdminApp({ sesion }) {
                   <Catalogo modo="cliente" vistaPrevia avisar={avisar} whatsapp={empresa.whatsapp} />
                 )}
                 {tab === "ganancias" && <GananciasView clientes={clientes} />}
+                {tab === "margenes" && <MargenesView productos={productos} irA={cambiarTab} />}
                 {tab === "cupones" && <CuponesView supabase={supabase} cotizaciones={clientes.lista} avisar={avisar} Encabezado={EncabezadoPagina} />}
                 {tab === "usuarios" && esAdmin && (
                   <UsuariosView supabase={supabase} perfil={sesion.perfil} avisar={avisar} Encabezado={EncabezadoPagina} />

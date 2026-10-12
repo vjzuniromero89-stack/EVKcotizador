@@ -995,11 +995,23 @@ function datosHojaCliente(cot, empresa) {
   const columnas = [
     { t: T("Foto") }, { t: T("Producto") }, { t: T("Cant."), r: true }, { t: T("Precio unitario"), r: true }, { t: T("Total"), r: true, fuerte: true },
   ];
+  // Un poco de descripción (no toda), más volumen y peso, para quien recibe la imagen por WhatsApp.
+  const corta = (texto, max = 200) => {
+    const t = String(texto || "").replace(/\s+/g, " ").trim();
+    return t.length <= max ? t : `${t.slice(0, t.lastIndexOf(" ", max))}…`;
+  };
   const filas = cot.lineas.map((l) => ({
+    detalle: [
+      corta(leerDescripcion((EN && l.descripcionEn) || l.descripcion || "").resumen),
+      [l.cbm > 0 && `${T("Volumen")}: ${m3(l.cbm)}`, l.peso > 0 && `${T("Peso")}: ${kilos(l.peso)}`].filter(Boolean).join("   ·   "),
+    ],
     foto: l.foto, nombre: (EN && l.nombreEn) || l.nombre, sub: l.codigo,
     valores: [String(l.cantidad), l.precio > 0 ? dinero(l.precio) : T("Por consultar"), l.precio > 0 ? dinero(l.precio * l.cantidad) : T("Por consultar")],
   }));
   const totales = [[T("Productos"), String(cot.lineas.reduce((s, l) => s + l.cantidad, 0))]];
+  const volumen = cot.lineas.reduce((s, l) => s + (l.cbm || 0) * l.cantidad, 0), pesoTotal = cot.lineas.reduce((s, l) => s + (l.peso || 0) * l.cantidad, 0);
+  if (volumen > 0) totales.push([T("Volumen total"), m3(volumen)]);
+  if (pesoTotal > 0) totales.push([T("Peso total"), kilos(pesoTotal)]);
   if (cot.lineas.some((l) => !(l.precio > 0))) totales.push([T("Productos por consultar"), T("No incluidos en el total")]);
   if (cot.descuento > 0) {
     totales.push([T("Subtotal"), dinero(cot.subtotal || cot.total + cot.descuento)]);
@@ -1007,8 +1019,8 @@ function datosHojaCliente(cot, empresa) {
   }
   totales.push(...TIEMPOS_ENTREGA.map(([k, v]) => [T(k), v.replace("días", T("días"))]));
   return {
-    empresa: { ...empresa, contacto: T(String(empresa.contacto || "").split("\n")[0]) }, columnas, filas, totales, total: dinero(cot.total), totalLabel: T("Total"),
-    pie: T("Precios en dólares estadounidenses."),
+    empresa: { ...empresa, contacto: T(String(empresa.contacto || "").split("\n")[0]) }, columnas, filas, totales, total: dinero(cot.total), totalLabel: T("Total con envío"),
+    pie: `${T("Servicio incluido:")} ${T("compra, gestión logística y envío de los productos hasta Nicaragua. Precios en dólares estadounidenses. Cotización válida por 15 días, sujeta a confirmación de disponibilidad.")}`,
     cot: { numero: cot.numero, fecha: cot.fecha, cliente: [cot.cliente, cot.telefono && `Tel. ${cot.telefono}`].filter(Boolean).join(" · ") },
   };
 }

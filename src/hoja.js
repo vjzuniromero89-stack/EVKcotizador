@@ -62,10 +62,16 @@ export async function hojaImagen(d) {
   ctx0.font = `13px ${F}`;
   const lineasPie = envolver(ctx0, d.pie || PIE_TEXTO(interno), W - M * 2);
 
+  // Renglones de detalle bajo el nombre de cada producto; la fila crece lo que haga falta.
+  ctx0.font = `15px ${F}`;
+  const detalles = filas.map((f) => (f.detalle || []).filter(Boolean).flatMap((t) => envolver(ctx0, t, anchoProd - 12)));
+  const altos = filas.map((_, i) => (detalles[i].length ? Math.max(ALTO_FILA, 70 + detalles[i].length * 22 + 14) : ALTO_FILA));
+  const altoFilas = altos.reduce((s, a) => s + a, 0);
+
   const altoLogo = logo ? Math.min(90, (logo.height / logo.width) * 260) : 0;
   const yTabla = M + altoLogo + (logo ? 14 : 0) + 130;
   const altoTotales = 34 * totales.length + 78;
-  const H = yTabla + 46 + ALTO_FILA * filas.length + 28 + altoTotales + 50 + lineasPie.length * 20 + M;
+  const H = yTabla + 46 + altoFilas + 28 + altoTotales + 50 + lineasPie.length * 20 + M;
 
   c.width = W; c.height = H;
   const ctx = c.getContext("2d");
@@ -121,21 +127,28 @@ export async function hojaImagen(d) {
 
   let yF = yT + 38;
   filas.forEach((f, idx) => {
-    if (idx % 2 === 1) { ctx.fillStyle = "#F6F8F9"; ctx.fillRect(M, yF, W - M * 2, ALTO_FILA); }
+    const alto = altos[idx], lineas = detalles[idx], conDetalle = lineas.length > 0;
+    if (idx % 2 === 1) { ctx.fillStyle = "#F6F8F9"; ctx.fillRect(M, yF, W - M * 2, alto); }
     const img = fotos[idx];
     if (img) {
-      const lado = 58, ix = xFoto + 10, iy = yF + (ALTO_FILA - lado) / 2;
-      const escala = Math.max(lado / img.width, lado / img.height);
+      // Con detalle la foto va más grande y arriba; sin él, centrada como siempre.
+      const lado = conDetalle ? Math.min(92, alto - 20) : 58, ix = xFoto + (conDetalle ? 0 : 10), iy = conDetalle ? yF + 12 : yF + (alto - lado) / 2;
+      if (conDetalle) { ctx.fillStyle = "#FFFFFF"; ctx.fillRect(ix, iy, lado, lado); }
+      // Con detalle la foto se ve entera; sin él se recorta para llenar el cuadro, como siempre.
+      const escala = (conDetalle ? Math.min : Math.max)(lado / img.width, lado / img.height);
       const sw = lado / escala, sh = lado / escala;
-      ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, ix, iy, lado, lado);
+      if (conDetalle) ctx.drawImage(img, ix + (lado - img.width * escala) / 2, iy + (lado - img.height * escala) / 2, img.width * escala, img.height * escala);
+      else ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, ix, iy, lado, lado);
       ctx.strokeStyle = "#E1E7EA"; ctx.lineWidth = 1; ctx.strokeRect(ix + .5, iy + .5, lado, lado);
     }
     ctx.textAlign = "left";
-    ctx.fillStyle = "#0A1F44"; ctx.font = `bold 17px ${F}`;
+    ctx.fillStyle = "#0A1F44"; ctx.font = `bold ${conDetalle ? 19 : 17}px ${F}`;
     const nombre = envolver(ctx, f.nombre, anchoProd - 12)[0] || "";
     ctx.fillText(nombre, xProd, yF + 34);
     ctx.fillStyle = "#5B6B75"; ctx.font = `13px ${F}`;
     ctx.fillText(f.sub, xProd, yF + 55);
+    ctx.fillStyle = "#33465C"; ctx.font = `15px ${F}`;
+    lineas.forEach((t, k) => ctx.fillText(t, xProd, yF + 82 + k * 22));
     ctx.textAlign = "right";
     f.valores.forEach((v, i) => {
       const col = columnas[i + 2];
@@ -144,8 +157,8 @@ export async function hojaImagen(d) {
       ctx.fillText(v, xNum(i) + ANCHO_NUM - 10, yF + 45);
     });
     ctx.strokeStyle = "#E1E7EA"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(M, yF + ALTO_FILA + .5); ctx.lineTo(W - M, yF + ALTO_FILA + .5); ctx.stroke();
-    yF += ALTO_FILA;
+    ctx.beginPath(); ctx.moveTo(M, yF + alto + .5); ctx.lineTo(W - M, yF + alto + .5); ctx.stroke();
+    yF += alto;
   });
 
   const anchoCaja = 430, xCaja = W - M - anchoCaja;

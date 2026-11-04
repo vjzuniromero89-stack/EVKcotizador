@@ -1531,6 +1531,57 @@ function EmpresaCard({ empresa, guardarEmpresa, avisar }) {
   );
 }
 
+/** Oferta para todos: el precio de venta no cambia y se pone un precio anterior tal que el descuento que ve el cliente sea el %. */
+function OfertaTodos({ productos, guardarProductos, avisar }) {
+  const [porcentaje, setPorcentaje] = useState("10");
+  const [confirmar, setConfirmar] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const pct = num(porcentaje);
+  const conPrecio = productos.filter((p) => num(p.precioVenta) > 0);
+  const enOferta = productos.filter((p) => leerDescripcion(p.descripcion).precioAntes > 0).length;
+  const ejemplo = conPrecio[0];
+  // Descuento de 15 %: antes = venta ÷ 0.85, para que el cliente vea exactamente −15 %.
+  const antesDe = (venta) => Math.round((venta / (1 - pct / 100)) * 100) / 100;
+  const conAntes = (p, antes) => ({ ...p, descripcion: armarDescripcion({ ...leerDescripcion(p.descripcion).campos, precioAntes: antes }) });
+
+  async function aplicar(accion) {
+    if (confirmar !== accion) { setConfirmar(accion); return; }
+    setConfirmar(""); setGuardando(true);
+    const lista = productos.map((p) => accion === "quitar" ? conAntes(p, "")
+      : num(p.precioVenta) > 0 ? conAntes(p, String(antesDe(num(p.precioVenta)))) : p);
+    const ok = await guardarProductos(lista);
+    setGuardando(false);
+    if (ok) avisar(accion === "quitar" ? "Oferta quitada de todos los productos" : `Oferta puesta en ${conPrecio.length} productos`);
+  }
+
+  return (
+    <section className="pagos-caja">
+      <div className="font-semibold">Oferta en todos los productos</div>
+      <p className="text-sm muted mt-1">
+        El precio de venta de cada producto no cambia. Se pone un precio anterior tachado para que el cliente vea ese descuento exacto.
+        {ejemplo && pct > 0 ? ` Ejemplo: ${ejemplo.codigo} se vende a ${money(num(ejemplo.precioVenta))} y saldrá «antes ${money(antesDe(num(ejemplo.precioVenta)))}, −${pct} %».` : ""}
+      </p>
+      <div className="flex gap-2 mt-2 items-center" style={{ flexWrap: "wrap" }}>
+        <label className="text-sm" htmlFor="oferta-pct">Descuento que verá el cliente</label>
+        <input id="oferta-pct" className="inp num" style={{ width: 80 }} inputMode="decimal" value={porcentaje} onChange={(e) => { setPorcentaje(e.target.value); setConfirmar(""); }} />
+        <span className="text-sm">%</span>
+        <button className="btn btn-primary" disabled={guardando || !(pct > 0 && pct < 90) || !conPrecio.length} onClick={() => aplicar("poner")}>
+          {guardando ? "Guardando…" : confirmar === "poner" ? `Sí, poner oferta en ${conPrecio.length} productos` : "Poner oferta a todos"}
+        </button>
+        {enOferta > 0 && (
+          <button className="btn btn-ghost" disabled={guardando} onClick={() => aplicar("quitar")}>
+            {confirmar === "quitar" ? `Sí, quitar la oferta de ${enOferta}` : "Quitar oferta a todos"}
+          </button>
+        )}
+      </div>
+      <p className="text-sm muted mt-1">
+        {enOferta ? `Ahora hay ${enOferta} en oferta.` : "Ahora no hay productos en oferta."}
+        {productos.length > conPrecio.length ? ` ${productos.length - conPrecio.length} sin precio de venta no se tocan.` : ""}
+      </p>
+    </section>
+  );
+}
+
 function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, empresa, guardarEmpresa }) {
   const [form, setForm] = useState(VACIO);
   const [editId, setEditId] = useState(null);
@@ -1858,6 +1909,8 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
           </div>
         </div>
       </section>
+
+      <OfertaTodos productos={productos} guardarProductos={guardarProductos} avisar={avisar} />
 
       <section>
         <div className="section-toolbar">

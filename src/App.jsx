@@ -609,6 +609,18 @@ async function sbSaveFichas(fichas) {
   if (error) { console.error(error); return false; }
   return true;
 }
+async function sbLeerConfig(clave) {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("configuracion").select("*").eq("clave", clave).maybeSingle();
+  if (error) { console.error(error); return null; }
+  return data ? data.valor : null;
+}
+async function sbGuardarConfig(clave, valor) {
+  if (!supabase) return false;
+  const { error } = await supabase.from("configuracion").upsert({ clave, valor });
+  if (error) { console.error(error); return false; }
+  return true;
+}
 async function sbSaveEmpresa(empresa) {
   if (!supabase) return false;
   const { error } = await supabase.from("configuracion").upsert({ clave: "empresa", valor: empresa });
@@ -3227,7 +3239,52 @@ const TABS = [
 ];
 
 /** Pestaña "Ganancia por producto": lo que cuesta cada producto puesto en Nicaragua, a cuánto se vende y cuánto deja. */
-function MargenesView({ productos, irA }) {
+/** Enlace de solo lectura para los socios (/socios/<token> o /precios/<token>), con copiar, WhatsApp y cambiar. */
+function CajaEnlaceSocios({ ruta, socios, cambiar, queVen, mensaje }) {
+  const [copiado, setCopiado] = useState(false);
+  const [cambiando, setCambiando] = useState(false);
+  const enlace = socios?.token ? `${window.location.origin}/${ruta}/${socios.token}` : "";
+  const copiarEnlace = async () => {
+    try { await navigator.clipboard.writeText(enlace); setCopiado(true); setTimeout(() => setCopiado(false), 2200); } catch { /* sin portapapeles */ }
+  };
+  const nuevoEnlace = async () => { setCambiando(true); await cambiar(); setCambiando(false); };
+  const encendido = socios?.activo !== false;
+  const alternar = async () => { setCambiando(true); await cambiar({ activo: !encendido }); setCambiando(false); };
+  return (
+    <section className="pagos-caja">
+      <div className="flex items-center gap-3" style={{ flexWrap: "wrap", justifyContent: "space-between" }}>
+        <div className="font-semibold">Enlace para tus socios</div>
+        {enlace && (
+          <button type="button" role="switch" aria-checked={encendido} onClick={alternar} disabled={cambiando}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, border: 0, background: "none", cursor: "pointer", font: "inherit", fontWeight: 700, color: encendido ? "#12873F" : "#5B6B75" }}>
+            <span aria-hidden="true" style={{ width: 44, height: 24, borderRadius: 999, background: encendido ? "#12873F" : "#B8C4CC", position: "relative", transition: "background .15s" }}>
+              <span style={{ position: "absolute", top: 3, left: encendido ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s" }} />
+            </span>
+            {encendido ? "Encendido" : "Apagado"}
+          </button>
+        )}
+      </div>
+      <p className="text-sm muted mt-1">
+        Quien tenga este enlace ve {queVen}, sin poder cambiar nada y sin entrar con usuario.
+        Si lo apagas, nadie lo puede abrir hasta que lo vuelvas a encender. Si lo cambias, el enlace anterior deja de funcionar para siempre.
+      </p>
+      {enlace ? (
+        <div className="flex gap-2 mt-2" style={{ flexWrap: "wrap" }}>
+          <input className="inp" style={{ flex: "1 1 260px" }} readOnly value={enlace} aria-label="Enlace para socios" onFocus={(e) => e.target.select()} />
+          <button className="btn btn-primary" onClick={copiarEnlace}><Share2 size={16} />{copiado ? "Copiado" : "Copiar"}</button>
+          <a className="btn btn-ghost" style={{ textDecoration: "none" }} href={enlace} target="_blank" rel="noopener noreferrer"><Eye size={16} />Abrir</a>
+          <a className="btn btn-ghost" style={{ textDecoration: "none" }} target="_blank" rel="noopener noreferrer"
+            href={`https://wa.me/?text=${encodeURIComponent(`${mensaje}:\n${enlace}`)}`}>Enviar por WhatsApp</a>
+          <button className="btn btn-ghost" onClick={nuevoEnlace} disabled={cambiando}>{cambiando ? "Cambiando…" : "Cambiar enlace"}</button>
+        </div>
+      ) : (
+        <button className="btn btn-primary mt-2" onClick={nuevoEnlace} disabled={cambiando}><Plus size={16} />{cambiando ? "Creando…" : "Crear enlace para socios"}</button>
+      )}
+    </section>
+  );
+}
+
+function MargenesView({ productos, irA, socios, cambiarEnlaceSocios, soloLectura = false }) {
   const [q, setQ] = useState("");
   const [orden, setOrden] = useState("menos");
   const filas = useMemo(() => productos.map((p) => {
@@ -3258,6 +3315,10 @@ function MargenesView({ productos, irA }) {
     <div className="space-y-6">
       <EncabezadoPagina icon={Percent} tono="verde" titulo="Ganancia por producto"
         descripcion="Lo que te cuesta cada producto (producto + comisión + flete), a cuánto lo vendes y cuánto le ganas." />
+      {!soloLectura && cambiarEnlaceSocios && (
+        <CajaEnlaceSocios ruta="socios" socios={socios} cambiar={cambiarEnlaceSocios}
+          queVen="esta misma tabla de ganancias" mensaje="Ganancia por producto de EVK Logistic" />
+      )}
 
       <div className="cot-kpis">
         <div><small>Productos con precio</small><b className="num">{listos.length} <span className="muted" style={{ fontSize: 16 }}>de {filas.length}</span></b></div>
@@ -3311,7 +3372,7 @@ function MargenesView({ productos, irA }) {
           «% sobre costo» es cuánto le ganas a lo que te cuesta; «% de la venta» es qué parte del precio de venta es ganancia.
           {sinCosto > 0 && ` ${sinCosto} ${sinCosto === 1 ? "producto no tiene" : "productos no tienen"} precio de costo.`}
         </p>
-        <button className="btn btn-ghost mt-3" onClick={() => irA("productos")}><Package size={16} />Cambiar precios en Producto</button>
+        {!soloLectura && <button className="btn btn-ghost mt-3" onClick={() => irA("productos")}><Package size={16} />Cambiar precios en Producto</button>}
       </section>
     </div>
   );
@@ -3383,6 +3444,19 @@ function AdminApp({ sesion }) {
     })();
   }, []);
 
+  // Enlace de solo lectura para que los socios vean la ganancia por producto (/socios/<token>).
+  const [enlaces, setEnlaces] = useState({});
+  useEffect(() => { sbLeerConfig("enlace-socios").then((v) => { if (v?.token) setEnlaces((e) => ({ ...e, "enlace-socios": v })); }); }, []);
+  // Sin opciones: enlace nuevo (encendido). Con { activo }: el mismo enlace, encendido o apagado.
+  const cambiarEnlace = async (clave, { activo } = {}) => {
+    const valor = activo === undefined
+      ? { token: crypto.randomUUID().replace(/-/g, ""), creado: new Date().toISOString() }
+      : { ...enlaces[clave], activo };
+    if (await sbGuardarConfig(clave, valor)) {
+      setEnlaces((e) => ({ ...e, [clave]: valor }));
+      avisar(activo === undefined ? "Enlace para socios listo" : activo ? "Enlace encendido" : "Enlace apagado");
+    } else avisar("No se pudo guardar el enlace para socios.", "error");
+  };
   const avisar = (msg, tipo = "ok") => {
     setToast({ msg, tipo });
     clearTimeout(timer.current);
@@ -3570,7 +3644,7 @@ function AdminApp({ sesion }) {
                   <Catalogo modo="cliente" vistaPrevia avisar={avisar} whatsapp={empresa.whatsapp} />
                 )}
                 {tab === "ganancias" && <GananciasView clientes={clientes} />}
-                {tab === "margenes" && <MargenesView productos={productos} irA={cambiarTab} />}
+                {tab === "margenes" && <MargenesView productos={productos} irA={cambiarTab} socios={enlaces["enlace-socios"]} cambiarEnlaceSocios={(o) => cambiarEnlace("enlace-socios", o)} />}
                 {tab === "cupones" && <CuponesView supabase={supabase} cotizaciones={clientes.lista} avisar={avisar} Encabezado={EncabezadoPagina} />}
                 {tab === "usuarios" && esAdmin && (
                   <UsuariosView supabase={supabase} perfil={sesion.perfil} avisar={avisar} Encabezado={EncabezadoPagina} />
@@ -3670,6 +3744,7 @@ function Rutas() {
   if (ruta === "/catalogo-interno") return <Acceso supabase={supabase}>{() => <Catalogo modo="interno" cabeceras={cabecerasSesion} />}</Acceso>;
   if (ruta.startsWith("/cotizacion/")) return <VistaCotizacion id={ruta.slice("/cotizacion/".length)} />;
   if (ruta.startsWith("/cliente/")) return <VistaCliente token={ruta.slice("/cliente/".length)} />;
+  if (ruta.startsWith("/socios/")) return <VistaSocios token={ruta.slice("/socios/".length)} />;
   // Solo en "npm run dev" y sin base de datos: entra directo con datos guardados en el navegador, para probar pantallas.
   // (?rol=vendedor prueba la vista del vendedor.) En la página publicada esto no existe.
   if (import.meta.env.DEV && !supabase) {
@@ -3677,6 +3752,35 @@ function Rutas() {
     return <AdminApp sesion={{ perfil: { id: "local", usuario: "local", nombre: "Prueba local", rol }, salir: () => {} }} />;
   }
   return <Acceso supabase={supabase}>{(sesion) => <AdminApp sesion={sesion} />}</Acceso>;
+}
+
+/** Lo que ven los socios con su enlace: la ganancia por producto, sin poder cambiar nada. */
+function VistaSocios({ token }) {
+  const [datos, setDatos] = useState(null);
+  const [estado, setEstado] = useState("cargando");
+  useEffect(() => {
+    fetch(`/api/socios/${encodeURIComponent(token)}`, { cache: "no-store" })
+      .then(async (r) => { const d = await r.json().catch(() => ({})); if (r.ok && d.ok) { setDatos(d); setEstado("listo"); } else setEstado(r.status === 404 ? "no-valido" : r.status === 403 ? "apagado" : "error"); })
+      .catch(() => setEstado("error"));
+  }, [token]);
+  const productos = useMemo(() => (datos?.productos || []).map((p) => ({
+    id: p.id, codigo: p.codigo || "", nombre: p.nombre || "", categoria: p.categoria || "Sin categoría", descripcion: p.descripcion || "",
+    cbm: p.cbm || 0, peso: p.peso || 0, precioCbm: p.precio_cbm || 0, precioProducto: p.precio_producto || 0, precioVenta: p.precio_venta || 0, foto: p.foto || "",
+  })), [datos]);
+  const nombre = datos?.empresa?.nombre || "EVK Logistic";
+  return (
+    <div className="app" style={{ minHeight: "100vh" }}>
+      <style>{STYLES}</style>
+      <main style={{ maxWidth: 1180, margin: "0 auto", padding: "20px 16px 48px" }}>
+        <div className="flex items-center gap-3 mb-4">
+          <img src={datos?.empresa?.logo || LOGO_POR_DEFECTO} alt="" style={{ height: 52, maxWidth: 110, objectFit: "contain", background: "#fff", borderRadius: 8, padding: 4 }} />
+          <div><div className="cond" style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>{nombre}</div><div className="text-sm muted">Vista para socios · solo lectura</div></div>
+        </div>
+        {estado === "listo" ? <MargenesView productos={productos} soloLectura /> :
+          <div className="paper p-6 text-center muted">{estado === "cargando" ? "Cargando…" : estado === "no-valido" ? "Este enlace ya no es válido. Pide uno nuevo." : estado === "apagado" ? "Este enlace está apagado por ahora." : "No se pudo cargar. Inténtalo de nuevo en un momento."}</div>}
+      </main>
+    </div>
+  );
 }
 
 function FichaProducto({ p, acciones, children, mostrarCategoria = true }) {

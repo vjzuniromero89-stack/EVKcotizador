@@ -381,6 +381,23 @@ const STYLES = `
 /* Card del formulario con espaciado correcto */
 .form-card { background:#fff; border:1px solid #CAD4DA; border-radius:10px;
   padding:24px 24px 28px; }
+/* Formulario de producto: secciones numeradas y resumen fijo a la derecha */
+.pf-wrap { display:grid; grid-template-columns:minmax(0,1fr) 290px; gap:20px; align-items:start; }
+.pf-col { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.pf-sec { border:1px solid #CAD4DA; border-radius:10px; padding:16px; }
+.pf-tit { display:flex; align-items:center; gap:10px; margin:0 0 12px; font-family:'Barlow Condensed',sans-serif; font-size:21px; font-weight:700; color:#0A1F44; }
+.pf-tit b { width:30px; height:30px; border-radius:50%; background:#0A1F44; color:#fff; display:grid; place-items:center; font-size:17px; flex:none; }
+.pf-datos { display:grid; grid-template-columns:160px minmax(0,1fr); gap:20px; align-items:start; }
+.pf-extra { border:1px solid #CAD4DA; border-radius:10px; padding:12px 16px; }
+.pf-extra summary { cursor:pointer; font-weight:700; color:#0A1F44; }
+.pf-resumen { position:sticky; top:12px; border:1px solid #CAD4DA; border-radius:10px; padding:16px; background:#F5F8FC; display:flex; flex-direction:column; gap:2px; }
+.pf-fila { display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px solid #DCE3E8; font-size:15px; color:#22344A; }
+.pf-fila b { color:#0A1F44; }
+.pf-ganancia { display:flex; flex-direction:column; gap:2px; margin:10px 0 8px; }
+.pf-ganancia small { font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#4A5D70; }
+.pf-ganancia b { font-size:32px; line-height:1; }
+@media (max-width: 980px) { .pf-wrap { grid-template-columns:minmax(0,1fr); } .pf-resumen { position:static; } }
+@media (max-width: 560px) { .pf-datos { grid-template-columns:minmax(0,1fr); } .pf-datos > div:first-child { max-width:200px; } .form-grid-2, .form-grid-3 { grid-template-columns:minmax(0,1fr); } }
 
 @media (max-width: 860px) {
   .mobile-topbar { position:fixed; display:flex; align-items:center; gap:12px; top:0; left:0; right:0;
@@ -1703,223 +1720,242 @@ function ProductosView({ productos, guardarProductos, eliminarProducto, avisar, 
 
       <section className="form-card">
         <h2 className="cond text-2xl font-semibold mb-3">{editId ? "Editar producto" : "Nuevo producto"}</h2>
-        <div style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-          <div style={{ width: 160, flexShrink: 0 }}>
-            <PhotoBox value={form.foto} onChange={(foto) => setForm((f) => ({ ...f, foto }))} />
-            <MasFotos fotos={form.fotos || []} cambiar={(fotos) => setForm((f) => ({ ...f, fotos }))} avisar={avisar} />
-          </div>
-          <div className="form-producto" style={{ flex: 1, minWidth: 280 }}>
-            <div className="form-grid-cod">
-              <div>
-                <label className="lbl" htmlFor="p-codigo">Código</label>
-                <input id="p-codigo" className="inp" value={form.codigo} onChange={set("codigo")} />
-              </div>
-              <div>
-                <label className="lbl" htmlFor="p-nombre">Nombre</label>
-                <input id="p-nombre" className="inp" value={form.nombre} onChange={set("nombre")} />
-              </div>
-            </div>
-
-            <div>
-              <label className="lbl" htmlFor="p-categoria">Categoría</label>
-              {creandoCategoria ? <input id="p-categoria" className="inp" maxLength={100} value={form.categoria}
-                onChange={set("categoria")} placeholder="Nombre de la nueva categoría" /> :
-                <select id="p-categoria" className="inp" value={form.categoria} onChange={set("categoria")}>
-                  <option value="">Selecciona una categoría</option>
-                  {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>}
-              <button type="button" className="btn btn-ghost mt-2" onClick={() => {
-                setCreandoCategoria(v => !v); setForm(f => ({ ...f, categoria: "" }));
-              }}>{creandoCategoria ? "Elegir categoría existente" : "Nueva categoría"}</button>
-              {creandoCategoria && <p className="muted text-sm mt-1">La categoría se guardará junto con el producto.</p>}
-            </div>
-
-            <div className="form-grid-cod">
-              <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600 }}>
-                <input type="checkbox" style={{ width: 20, height: 20 }} checked={form.destacado === "si"}
-                  onChange={(e) => setForm((f) => ({ ...f, destacado: e.target.checked ? "si" : "" }))} />
-                Destacado: sale de primero en el catálogo
-              </label>
-              <div>
-                <label className="lbl" htmlFor="p-antes">Precio anterior, si está en oferta (opcional)</label>
-                <input id="p-antes" className="inp num" inputMode="decimal" placeholder="0.00" value={form.precioAntes} onChange={set("precioAntes")} />
-                <p className="muted text-sm mt-1">Si es mayor que el precio de venta, sale tachado con la etiqueta «Oferta».</p>
-              </div>
-            </div>
-
-            <details className="paper p-3">
-              <summary className="font-semibold" style={{ cursor: "pointer" }}>Versión en inglés (opcional){form.nombreEn || form.descripcionEn ? " · con datos" : ""}</summary>
-              <p className="muted text-sm mt-2">Es lo que ve el cliente cuando pone el catálogo en inglés. Lo que dejes vacío se muestra en español.</p>
-              <div className="form-grid-cod mt-2">
-                <div>
-                  <label className="lbl" htmlFor="p-nombre-en">Nombre en inglés</label>
-                  <input id="p-nombre-en" className="inp" value={form.nombreEn} onChange={set("nombreEn")} />
-                </div>
-                <div>
-                  <label className="lbl" htmlFor="p-categoria-en">Categoría en inglés</label>
-                  <input id="p-categoria-en" className="inp" value={form.categoriaEn} onChange={set("categoriaEn")} />
-                </div>
-              </div>
-              <label className="lbl mt-2" htmlFor="p-descripcion-en">Ficha en inglés (mismo orden que la ficha en español; deja los títulos «Marca:», «Características:», «Ficha técnica:», «Incluye:» tal cual)</label>
-              <textarea id="p-descripcion-en" className="inp" rows={6} value={form.descripcionEn} onChange={set("descripcionEn")} />
-            </details>
-
-            <div className="form-grid-cod">
-              <div>
-                <label className="lbl" htmlFor="p-grupo">Grupo de opciones (si este producto se vende en varias versiones)</label>
-                <input id="p-grupo" className="inp" placeholder="Igual en todas las versiones. Ejemplo: XF-702E + XF-C650S" value={form.grupo} onChange={set("grupo")} />
-              </div>
-              <div>
-                <label className="lbl" htmlFor="p-opcion">Nombre de esta versión</label>
-                <input id="p-opcion" className="inp" placeholder="Ejemplo: Cabezales Epson XP600" value={form.opcion} onChange={set("opcion")} />
-                <p className="muted text-sm mt-1">El cliente ve una sola tarjeta y elige la versión; cada una tiene su código y su precio.</p>
-              </div>
-            </div>
-
-            <div className="form-grid-cod">
-              <div>
-                <label className="lbl" htmlFor="p-marca">Marca</label>
-                <input id="p-marca" className="inp" value={form.marca} onChange={set("marca")} />
-              </div>
-              <div>
-                <label className="lbl" htmlFor="p-empaque">Medidas de empaque (largo × ancho × alto)</label>
-                <input id="p-empaque" className="inp num" placeholder="Ejemplo: 3850 × 540 × 800 mm" value={form.empaque} onChange={set("empaque")} />
-                {medidasCbm > 0 && (
-                  <p className="text-sm muted mt-1 num" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    Estas medidas dan {m3(medidasCbm)} m³.
-                    {num(form.cbm) !== medidasCbm && (
-                      <button type="button" className="btn btn-ghost text-sm" style={{ padding: "4px 10px" }}
-                        onClick={() => setForm((f) => ({ ...f, cbm: String(medidasCbm) }))}>Usar como CBM</button>
-                    )}
-                  </p>
-                )}
-              </div>
-            </div>
-
-
-
-            <div className="form-grid-3">
-              <div>
-                <label className="lbl" htmlFor="p-cbm">CBM (m³)</label>
-                <input id="p-cbm" className="inp num" inputMode="decimal" placeholder="0.000" value={form.cbm} onChange={set("cbm")} />
-              </div>
-              <div>
-                <label className="lbl" htmlFor="p-peso">Peso (kg)</label>
-                <input id="p-peso" className="inp num" inputMode="decimal" placeholder="0" value={form.peso} onChange={set("peso")} />
-              </div>
-              <div>
-                <label className="lbl" htmlFor="p-pcbm">Precio CBM</label>
-                <input id="p-pcbm" className="inp num" inputMode="decimal" placeholder="0.00" value={form.precioCbm} onChange={set("precioCbm")} />
-              </div>
-            </div>
-
-            {(num(form.cbm) > 0 || num(form.peso) > 0) && (
-              <div>
-                <ComparaCbm k={cbmCobro(form.cbm, form.peso)} />
-                <p className="text-sm muted mt-1 num">
-                  Precio CBM por unidad: {money(cbmCobro(form.cbm, form.peso).cobrable * num(form.precioCbm))}
-                </p>
-              </div>
-            )}
-
-            <div className="form-grid-2">
-              <div>
-                <label className="lbl" htmlFor="p-precio">Precio producto</label>
-                <input id="p-precio" className="inp num" inputMode="decimal" placeholder="0.00" value={form.precioProducto} onChange={set("precioProducto")} />
-              </div>
-              <div>
-                <label className="lbl" htmlFor="p-venta">Precio de venta</label>
-                <input id="p-venta" className="inp inp-venta num" inputMode="decimal" placeholder="0.00" value={form.precioVenta} onChange={set("precioVenta")} />
-              </div>
-            </div>
-
-            {(() => {
-              const fleteForm = cbmCobro(num(form.cbm), num(form.peso)).cobrable * num(form.precioCbm);
-              const comisionForm = num(form.precioProducto) * COMISION;
-              const costo = num(form.precioProducto) + fleteForm + comisionForm;
-              const venta = num(form.precioVenta);
-              const ganancia = venta - costo;
-              const porcentaje = costo > 0 && venta > 0 ? (ganancia / costo) * 100 : null;
-              const fijos = [20, 30, 40];
-              const poner = (n) => setForm((f) => ({ ...f, precioVenta: String(precioConGanancia(costo, n)) }));
-              const esFijo = fijos.some((n) => venta === precioConGanancia(costo, n));
-              return (
-                <div className="paper p-3" style={{ background: "#FFF9E6", borderColor: "#E2C45C" }}>
-                  <div className="font-semibold">Precio de venta por porcentaje de ganancia</div>
-                  <p className="text-sm muted num" style={{ margin: "2px 0 10px", lineHeight: 1.3 }}>
-                    {costo > 0
-                      ? `Costo real ${money(costo)}: producto ${money(num(form.precioProducto))} + flete ${money(fleteForm)} + comisión ${pct(COMISION)} ${money(comisionForm)}. Toca un porcentaje o escribe el precio de venta arriba.`
-                      : "Escribe primero el precio del producto, el CBM y el precio del CBM para poder calcular."}
-                  </p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-                    {fijos.map((n) => (
-                      <button type="button" key={n} disabled={costo <= 0} aria-pressed={venta > 0 && venta === precioConGanancia(costo, n)}
-                        className={`btn ${venta > 0 && venta === precioConGanancia(costo, n) ? "btn-primary" : "btn-ghost"}`} onClick={() => poner(n)}>{n}%</button>
-                    ))}
-                    <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      <span className="lbl" style={{ margin: 0 }}>Otro</span>
-                      <input className="inp num" style={{ width: 90 }} inputMode="decimal" placeholder="%" aria-label="Otro porcentaje de ganancia" disabled={costo <= 0}
-                        value={porcentaje === null || esFijo ? "" : String(Math.round(porcentaje * 10) / 10)}
-                        onChange={(e) => {
-                          const n = parseFloat(e.target.value.replace(",", "."));
-                          setForm((f) => ({ ...f, precioVenta: e.target.value === "" || isNaN(n) ? "" : String(precioConGanancia(costo, n)) }));
-                        }} />
-                      <span>%</span>
-                    </label>
+        {(() => {
+          const k = cbmCobro(num(form.cbm), num(form.peso));
+          const fleteForm = k.cobrable * num(form.precioCbm);
+          const comisionForm = num(form.precioProducto) * COMISION;
+          const costo = num(form.precioProducto) + fleteForm + comisionForm;
+          const venta = num(form.precioVenta);
+          const ganancia = venta - costo;
+          const porcentaje = costo > 0 && venta > 0 ? (ganancia / costo) * 100 : null;
+          const fijos = [20, 30, 40];
+          const poner = (n) => setForm((f) => ({ ...f, precioVenta: String(precioConGanancia(costo, n)) }));
+          const esFijo = fijos.some((n) => venta === precioConGanancia(costo, n));
+          const colorGanancia = venta <= 0 ? "#7A5A00" : ganancia < 0 ? "#A3321F" : "#14653A";
+          return (
+            <div className="pf-wrap">
+              <div className="pf-col">
+                <div className="pf-sec">
+                  <h3 className="pf-tit"><b>1</b>Datos del producto</h3>
+                  <div className="pf-datos">
+                    <div>
+                      <PhotoBox value={form.foto} onChange={(foto) => setForm((f) => ({ ...f, foto }))} />
+                      <MasFotos fotos={form.fotos || []} cambiar={(fotos) => setForm((f) => ({ ...f, fotos }))} avisar={avisar} />
+                    </div>
+                    <div className="form-producto">
+                      <div className="form-grid-2">
+                        <div>
+                          <label className="lbl" htmlFor="p-codigo">Código</label>
+                          <input id="p-codigo" className="inp" value={form.codigo} onChange={set("codigo")} />
+                        </div>
+                        <div>
+                          <label className="lbl" htmlFor="p-marca">Marca</label>
+                          <input id="p-marca" className="inp" value={form.marca} onChange={set("marca")} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="lbl" htmlFor="p-nombre">Nombre</label>
+                        <input id="p-nombre" className="inp" value={form.nombre} onChange={set("nombre")} />
+                      </div>
+                      <div>
+                        <label className="lbl" htmlFor="p-categoria">Categoría</label>
+                        {creandoCategoria ? <input id="p-categoria" className="inp" maxLength={100} value={form.categoria}
+                          onChange={set("categoria")} placeholder="Nombre de la nueva categoría" /> :
+                          <select id="p-categoria" className="inp" value={form.categoria} onChange={set("categoria")}>
+                            <option value="">Selecciona una categoría</option>
+                            {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>}
+                        <button type="button" className="btn btn-ghost mt-2" onClick={() => {
+                          setCreandoCategoria(v => !v); setForm(f => ({ ...f, categoria: "" }));
+                        }}>{creandoCategoria ? "Elegir categoría existente" : "Nueva categoría"}</button>
+                        {creandoCategoria && <p className="muted text-sm mt-1">La categoría se guardará junto con el producto.</p>}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm num mt-2" style={{ fontWeight: 600, color: venta <= 0 ? "#7A5A00" : ganancia < 0 ? "#A3321F" : "#1D7A46" }}>
-                    {venta <= 0 ? "Sin precio de venta: en el catálogo el cliente verá «Consultar»."
-                      : `${ganancia < 0 ? "Pierdes" : "Ganas"} ${money(Math.abs(ganancia))}${porcentaje === null ? "" : ` (${porcentaje.toLocaleString("en-US", { maximumFractionDigits: 1 })}%)`}`}
-                  </p>
                 </div>
-              );
-            })()}
 
-            <div>
-              <label className="lbl" htmlFor="p-resumen">Descripción</label>
-              <textarea id="p-resumen" className="inp" rows={2} placeholder="Qué es y para qué sirve el producto"
-                value={form.resumen} onChange={set("resumen")} />
-            </div>
-            <div className="form-grid-2">
-              <div>
-                <label className="lbl" htmlFor="p-caracteristicas">Características (una por línea)</label>
-                <textarea id="p-caracteristicas" className="inp" rows={5} placeholder={"Cable de acero de 10 mm\nCuatro adaptadores"}
-                  value={form.caracteristicas} onChange={set("caracteristicas")} />
-              </div>
-              <div>
-                <label className="lbl" htmlFor="p-ficha">Ficha técnica (dato: valor, uno por línea)</label>
-                <textarea id="p-ficha" className="inp" rows={5} placeholder={"Capacidad de elevación: 4000 kg\nMotor: 220 V, 2.2 kW"}
-                  value={form.ficha} onChange={set("ficha")} />
-              </div>
-            </div>
-            <div className="form-grid-2">
-              <div>
-                <label className="lbl" htmlFor="p-incluye">Incluye (un artículo por línea)</label>
-                <textarea id="p-incluye" className="inp" rows={3} placeholder="Caja de herramientas × 1"
-                  value={form.incluye} onChange={set("incluye")} />
-              </div>
-              <div>
-                <label className="lbl" htmlFor="p-opcionales">Accesorios opcionales (uno por línea)</label>
-                <textarea id="p-opcionales" className="inp" rows={3}
-                  value={form.opcionales} onChange={set("opcionales")} />
-              </div>
-            </div>
-            <p className="text-sm muted" style={{ lineHeight: 1.3 }}>
-              Estos datos aparecen en la ficha del producto dentro del catálogo.
-            </p>
+                <div className="pf-sec form-producto">
+                  <h3 className="pf-tit"><b>2</b>Empaque y envío</h3>
+                  <div>
+                    <label className="lbl" htmlFor="p-empaque">Medidas de empaque (largo × ancho × alto)</label>
+                    <input id="p-empaque" className="inp num" placeholder="Ejemplo: 3850 × 540 × 800 mm" value={form.empaque} onChange={set("empaque")} />
+                    {medidasCbm > 0 && (
+                      <p className="text-sm muted mt-1 num" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        Estas medidas dan {m3(medidasCbm)} m³.
+                        {num(form.cbm) !== medidasCbm && (
+                          <button type="button" className="btn btn-ghost text-sm" style={{ padding: "4px 10px" }}
+                            onClick={() => setForm((f) => ({ ...f, cbm: String(medidasCbm) }))}>Usar como CBM</button>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div className="form-grid-3">
+                    <div>
+                      <label className="lbl" htmlFor="p-cbm">CBM (m³)</label>
+                      <input id="p-cbm" className="inp num" inputMode="decimal" placeholder="0.000" value={form.cbm} onChange={set("cbm")} />
+                    </div>
+                    <div>
+                      <label className="lbl" htmlFor="p-peso">Peso (kg)</label>
+                      <input id="p-peso" className="inp num" inputMode="decimal" placeholder="0" value={form.peso} onChange={set("peso")} />
+                    </div>
+                    <div>
+                      <label className="lbl" htmlFor="p-pcbm">Precio CBM</label>
+                      <input id="p-pcbm" className="inp num" inputMode="decimal" placeholder="0.00" value={form.precioCbm} onChange={set("precioCbm")} />
+                    </div>
+                  </div>
+                  {(num(form.cbm) > 0 || num(form.peso) > 0) && (
+                    <div>
+                      <ComparaCbm k={k} />
+                      <p className="text-sm muted mt-1 num">Flete por unidad: {money(fleteForm)}</p>
+                    </div>
+                  )}
+                </div>
 
-            {error && <p className="text-sm font-medium" style={{ color: "#A3321F" }} role="alert">{error}</p>}
+                <div className="pf-sec form-producto">
+                  <h3 className="pf-tit"><b>3</b>Precio</h3>
+                  <div className="form-grid-2">
+                    <div>
+                      <label className="lbl" htmlFor="p-precio">Precio producto</label>
+                      <input id="p-precio" className="inp num" inputMode="decimal" placeholder="0.00" value={form.precioProducto} onChange={set("precioProducto")} />
+                    </div>
+                    <div>
+                      <label className="lbl" htmlFor="p-venta">Precio de venta</label>
+                      <input id="p-venta" className="inp inp-venta num" inputMode="decimal" placeholder="0.00" value={form.precioVenta} onChange={set("precioVenta")} />
+                    </div>
+                  </div>
+                  <div className="paper p-3" style={{ background: "#FFF9E6", borderColor: "#E2C45C" }}>
+                    <div className="font-semibold">Precio de venta por porcentaje de ganancia</div>
+                    <p className="text-sm muted num" style={{ margin: "2px 0 10px", lineHeight: 1.3 }}>
+                      {costo > 0
+                        ? `Costo real ${money(costo)}: producto ${money(num(form.precioProducto))} + flete ${money(fleteForm)} + comisión ${pct(COMISION)} ${money(comisionForm)}. Toca un porcentaje o escribe el precio de venta arriba.`
+                        : "Escribe primero el precio del producto, el CBM y el precio del CBM para poder calcular."}
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                      {fijos.map((n) => (
+                        <button type="button" key={n} disabled={costo <= 0} aria-pressed={venta > 0 && venta === precioConGanancia(costo, n)}
+                          className={`btn ${venta > 0 && venta === precioConGanancia(costo, n) ? "btn-primary" : "btn-ghost"}`} onClick={() => poner(n)}>{n}%</button>
+                      ))}
+                      <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                        <span className="lbl" style={{ margin: 0 }}>Otro</span>
+                        <input className="inp num" style={{ width: 90 }} inputMode="decimal" placeholder="%" aria-label="Otro porcentaje de ganancia" disabled={costo <= 0}
+                          value={porcentaje === null || esFijo ? "" : String(Math.round(porcentaje * 10) / 10)}
+                          onChange={(e) => {
+                            const n = parseFloat(e.target.value.replace(",", "."));
+                            setForm((f) => ({ ...f, precioVenta: e.target.value === "" || isNaN(n) ? "" : String(precioConGanancia(costo, n)) }));
+                          }} />
+                        <span>%</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
 
-            <div className="form-acciones">
-              <button className="btn btn-primary" onClick={submit} disabled={guardando}>
-                {guardando ? "Guardando…" : editId ? "Guardar cambios" : "Guardar producto"}
-              </button>
-              {editId && (
-                <button className="btn btn-ghost" onClick={() => { setEditId(null); setForm(VACIO); setError(""); }}>Cancelar</button>
-              )}
+                <div className="pf-sec form-producto">
+                  <h3 className="pf-tit"><b>4</b>Ficha del catálogo</h3>
+                  <div>
+                    <label className="lbl" htmlFor="p-resumen">Descripción</label>
+                    <textarea id="p-resumen" className="inp" rows={2} placeholder="Qué es y para qué sirve el producto"
+                      value={form.resumen} onChange={set("resumen")} />
+                  </div>
+                  <div className="form-grid-2">
+                    <div>
+                      <label className="lbl" htmlFor="p-caracteristicas">Características (una por línea)</label>
+                      <textarea id="p-caracteristicas" className="inp" rows={5} placeholder={"Cable de acero de 10 mm\nCuatro adaptadores"}
+                        value={form.caracteristicas} onChange={set("caracteristicas")} />
+                    </div>
+                    <div>
+                      <label className="lbl" htmlFor="p-ficha">Ficha técnica (dato: valor, uno por línea)</label>
+                      <textarea id="p-ficha" className="inp" rows={5} placeholder={"Capacidad de elevación: 4000 kg\nMotor: 220 V, 2.2 kW"}
+                        value={form.ficha} onChange={set("ficha")} />
+                    </div>
+                  </div>
+                  <div className="form-grid-2">
+                    <div>
+                      <label className="lbl" htmlFor="p-incluye">Incluye (un artículo por línea)</label>
+                      <textarea id="p-incluye" className="inp" rows={3} placeholder="Caja de herramientas × 1"
+                        value={form.incluye} onChange={set("incluye")} />
+                    </div>
+                    <div>
+                      <label className="lbl" htmlFor="p-opcionales">Accesorios opcionales (uno por línea)</label>
+                      <textarea id="p-opcionales" className="inp" rows={3}
+                        value={form.opcionales} onChange={set("opcionales")} />
+                    </div>
+                  </div>
+                </div>
+
+                <details className="pf-extra">
+                  <summary>Oferta y destacado{form.destacado === "si" || num(form.precioAntes) > 0 ? " · con datos" : ""}</summary>
+                  <div className="form-grid-2 mt-2">
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 600 }}>
+                      <input type="checkbox" style={{ width: 20, height: 20 }} checked={form.destacado === "si"}
+                        onChange={(e) => setForm((f) => ({ ...f, destacado: e.target.checked ? "si" : "" }))} />
+                      Destacado: sale de primero en el catálogo
+                    </label>
+                    <div>
+                      <label className="lbl" htmlFor="p-antes">Precio anterior, si está en oferta (opcional)</label>
+                      <input id="p-antes" className="inp num" inputMode="decimal" placeholder="0.00" value={form.precioAntes} onChange={set("precioAntes")} />
+                      <p className="muted text-sm mt-1">Si es mayor que el precio de venta, sale tachado con la etiqueta «Oferta».</p>
+                    </div>
+                  </div>
+                </details>
+                <details className="pf-extra">
+                  <summary>Versiones (si se vende en varias opciones){form.grupo || form.opcion ? " · con datos" : ""}</summary>
+                  <div className="form-grid-2 mt-2">
+                    <div>
+                      <label className="lbl" htmlFor="p-grupo">Grupo de opciones</label>
+                      <input id="p-grupo" className="inp" placeholder="Igual en todas las versiones. Ejemplo: XF-702E + XF-C650S" value={form.grupo} onChange={set("grupo")} />
+                    </div>
+                    <div>
+                      <label className="lbl" htmlFor="p-opcion">Nombre de esta versión</label>
+                      <input id="p-opcion" className="inp" placeholder="Ejemplo: Cabezales Epson XP600" value={form.opcion} onChange={set("opcion")} />
+                    </div>
+                  </div>
+                  <p className="muted text-sm mt-1">El cliente ve una sola tarjeta y elige la versión; cada una tiene su código y su precio.</p>
+                </details>
+                <details className="pf-extra">
+                  <summary>Versión en inglés (opcional){form.nombreEn || form.descripcionEn ? " · con datos" : ""}</summary>
+                  <p className="muted text-sm mt-2">Es lo que ve el cliente cuando pone el catálogo en inglés. Lo que dejes vacío se muestra en español.</p>
+                  <div className="form-grid-2 mt-2">
+                    <div>
+                      <label className="lbl" htmlFor="p-nombre-en">Nombre en inglés</label>
+                      <input id="p-nombre-en" className="inp" value={form.nombreEn} onChange={set("nombreEn")} />
+                    </div>
+                    <div>
+                      <label className="lbl" htmlFor="p-categoria-en">Categoría en inglés</label>
+                      <input id="p-categoria-en" className="inp" value={form.categoriaEn} onChange={set("categoriaEn")} />
+                    </div>
+                  </div>
+                  <label className="lbl mt-2" htmlFor="p-descripcion-en">Ficha en inglés (mismo orden que la ficha en español; deja los títulos «Marca:», «Características:», «Ficha técnica:», «Incluye:» tal cual)</label>
+                  <textarea id="p-descripcion-en" className="inp" rows={6} value={form.descripcionEn} onChange={set("descripcionEn")} />
+                </details>
+              </div>
+
+              <aside className="pf-resumen">
+                <h3 className="pf-tit" style={{ marginBottom: 6 }}>Resumen</h3>
+                <div className="pf-fila"><span>Producto</span><b className="num">{money(num(form.precioProducto))}</b></div>
+                <div className="pf-fila"><span>Flete</span><b className="num">{money(fleteForm)}</b></div>
+                <div className="pf-fila"><span>Comisión {pct(COMISION)}</span><b className="num">{money(comisionForm)}</b></div>
+                <div className="pf-fila"><span>Costo real</span><b className="num">{money(costo)}</b></div>
+                <div className="pf-fila"><span>Precio de venta</span><b className="num">{venta > 0 ? money(venta) : "—"}</b></div>
+                <div className="pf-ganancia">
+                  <small>Ganancia</small>
+                  <b className="cond num" style={{ color: colorGanancia }}>{venta > 0 ? money(ganancia) : "—"}</b>
+                  <span className="text-sm num" style={{ color: colorGanancia, fontWeight: 600 }}>
+                    {venta <= 0 ? "Sin precio de venta: el cliente verá «Consultar»." : porcentaje === null ? "" : `${porcentaje.toLocaleString("en-US", { maximumFractionDigits: 1 })}% sobre el costo`}
+                  </span>
+                </div>
+                {error && <p className="text-sm font-medium" style={{ color: "#A3321F" }} role="alert">{error}</p>}
+                <div className="form-acciones" style={{ flexWrap: "wrap" }}>
+                  <button className="btn btn-primary" style={{ flex: "1 1 auto" }} onClick={submit} disabled={guardando}>
+                    {guardando ? "Guardando…" : editId ? "Guardar cambios" : "Guardar producto"}
+                  </button>
+                  {editId && (
+                    <button className="btn btn-ghost" onClick={() => { setEditId(null); setForm(VACIO); setError(""); }}>Cancelar</button>
+                  )}
+                </div>
+              </aside>
             </div>
-          </div>
-        </div>
+          );
+        })()}
       </section>
 
       <OfertaTodos productos={productos} guardarProductos={guardarProductos} avisar={avisar} />

@@ -120,10 +120,10 @@ console.log('Cupones: porcentaje, monto fijo, vencido, mínimo, desactivado y re
 // Enlace de socios: solo con el token guardado y encendido.
 {
   const bueno = 'a'.repeat(32);
-  let activo = true;
+  let activo = true, codigo = '';
   globalThis.fetch = async (url) => {
     const u = new URL(url);
-    if (u.pathname.endsWith('/configuracion')) return Response.json([{ clave: 'enlace-socios', valor: { token: bueno, ...(activo ? {} : { activo: false }) } }, { clave: 'empresa', valor: { nombre: 'EVK', logo: '' } }]);
+    if (u.pathname.endsWith('/configuracion')) return Response.json([{ clave: 'enlace-socios', valor: { token: bueno, ...(activo ? {} : { activo: false }), ...(codigo ? { codigo } : {}) } }, { clave: 'empresa', valor: { nombre: 'EVK', logo: '' } }]);
     if (u.pathname.endsWith('/productos')) return Response.json(u.searchParams.get('offset') === '0' ? [{ id: 'p1', codigo: 'A-1', precio_producto: 100, precio_venta: 900, creado: 'x' }] : []);
     return Response.json([]);
   };
@@ -135,5 +135,10 @@ console.log('Cupones: porcentaje, monto fijo, vencido, mínimo, desactivado y re
   activo = false;
   r = await worker.fetch(req('/api/socios/' + bueno, 'GET', undefined, ''), env); assert.equal(r.status, 403);
   assert.equal('productos' in (await r.json()), false);
-  console.log('Enlace de socios: solo con el token guardado y encendido.');
+  activo = true; codigo = '4821';
+  const conCodigo = (c) => new Request('https://example.com/api/socios/' + bueno, c ? { headers: { 'x-codigo': c } } : {});
+  r = await worker.fetch(conCodigo(), env); assert.equal(r.status, 401); assert.equal('productos' in (await r.json()), false);
+  r = await worker.fetch(conCodigo('1111'), env); assert.equal(r.status, 401); assert.match((await r.json()).error, /incorrecto/);
+  r = await worker.fetch(conCodigo('4821'), env); assert.equal(r.status, 200);
+  console.log('Enlace de socios: solo con el token guardado, encendido y con el código.');
 }

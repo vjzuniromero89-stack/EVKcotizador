@@ -3286,6 +3286,10 @@ function CajaEnlaceSocios({ ruta, socios, cambiar, queVen, mensaje }) {
   const nuevoEnlace = async () => { setCambiando(true); await cambiar(); setCambiando(false); };
   const encendido = socios?.activo !== false;
   const alternar = async () => { setCambiando(true); await cambiar({ activo: !encendido }); setCambiando(false); };
+  const [codigo, setCodigo] = useState(socios?.codigo || "");
+  useEffect(() => { setCodigo(socios?.codigo || ""); }, [socios?.codigo]);
+  const codigoValido = /^\d{4}$/.test(codigo);
+  const guardarCodigo = async (e) => { e.preventDefault(); if (!codigoValido) return; setCambiando(true); await cambiar({ codigo }); setCambiando(false); };
   return (
     <section className="pagos-caja">
       <div className="flex items-center gap-3" style={{ flexWrap: "wrap", justifyContent: "space-between" }}>
@@ -3312,6 +3316,15 @@ function CajaEnlaceSocios({ ruta, socios, cambiar, queVen, mensaje }) {
           <a className="btn btn-ghost" style={{ textDecoration: "none" }} target="_blank" rel="noopener noreferrer"
             href={`https://wa.me/?text=${encodeURIComponent(`${mensaje}:\n${enlace}`)}`}>Enviar por WhatsApp</a>
           <button className="btn btn-ghost" onClick={nuevoEnlace} disabled={cambiando}>{cambiando ? "Cambiando…" : "Cambiar enlace"}</button>
+          <form onSubmit={guardarCodigo} className="flex gap-2 items-center" style={{ flexBasis: "100%", flexWrap: "wrap" }}>
+            <label className="lbl" htmlFor="socios-codigo" style={{ margin: 0 }}>Código para entrar (4 dígitos)</label>
+            <input id="socios-codigo" className="inp num" style={{ width: 110, letterSpacing: 4, textAlign: "center" }} inputMode="numeric" maxLength={4}
+              autoComplete="off" value={codigo} onChange={(e) => setCodigo(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="0000" />
+            <button className="btn btn-primary" disabled={!codigoValido || codigo === (socios?.codigo || "") || cambiando}>Guardar código</button>
+            <span className="text-sm" style={{ color: socios?.codigo ? "#12873F" : "#8A4B00" }}>
+              {socios?.codigo ? "Tus socios tienen que escribir este código para ver la tabla." : "Sin código: cualquiera con el enlace entra."}
+            </span>
+          </form>
         </div>
       ) : (
         <button className="btn btn-primary mt-2" onClick={nuevoEnlace} disabled={cambiando}><Plus size={16} />{cambiando ? "Creando…" : "Crear enlace para socios"}</button>
@@ -3488,14 +3501,15 @@ function AdminApp({ sesion }) {
   // Enlace de solo lectura para que los socios vean la ganancia por producto (/socios/<token>).
   const [enlaces, setEnlaces] = useState({});
   useEffect(() => { sbLeerConfig("enlace-socios").then((v) => { if (v?.token) setEnlaces((e) => ({ ...e, "enlace-socios": v })); }); }, []);
-  // Sin opciones: enlace nuevo (encendido). Con { activo }: el mismo enlace, encendido o apagado.
-  const cambiarEnlace = async (clave, { activo } = {}) => {
-    const valor = activo === undefined
-      ? { token: crypto.randomUUID().replace(/-/g, ""), creado: new Date().toISOString() }
-      : { ...enlaces[clave], activo };
+  // Sin cambios: enlace nuevo (encendido, con el mismo código). Con { activo } o { codigo }: el mismo enlace con ese cambio.
+  const cambiarEnlace = async (clave, cambios) => {
+    const antes = enlaces[clave] || {};
+    const valor = cambios
+      ? { ...antes, ...cambios }
+      : { token: crypto.randomUUID().replace(/-/g, ""), creado: new Date().toISOString(), ...(antes.codigo ? { codigo: antes.codigo } : {}) };
     if (await sbGuardarConfig(clave, valor)) {
       setEnlaces((e) => ({ ...e, [clave]: valor }));
-      avisar(activo === undefined ? "Enlace para socios listo" : activo ? "Enlace encendido" : "Enlace apagado");
+      avisar(!cambios ? "Enlace para socios listo" : "codigo" in cambios ? "Código guardado" : cambios.activo ? "Enlace encendido" : "Enlace apagado");
     } else avisar("No se pudo guardar el enlace para socios.", "error");
   };
   const avisar = (msg, tipo = "ok") => {
@@ -3799,11 +3813,19 @@ function Rutas() {
 function VistaSocios({ token }) {
   const [datos, setDatos] = useState(null);
   const [estado, setEstado] = useState("cargando");
-  useEffect(() => {
-    fetch(`/api/socios/${encodeURIComponent(token)}`, { cache: "no-store" })
-      .then(async (r) => { const d = await r.json().catch(() => ({})); if (r.ok && d.ok) { setDatos(d); setEstado("listo"); } else setEstado(r.status === 404 ? "no-valido" : r.status === 403 ? "apagado" : "error"); })
+  const [codigo, setCodigo] = useState("");
+  const [errorCodigo, setErrorCodigo] = useState("");
+  const cargar = (c = "") => {
+    fetch(`/api/socios/${encodeURIComponent(token)}`, { cache: "no-store", headers: c ? { "x-codigo": c } : {} })
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && d.ok) { setDatos(d); setEstado("listo"); return; }
+        if (r.status === 401) { setEstado("codigo"); setErrorCodigo(c ? d.error || "Código incorrecto." : ""); return; }
+        setEstado(r.status === 404 ? "no-valido" : r.status === 403 ? "apagado" : "error");
+      })
       .catch(() => setEstado("error"));
-  }, [token]);
+  };
+  useEffect(() => { cargar(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
   const productos = useMemo(() => (datos?.productos || []).map((p) => ({
     id: p.id, codigo: p.codigo || "", nombre: p.nombre || "", categoria: p.categoria || "Sin categoría", descripcion: p.descripcion || "",
     cbm: p.cbm || 0, peso: p.peso || 0, precioCbm: p.precio_cbm || 0, precioProducto: p.precio_producto || 0, precioVenta: p.precio_venta || 0, foto: p.foto || "",
@@ -3817,7 +3839,17 @@ function VistaSocios({ token }) {
           <img src={datos?.empresa?.logo || LOGO_POR_DEFECTO} alt="" style={{ height: 52, maxWidth: 110, objectFit: "contain", background: "#fff", borderRadius: 8, padding: 4 }} />
           <div><div className="cond" style={{ fontSize: 24, fontWeight: 700, lineHeight: 1 }}>{nombre}</div><div className="text-sm muted">Vista para socios · solo lectura</div></div>
         </div>
-        {estado === "listo" ? <MargenesView productos={productos} soloLectura /> :
+        {estado === "listo" ? <MargenesView productos={productos} soloLectura /> : estado === "codigo" ? (
+          <form className="paper p-6" style={{ maxWidth: 360, margin: "0 auto", textAlign: "center" }}
+            onSubmit={(e) => { e.preventDefault(); if (/^\d{4}$/.test(codigo)) cargar(codigo); }}>
+            <label className="lbl" htmlFor="codigo-socio" style={{ fontSize: 16 }}>Escribe el código de 4 dígitos</label>
+            <input id="codigo-socio" className="inp num mt-2" style={{ fontSize: 28, letterSpacing: 10, textAlign: "center", maxWidth: 200 }}
+              inputMode="numeric" maxLength={4} autoComplete="off" autoFocus value={codigo}
+              onChange={(e) => { setCodigo(e.target.value.replace(/\D/g, "").slice(0, 4)); setErrorCodigo(""); }} />
+            {errorCodigo && <p role="alert" className="mt-2" style={{ color: "#A3321F", fontWeight: 700 }}>{errorCodigo}</p>}
+            <button className="btn btn-primary mt-3" disabled={codigo.length !== 4}>Entrar</button>
+          </form>
+        ) :
           <div className="paper p-6 text-center muted">{estado === "cargando" ? "Cargando…" : estado === "no-valido" ? "Este enlace ya no es válido. Pide uno nuevo." : estado === "apagado" ? "Este enlace está apagado por ahora." : "No se pudo cargar. Inténtalo de nuevo en un momento."}</div>}
       </main>
     </div>

@@ -269,6 +269,10 @@ export default {
       const fila = (clave) => (Array.isArray(c.data) ? c.data.find((x) => x.clave === clave)?.valor : null) || {};
       if (!fila("enlace-socios").token || fila("enlace-socios").token !== tokenSocios) return json({ ok: false, error: "Este enlace ya no es válido." }, 404);
       if (fila("enlace-socios").activo === false) return json({ ok: false, error: "Este enlace está apagado por ahora." }, 403);
+      // Código de 4 dígitos que pone el dueño; sin él no se ve nada.
+      const codigoSocios = String(fila("enlace-socios").codigo || "");
+      const codigoDado = (request.headers.get("x-codigo") || "").trim();
+      if (codigoSocios && codigoDado !== codigoSocios) return json({ ok: false, codigo: true, error: codigoDado ? "Código incorrecto." : "Escribe el código." }, 401);
       const campos = ["id", "codigo", "nombre", "descripcion", "categoria", "cbm", "peso", "precio_cbm", "precio_producto", "precio_venta", "foto"];
       const productos = [];
       for (let offset = 0; ; ) {

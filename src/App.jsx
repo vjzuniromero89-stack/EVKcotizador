@@ -1562,7 +1562,7 @@ function EmpresaCard({ empresa, guardarEmpresa, avisar }) {
 
 /** Oferta para todos: el precio de venta no cambia y se pone un precio anterior tal que el descuento que ve el cliente sea el %. */
 function OfertaTodos({ productos, guardarProductos, avisar }) {
-  const [porcentaje, setPorcentaje] = useState("10");
+  const [porcentaje, setPorcentaje] = useState("15");
   const [confirmar, setConfirmar] = useState("");
   const [guardando, setGuardando] = useState(false);
   const pct = num(porcentaje);

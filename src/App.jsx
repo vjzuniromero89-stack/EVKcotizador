@@ -3320,6 +3320,9 @@ function CajaEnlaceSocios({ ruta, socios, cambiar, queVen, mensaje }) {
   );
 }
 
+// shortcut: lista fija de categorías de taller; una categoría nueva de carro hay que agregarla aquí.
+const CATEGORIAS_CARRO = new Set(["Elevadores", "Alineadoras 3D", "Balanceadoras", "Desmontadoras de llantas", "Tornos de frenos", "Carrocería", "Extractores de aceite", "Herramientas"]);
+
 function MargenesView({ productos, irA, socios, cambiarEnlaceSocios, soloLectura = false }) {
   const [q, setQ] = useState("");
   const [orden, setOrden] = useState("menos");
@@ -3338,7 +3341,9 @@ function MargenesView({ productos, irA, socios, cambiarEnlaceSocios, soloLectura
     const lista = filas.filter((f) => !s || `${f.p.codigo} ${f.p.nombre} ${f.p.categoria}`.toLowerCase().includes(s));
     // Los que no tienen precio de venta o de costo van al final en cualquier orden.
     const clave = { menos: (f) => f.sobreCosto, mas: (f) => -f.sobreCosto, ganancia: (f) => -f.ganancia, nombre: () => 0 }[orden];
-    return [...lista].sort((x, y) => (x.listo === y.listo ? (x.listo ? clave(x) - clave(y) : 0) || x.p.nombre.localeCompare(y.p.nombre, "es") : x.listo ? -1 : 1));
+    // Primero las máquinas de carro, después el resto.
+    const resto = (f) => (CATEGORIAS_CARRO.has(f.p.categoria) ? 0 : 1);
+    return [...lista].sort((x, y) => resto(x) - resto(y) || (x.listo === y.listo ? (x.listo ? clave(x) - clave(y) : 0) || x.p.nombre.localeCompare(y.p.nombre, "es") : x.listo ? -1 : 1));
   }, [filas, q, orden]);
   const listos = filas.filter((f) => f.listo);
   const sinPrecio = filas.filter((f) => !(f.venta > 0)).length;
